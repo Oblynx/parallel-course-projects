@@ -1,3 +1,7 @@
+# Bins
+build/
+# Hidden
+.*
 # Compiled Object files
 *.slo
 *.lo
