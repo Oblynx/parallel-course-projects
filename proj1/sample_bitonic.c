@@ -199,7 +199,7 @@ void impBitonicSort() {
 
   int i,j,k;
   
-  for (k=2; k<=N; k=2*k) {
+  for (k=2; k<=N; k=k<<1) {
     for (j=k>>1; j>0; j=j>>1) {
       for (i=0; i<N; i++) {
 	int ij=i^j;
