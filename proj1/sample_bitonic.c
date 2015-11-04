@@ -1,30 +1,30 @@
 /*
- bitonic.c 
+   bitonic.c 
 
- This file contains two different implementations of the bitonic sort
-        recursive  version :  rec
-        imperative version :  impBitonicSort() 
- 
-
- The bitonic sort is also known as Batcher Sort. 
- For a reference of the algorithm, see the article titled 
- Sorting networks and their applications by K. E. Batcher in 1968 
+   This file contains two different implementations of the bitonic sort
+   recursive  version :  rec
+   imperative version :  impBitonicSort() 
 
 
- The following codes take references to the codes avaiable at 
+   The bitonic sort is also known as Batcher Sort. 
+   For a reference of the algorithm, see the article titled 
+   Sorting networks and their applications by K. E. Batcher in 1968 
 
- http://www.cag.lcs.mit.edu/streamit/results/bitonic/code/c/bitonic.c
 
- http://www.tools-of-computing.com/tc/CS/Sorts/bitonic_sort.htm
+   The following codes take references to the codes avaiable at 
 
- http://www.iti.fh-flensburg.de/lang/algorithmen/sortieren/bitonic/bitonicen.htm 
- */
+http://www.cag.lcs.mit.edu/streamit/results/bitonic/code/c/bitonic.c
+
+http://www.tools-of-computing.com/tc/CS/Sorts/bitonic_sort.htm
+
+http://www.iti.fh-flensburg.de/lang/algorithmen/sortieren/bitonic/bitonicen.htm 
+*/
 
 /* 
-------- ---------------------- 
+   ------- ---------------------- 
    Nikos Pitsianis, Duke CS 
------------------------------
-*/
+   -----------------------------
+   */
 
 
 #include <stdio.h>
@@ -58,13 +58,13 @@ int main(int argc, char **argv) {
 
   if (argc != 2) {
     printf("Usage: %s q\n  where n=2^q is problem size (power of two)\n", 
-	   argv[0]);
+        argv[0]);
     exit(1);
   }
 
   N = 1<<atoi(argv[1]);
   a = (int *) malloc(N * sizeof(int));
-  
+
   init();
 
   gettimeofday (&startwtime, NULL);
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   gettimeofday (&endwtime, NULL);
 
   seq_time = (double)((endwtime.tv_usec - startwtime.tv_usec)/1.0e6
-		      + endwtime.tv_sec - startwtime.tv_sec);
+      + endwtime.tv_sec - startwtime.tv_sec);
 
   printf("Imperative wall clock time = %f\n", seq_time);
 
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
   gettimeofday (&endwtime, NULL);
 
   seq_time = (double)((endwtime.tv_usec - startwtime.tv_usec)/1.0e6
-		      + endwtime.tv_sec - startwtime.tv_sec);
+      + endwtime.tv_sec - startwtime.tv_sec);
 
   printf("Recursive wall clock time = %f\n", seq_time);
 
@@ -110,9 +110,11 @@ void test() {
 /** procedure init() : initialize array "a" with data **/
 void init() {
   int i;
+  printf("Initialising:\n");
   for (i = 0; i < N; i++) {
-    a[i] = rand() % N; // (N - i);
+    a[i] = rand() % 20; // (N - i);
   }
+  printf("\nReady for sorting\n\n");
 }
 
 /** procedure  print() : print array elements **/
@@ -126,33 +128,28 @@ void print() {
 
 
 /** INLINE procedure exchange() : pair swap **/
-inline void exchange(int i, int j) {
+inline void exchange(const int i, const int j) {
   int t;
-  t = a[i];
-  a[i] = a[j];
-  a[j] = t;
+  t = a[i], a[i] = a[j], a[j] = t;
 }
 
 
 
 /** procedure compare() 
-   The parameter dir indicates the sorting direction, ASCENDING 
-   or DESCENDING; if (a[i] > a[j]) agrees with the direction, 
-   then a[i] and a[j] are interchanged.
-**/
+  The parameter dir indicates the sorting direction, ASCENDING 
+  or DESCENDING; if (a[i] > a[j]) agrees with the direction, 
+  then a[i] and a[j] are interchanged.
+ **/
 inline void compare(int i, int j, int dir) {
   if (dir==(a[i]>a[j])) 
     exchange(i,j);
 }
 
-
-
-
 /** Procedure bitonicMerge() 
-   It recursively sorts a bitonic sequence in ascending order, 
-   if dir = ASCENDING, and in descending order otherwise. 
-   The sequence to be sorted starts at index position lo,
-   the parameter cbt is the number of elements to be sorted. 
+  It recursively sorts a bitonic sequence in ascending order, 
+  if dir = ASCENDING, and in descending order otherwise. 
+  The sequence to be sorted starts at index position lo,
+  the parameter cbt is the number of elements to be sorted. 
  **/
 void bitonicMerge(int lo, int cnt, int dir) {
   if (cnt>1) {
@@ -168,9 +165,9 @@ void bitonicMerge(int lo, int cnt, int dir) {
 
 
 /** function recBitonicSort() 
-    first produces a bitonic sequence by recursively sorting 
-    its two halves in opposite sorting orders, and then
-    calls bitonicMerge to make them in the same order 
+  first produces a bitonic sequence by recursively sorting 
+  its two halves in opposite sorting orders, and then
+  calls bitonicMerge to make them in the same order 
  **/
 void recBitonicSort(int lo, int cnt, int dir) {
   if (cnt>1) {
@@ -183,8 +180,8 @@ void recBitonicSort(int lo, int cnt, int dir) {
 
 
 /** function sort() 
-   Caller of recBitonicSort for sorting the entire array of length N 
-   in ASCENDING order
+  Caller of recBitonicSort for sorting the entire array of length N 
+  in ASCENDING order
  **/
 void sort() {
   recBitonicSort(0, N, ASCENDING);
@@ -193,22 +190,22 @@ void sort() {
 
 
 /*
-  imperative version of bitonic sort
-*/
+   imperative version of bitonic sort
+   */
 void impBitonicSort() {
 
   int i,j,k;
-  
+
   for (k=2; k<=N; k=k<<1) {
     for (j=k>>1; j>0; j=j>>1) {
       for (i=0; i<N; i++) {
-	int ij=i^j;
-	if ((ij)>i) {
-	  if ((i&k)==0 && a[i] > a[ij]) 
-	      exchange(i,ij);
-	  if ((i&k)!=0 && a[i] < a[ij])
-	      exchange(i,ij);
-	}
+        int ij=i^j;
+        if ((ij)>i) {
+          if ((i&k)==0 && a[i] > a[ij]) 
+            exchange(i,ij);
+          if ((i&k)!=0 && a[i] < a[ij])
+            exchange(i,ij);
+        }
       }
     }
   }
