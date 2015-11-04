@@ -13,15 +13,16 @@ void ThreadPool::startWorkers()
       while(!stop_)
       {
         std::function<void()> task;
-        try{
-          tasks_.pop(task);
-          task();
-        }catch(tbb::user_abort){
-          // Normal control flow when the destructor is called
-        }catch(...){
-          // std::cout << "[CudaService]: Unhandled exception!\n";
-          throw;
-        }
+        { // BEGIN Critical section
+          std::unique_lock<std::mutex> lock(queue_mutex_);
+          condition_.wait(lock,
+                               [this]{ return stop_ || !tasks_.empty(); });
+          if(stop_ && tasks_.empty())
+            return;
+          task = std::move(tasks_.front());
+          tasks_.pop();
+        } // END Critical section
+        task();
       }
     });
   endworking_.clear();
@@ -33,7 +34,7 @@ void ThreadPool::stopWorkers()
   if (endworking_.test_and_set()) return;
 
   stop_= true;
-  tasks_.abort();
+  condition_.notify_all();
   for(std::thread& worker: workers_)
     worker.join();
   workers_.clear();

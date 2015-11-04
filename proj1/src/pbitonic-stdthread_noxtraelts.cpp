@@ -4,11 +4,7 @@
 #include <thread>
 #include <vector>
 #include <atomic>
-#include <tbb/concurrent_queue.h>
-#include <tbb/tbb_config.h>
-#if (TBB_INTERFACE_VERSION >= 8000)
 #include "thread_pool.h"
-
 using namespace std;
 
 #define UP 1
@@ -68,6 +64,9 @@ int main(int argc, char** argv){
   int threadN, numN;
   numN= 1<<logNumN;
   threadN= (logThreadN>logNumN)? 1<<logNumN:1<<logThreadN; // Not more threads than elements
+
+  // Input done, let's get the threads running...
+  ThreadPool workers(threadN);
   RandArray array(threadN, numN);
   array.print();
   array.sort();
@@ -110,14 +109,6 @@ int RandArray::check(){
 
 
 
-#else
-int main()
-{
-  std::cout<<"Incompatible TBB version: "<< TBB_INTERFACE_VERSION <<"!\n"
-      << "__TBB_CPP11_VARIADIC_TEMPLATES_PRESENT: "<<__TBB_CPP11_VARIADIC_TEMPLATES_PRESENT <<"\n"
-      << "__TBB_CPP11_RVALUE_REF_PRESENT: " <<__TBB_CPP11_RVALUE_REF_PRESENT <<'\n'<<" __TBB_GCC_VERSION:" << __TBB_GCC_VERSION
-      << "\nAborting.\n";
-  return 1;
-}
-#endif
+
+
 
