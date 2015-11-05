@@ -2,14 +2,13 @@
 #define THREAD_POOL
 
 #include <vector>
-#include <queue>
 #include <thread>
 #include <atomic>
 #include <future>
-#include <mutex>
-#include <condition_variable>
 #include <memory>
 #include <functional>
+//Other tools
+#include <tbb/concurrent_queue.h>
 
 /*! Maintains a vector of waiting threads, which consume tasks from a task queue.
     - Although a tbb::concurrent_bounded_queue is used by default, an std::queue could
@@ -20,7 +19,7 @@
   class ThreadPool{
   public:
     //! Default constructor.
-    ThreadPool(int n):  threadNum_(n), stop_(false) {
+    ThreadPool(int n): threadNum_(n), stop_(false) {
       beginworking_.clear(); endworking_.test_and_set();
       startWorkers();
     }
@@ -48,14 +47,16 @@
         std::bind(std::forward<F>(f), std::forward<Args>(args)...)
       ));
       auto resultFut = task->get_future();
-      {
-        std::unique_lock<std::mutex> lock(queue_mutex_);
-        tasks_.emplace([task](){ (*task)(); });
-      }
-      condition_.notify_one();
+      tasks_.emplace([task](){ (*task)(); });
       return resultFut;
     }
 
+    //! Clears tasks queue
+    void clearTasks(){ tasks_.clear(); }
+    //! Constructs workers and sets them waiting. [release]->protected
+    void startWorkers();
+    //! Joins all worker threads. [release]->protected
+    void stopWorkers();
     //! Destructor stops workers, if they are still running.
     virtual ~ThreadPool(){
       stopWorkers();
@@ -64,21 +65,14 @@
     //! Only for testing. [release]->remove
     void setWorkerN(const int& n) { threadNum_= n; }
   protected:
-    //! Constructs workers and sets them waiting. [release]->protected
-    void startWorkers();
-    //! Joins all worker threads. [release]->protected
-    void stopWorkers();
     //! Threads that consume tasks
     std::vector< std::thread > workers_;
     //! Concurrent queue that produces tasks
-    std::queue< std::function<void()> > tasks_;
+    tbb::concurrent_bounded_queue< std::function<void()> > tasks_;
     size_t threadNum_= 0;
   private:
     //! workers_ finalization flag
     std::atomic_bool stop_;
-    //! Synchronize queue
-    std::mutex queue_mutex_;
-    std::condition_variable condition_;
     //!@{
     /*! Start/end workers synchronization flags.
       {beginworking_, endworking}: (initially: {F,T})
