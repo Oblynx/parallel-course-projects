@@ -13,13 +13,14 @@ using namespace std;
 class RandArray{
   public:
   //! Call workers to initialize random array
-  RandArray(int threadN, int numN): threadN_(threadN), numN_(numN), threadRange_(numN/threadN),
-      data_(new int[numN]){
+  RandArray(int threadN, int numN, ThreadPool& workers): threadN_(threadN), numN_(numN),
+      threadRange_(numN/threadN), workers_(workers), data_(new int[numN]){
+    cout << "Constructing RandArray\n";
     srand(1);
-    vector<thread> threads;
-    threads.reserve(threadN);
-    for(int i=0; i<threadN; i++) threads.emplace_back(&RandArray::construct,this,i);
-    for(int i=0; i<threadN; i++) threads[i].join();
+    vector<future<void>> results;
+    results.reserve(threadN);
+    for(int i=0; i<threadN; i++) results[i]= workers_.schedule(&RandArray::construct,this,i);
+    for(int i=0; i<threadN; i++) results[i].get();
   }
   void sort();
   //! Check result correctness. Could also be a simple out-of-order search of course
@@ -29,6 +30,7 @@ class RandArray{
     cout << '\n';
   }
 
+  ~RandArray(){ cout << "Destroying RandArray\n"; }
   private:
   //! Thread callback for creating random array slice
   void construct(int frame);
@@ -41,7 +43,7 @@ class RandArray{
   int threadN_, numN_;
   //! Size of array slice for each thread
   int threadRange_;
-  //! Data + copy for independent sorting to compare times
+  ThreadPool& workers_;
   unique_ptr<int[]> data_;
   const int seqThres_= 1;
 };
@@ -67,7 +69,7 @@ int main(int argc, char** argv){
 
   // Input done, let's get the threads running...
   ThreadPool workers(threadN);
-  RandArray array(threadN, numN);
+  RandArray array(threadN, numN, workers);
   array.print();
   array.sort();
   array.print();
