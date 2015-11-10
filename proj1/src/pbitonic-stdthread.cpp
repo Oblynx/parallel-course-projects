@@ -48,7 +48,7 @@ class RandArray{
   int threadRange_;
   ThreadPool& workers_;
   unique_ptr<int[]> data_;
-  const int seqThres_= 1<<10, ASCENDING=1, DESCENDING=0;
+  const int seqThres_= 1<<0, ASCENDING=1, DESCENDING=0;
 };
 
 int main(int argc, char** argv){
@@ -122,24 +122,27 @@ void RandArray::loopsort(){
 }
 
 void RandArray::recBitonicSort(int lo, int cnt, int dir) {
-  cout<<"[recBitonicSort]: Enter\n";
+  static atomic_int count;
+  int localCount= count++;
   if (cnt>seqThres_) {
+    printf("[recBitonicSort]: recursing\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
     int k=cnt/2;
-    future<void> sortLow= workers_.schedule(&RandArray::recBitonicSort, this, lo, k, ASCENDING);
+    shared_future<void> sortLow= workers_.schedule(&RandArray::recBitonicSort, this, lo, k, ASCENDING);
     //recBitonicSort(lo, k, ASCENDING);
-    future<void> sortHigh= workers_.schedule(&RandArray::recBitonicSort, this,lo+k,k,DESCENDING);
-    //recBitonicSort(lo+k, k, DESCENDING);
-    //Deadlock! Need to signal on condition instead?
-    workers_.schedule([=] (future<void>& task1, future<void>& task2){
-      cout<<"[continuation]: Enter\n";
-      task1.get(); task2.get();
+    //shared_future<void> sortHigh= workers_.schedule(&RandArray::recBitonicSort, this,lo+k,k,DESCENDING);
+    recBitonicSort(lo+k, k, DESCENDING);
+    workers_.schedule([=] (){
+      sortLow.get();// sortHigh.get();
+      printf("[continuation]: Enter\t\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
       bitonicMerge(lo,cnt,dir);
-    },ref(sortLow),ref(sortHigh));
-    //task.get();
+    });
+//    printf("[recBitonicSort]: END\t\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
     //bitonicMerge(lo, cnt, dir);
-  } else if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
-  else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
-
+  } else{
+    printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
+    else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
+  }
 }
 void RandArray::bitonicMerge(int lo, int cnt, int dir) {
   if (cnt>1) {
@@ -157,8 +160,6 @@ void RandArray::sort(){
   cout << "All tasks scheduled!\n";
   workers_.waitFinish();
 }
-
-
 int RandArray::check(){
 //  qsort(checkCpy_.get(), numN_, sizeof(int), compare);
   for(int i=0; i<numN_-1; i++) if(data_[i] > data_[i+1]){

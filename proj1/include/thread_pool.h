@@ -55,9 +55,8 @@
     //! Clears tasks queue
     void clearTasks(){ tasks_.clear(); }
     void waitFinish(){
-      while(!tasks_.empty() || workerWaiting_==threadNum_){
-        std::this_thread::sleep_for(std::chrono::microseconds(1000));
-        std::cout << "[ThreadPool]: waiting to finish all tasks\n";
+      while(!tasks_.empty() || workerWaiting_!=threadNum_){
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
       }
     }
     //! Constructs workers and sets them waiting. [release]->protected
