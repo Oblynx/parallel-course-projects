@@ -36,7 +36,7 @@ class RandArray{
   private:
   //! Thread callback for creating random array slice
   void construct(int frame);
-  void recBitonicSort(int lo, int cnt, int direct);
+  shared_future<void> recBitonicSort(int lo, int cnt, int direct);
   void bitonicMerge(int lo, int cnt, int direct);
   void loopsort();
   inline void exchange(int a, int b) {
@@ -121,18 +121,18 @@ void RandArray::loopsort(){
   for(auto&& result: results)result.get();
 }
 
-void RandArray::recBitonicSort(int lo, int cnt, int dir) {
+shared_future<void> RandArray::recBitonicSort(int lo, int cnt, int dir) {
   static atomic_int count;
   int localCount= count++;
   if (cnt>seqThres_) {
     printf("[recBitonicSort]: recursing\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
     int k=cnt/2;
-    shared_future<void> sortLow= workers_.schedule(&RandArray::recBitonicSort, this, lo, k, ASCENDING);
+    shared_future<shared_future<void>> sortLow= workers_.schedule(&RandArray::recBitonicSort, this, lo, k, ASCENDING);
     //recBitonicSort(lo, k, ASCENDING);
     //shared_future<void> sortHigh= workers_.schedule(&RandArray::recBitonicSort, this,lo+k,k,DESCENDING);
     recBitonicSort(lo+k, k, DESCENDING);
-    workers_.schedule([=] (){
-      sortLow.get();// sortHigh.get();
+    return workers_.schedule([=] (){
+      sortLow.get().get();// sortHigh.get();
       printf("[continuation]: Enter\t\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
       bitonicMerge(lo,cnt,dir);
     });
@@ -140,8 +140,8 @@ void RandArray::recBitonicSort(int lo, int cnt, int dir) {
     //bitonicMerge(lo, cnt, dir);
   } else{
     printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
-    if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
-    else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
+    if(dir) return workers_.schedule(qsort,data_.get()+lo, cnt, sizeof(int),compUP);
+    else return workers_.schedule(qsort,data_.get()+lo, cnt, sizeof(int),compDN);
   }
 }
 void RandArray::bitonicMerge(int lo, int cnt, int dir) {
