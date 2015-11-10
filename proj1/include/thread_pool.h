@@ -5,11 +5,11 @@
 #include <thread>
 #include <atomic>
 #include <future>
-#include <condition_variable>
 #include <memory>
 #include <functional>
 //Other tools
 #include <tbb/concurrent_queue.h>
+#include <iostream>
 
 /*! Maintains a vector of waiting threads, which consume tasks from a task queue.
     - Although a tbb::concurrent_bounded_queue is used by default, an std::queue could
@@ -55,12 +55,10 @@
     //! Clears tasks queue
     void clearTasks(){ tasks_.clear(); }
     void waitFinish(){
-      if(tasks_.empty()) return; 
-      std::mutex statusMut;
-      std::unique_lock<std::mutex> lk(statusMut);
-      while(!taskDone_.wait_for(lk,std::chrono::milliseconds(1),[this]{
-              return tasks_.empty();
-            }));
+      while(!tasks_.empty() || workerWaiting_==threadNum_){
+        std::this_thread::sleep_for(std::chrono::microseconds(1000));
+        std::cout << "[ThreadPool]: waiting to finish all tasks\n";
+      }
     }
     //! Constructs workers and sets them waiting. [release]->protected
     void startWorkers();
@@ -76,8 +74,7 @@
   protected:
     //! Threads that consume tasks
     std::vector< std::thread > workers_;
-    std::vector<char> workerStatus_;
-    std::condition_variable taskDone_;
+    std::atomic<unsigned> workerWaiting_;
     //! Concurrent queue that produces tasks
     tbb::concurrent_bounded_queue< std::function<void()> > tasks_;
     size_t threadNum_= 0;

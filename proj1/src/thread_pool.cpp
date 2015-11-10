@@ -8,16 +8,17 @@ void ThreadPool::startWorkers()
   stop_= false;
   if(!threadNum_) throw std::invalid_argument("[CudaService]: More than zero threads expected");
   workers_.reserve(threadNum_);
-  workerStatus_.resize(threadNum_);
-  for(unsigned i=0; i<threadNum_; i++)
+  workerWaiting_= 0;
+  for(unsigned i=0; i<threadNum_; i++){
     workers_.emplace_back([this,i] (){
       while(!stop_)
       {
         std::function<void()> task;
         try{
+          workerWaiting_++;  //a.k.a. waiting
           tasks_.pop(task);
+          workerWaiting_--;  //a.k.a. busy
           task();
-          taskDone_.notify_all();
         }catch(tbb::user_abort){
           // Normal control flow when the destructor is called
         }catch(...){
@@ -26,6 +27,7 @@ void ThreadPool::startWorkers()
         }
       }
     });
+  }
   endworking_.clear();
 }
 
