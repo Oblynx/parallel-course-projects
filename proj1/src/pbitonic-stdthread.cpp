@@ -81,7 +81,7 @@ int main(int argc, char** argv){
   array.sort();
   duration= chrono::system_clock::now()-start;
   cout<<"--> Array sorted in "<<duration.count()*1000<<"ms\n";
-  //array.print();
+  array.print();
   return array.check();
 }
 
@@ -121,21 +121,20 @@ void RandArray::loopsort(){
   for(auto&& result: results)result.get();
 }
 
-void RandArray::sort(){
-  recBitonicSort(0,numN_,ASCENDING);
-}
-
 void RandArray::recBitonicSort(int lo, int cnt, int dir) {
+  cout<<"[recBitonicSort]: Enter\n";
   if (cnt>seqThres_) {
     int k=cnt/2;
     future<void> sortLow= workers_.schedule(&RandArray::recBitonicSort, this, lo, k, ASCENDING);
     //recBitonicSort(lo, k, ASCENDING);
-    recBitonicSort(lo+k, k, DESCENDING);
+    future<void> sortHigh= workers_.schedule(&RandArray::recBitonicSort, this,lo+k,k,DESCENDING);
+    //recBitonicSort(lo+k, k, DESCENDING);
     //Deadlock! Need to signal on condition instead?
-    workers_.schedule([=] (future<void>&& task1){
-      task1.get();
+    workers_.schedule([=] (future<void>& task1, future<void>& task2){
+      cout<<"[continuation]: Enter\n";
+      task1.get(); task2.get();
       bitonicMerge(lo,cnt,dir);
-    },move(sortLow));
+    },ref(sortLow),ref(sortHigh));
     //task.get();
     //bitonicMerge(lo, cnt, dir);
   } else if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
@@ -151,6 +150,14 @@ void RandArray::bitonicMerge(int lo, int cnt, int dir) {
     bitonicMerge(lo+k, k, dir);
   }
 }
+
+void RandArray::sort(){
+  cout<<"Scheduling tasks...\n";
+  recBitonicSort(0,numN_,ASCENDING);
+  cout << "All tasks scheduled!\n";
+  workers_.waitFinish();
+}
+
 
 int RandArray::check(){
 //  qsort(checkCpy_.get(), numN_, sizeof(int), compare);

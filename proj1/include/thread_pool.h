@@ -5,6 +5,7 @@
 #include <thread>
 #include <atomic>
 #include <future>
+#include <condition_variable>
 #include <memory>
 #include <functional>
 //Other tools
@@ -53,6 +54,14 @@
 
     //! Clears tasks queue
     void clearTasks(){ tasks_.clear(); }
+    void waitFinish(){
+      if(tasks_.empty()) return; 
+      std::mutex statusMut;
+      std::unique_lock<std::mutex> lk(statusMut);
+      while(!taskDone_.wait_for(lk,std::chrono::milliseconds(1),[this]{
+              return tasks_.empty();
+            }));
+    }
     //! Constructs workers and sets them waiting. [release]->protected
     void startWorkers();
     //! Joins all worker threads. [release]->protected
@@ -67,6 +76,8 @@
   protected:
     //! Threads that consume tasks
     std::vector< std::thread > workers_;
+    std::vector<char> workerStatus_;
+    std::condition_variable taskDone_;
     //! Concurrent queue that produces tasks
     tbb::concurrent_bounded_queue< std::function<void()> > tasks_;
     size_t threadNum_= 0;

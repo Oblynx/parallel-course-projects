@@ -24,7 +24,7 @@ add_compile_options(-std=c++14 -Wall -O0)
 #add_executable(sample-bitonic sample_bitonic.c) 
 
 add_library(thread_pool src/thread_pool.cpp)
-add_executable(pbitonic-stdthread src/pbitonic-stdthread_noxtraelts.cpp)
+add_executable(pbitonic-stdthread src/pbitonic-stdthread.cpp)
 target_link_libraries(pbitonic-stdthread
   ${CMAKE_THREAD_LIBS_INIT}
   thread_pool
