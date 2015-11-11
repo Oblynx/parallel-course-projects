@@ -17,7 +17,7 @@ class RandArray{
   public:
   //! Call workers to initialize random array
   RandArray(int threadN, int numN, ThreadPool& workers): threadN_(threadN), numN_(numN),
-      threadRange_(numN/threadN), workers_(workers), data_(new int[numN]){
+      threadRange_(numN/threadN), workers_(workers), data_(new int[numN]),taskComplete_(0.5*numN_){
     cout << "Constructing RandArray\n";
     srand(1);
     vector<future<void>> results;
@@ -99,7 +99,7 @@ void RandArray::construct(int frame){
 
 // Each continuation always depends on ID+1, ID+cnt
 void RandArray::continuation(int lo, int cnt, int dir, int ID){
-  printf("[continuation]: Enter\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+  //printf("[continuation]: Enter\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   bool notReady[2]={false,false};
   {
     ConcurMap::const_accessor ac;
@@ -110,11 +110,11 @@ void RandArray::continuation(int lo, int cnt, int dir, int ID){
     notReady[1]= ac->second == 0;
   }//If dependency isn't complete, reschedule
   if(notReady[0] || notReady[1]){
-    printf("[continuation]: rescheduling\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    //printf("[continuation]: rescheduling\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     workers_.schedule(&RandArray::continuation, this,lo,cnt,dir,ID);
     return;
   }
-  printf("[continuation]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+  //printf("[continuation]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   bitonicMerge(lo,cnt,dir);
   {  // Signal this task is complete and erase its dependencies, which are no longer useful
     ConcurMap::accessor ac;
@@ -135,7 +135,7 @@ void RandArray::recBitonicSort(int lo, int cnt, int dir, int ID){
     recBitonicSort(lo+k, k, DESCENDING, ID+cnt);
     workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,ID);
   } else{
-    printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    //printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
     else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
     {
