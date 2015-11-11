@@ -7,8 +7,9 @@
 #include <atomic>
 #include <chrono>
 #include "thread_pool.h"
+#include <tbb/concurrent_hash_map.h>
 using namespace std;
-
+typedef tbb::concurrent_hash_map<int,char> ConcurMap;
 #define UP 1
 #define DOWN 0
 
@@ -36,10 +37,9 @@ class RandArray{
   private:
   //! Thread callback for creating random array slice
   void construct(int frame);
-  shared_future<void> recBitonicSort(int lo, int cnt, int direct,int count);
+  void recBitonicSort(int lo, int cnt, int direct,int ID,bool worker);
   void bitonicMerge(int lo, int cnt, int direct);
-  void continuation(int lo, int cnt, int dir, int count,
-    shared_future<shared_future<void>> sortLow);
+  void continuation(int lo, int cnt, int dir, int ID, bool worker);
   inline void exchange(int a, int b) {
     int tmp;
     tmp=data_[a], data_[a]=data_[b], data_[b]=tmp;
@@ -49,6 +49,7 @@ class RandArray{
   int threadRange_;
   ThreadPool& workers_;
   unique_ptr<int[]> data_;
+  ConcurMap taskComplete_;
   const int seqThres_= 1<<0, ASCENDING=1, DESCENDING=0;
 };
 
@@ -96,30 +97,50 @@ void RandArray::construct(int frame){
   for(int i=start; i<end; i++) data_[i]= rand() %20;
 }
 
-void RandArray::continuation(int lo, int cnt, int dir, int count,
-    shared_future<shared_future<void>> prereq){
-  printf("[continuation]: Enter\t\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
-  auto fut= prereq.get();
-  if (fut.valid()) fut.get();
-  printf("[continuation]: continuing\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
+// Each continuation always depends on ID+1
+void RandArray::continuation(int lo, int cnt, int dir, int ID, bool worker){
+  printf("[continuation]: Enter\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+  {
+    ConcurMap::const_accessor ac;
+    taskComplete_.find(ac, ID+1);
+    if(ac->second == 0){
+      printf("[continuation]: rescheduling\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+      workers_.schedule(&RandArray::continuation, this,lo,cnt,dir,ID,worker);
+      return;
+    }
+  }
+  //if(taskComplete_[ID+1]==0)  //If dependency isn't complete, reschedule
+  printf("[continuation]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   bitonicMerge(lo,cnt,dir);
+  // Signal this task is complete and erase its dependency, which is no longer useful
+  if (worker){
+    ConcurMap::accessor ac;
+    taskComplete_.find(ac, ID);
+    ac->second= 1;
+  }
+  //taskComplete_[ID]= 1;
+  taskComplete_.erase(ID+1);
 }
 
-shared_future<void> RandArray::recBitonicSort(int lo, int cnt, int dir, int count){
+// Only insert prereq if this is a left-node (worker==true)
+void RandArray::recBitonicSort(int lo, int cnt, int dir, int ID, bool worker=false){
+  if(worker) taskComplete_.insert(make_pair(ID,0));
   if (cnt>seqThres_) {
-    printf("[recBitonicSort]: recursing\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    printf("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     int k=cnt/2;
-    shared_future<shared_future<void>> sortLow= workers_.schedule(&RandArray::recBitonicSort, this,
-        lo, k, ASCENDING, count+1);
-    //recBitonicSort(lo, k, ASCENDING);
-    //shared_future<void> sortHigh= workers_.schedule(&RandArray::recBitonicSort, this,lo+k,k,DESCENDING);
-    recBitonicSort(lo+k, k, DESCENDING, count+cnt);
-    return workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,count,sortLow);
+    workers_.schedule(&RandArray::recBitonicSort, this,lo, k, ASCENDING, ID+1, true);
+    recBitonicSort(lo+k, k, DESCENDING, ID+cnt);
+    workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,ID,worker);
   } else{
-    printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
     else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
-    return shared_future<void>();
+    if(worker) {
+      ConcurMap::accessor ac;
+      taskComplete_.find(ac,ID);
+      ac->second= 2;
+      //taskComplete_[ID]= 2;
+    }
   }
 }
 void RandArray::bitonicMerge(int lo, int cnt, int dir) {
