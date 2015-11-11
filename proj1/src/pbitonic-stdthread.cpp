@@ -97,29 +97,20 @@ void RandArray::construct(int frame){
 }
 
 void RandArray::continuation(int lo, int cnt, int dir, int count,
-    shared_future<shared_future<void>> sortLow){
+    shared_future<shared_future<void>> prereq){
   printf("[continuation]: Enter\t\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
-  auto continFut= sortLow.get(); //sortHigh.get();
-  // Empty future means that the work is already done (synchronous leaf or completed continuation)
-  if(continFut.valid()){
-    // If prereqs are done, the result should be ready immediately
-    auto state= continFut.wait_for(chrono::nanoseconds(1));
-    if (state!=future_status::ready){  // Result not ready == prereqs not ready :=> reschedule
-      cout << "[continuation]: rescheduling\t"<<count<<"\n";
-      workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,count,sortLow);
-      return;
-    }
-  } //else it was a leaf node, which is synchronous
+  auto fut= prereq.get();
+  if (fut.valid()) fut.get();
   printf("[continuation]: continuing\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
   bitonicMerge(lo,cnt,dir);
 }
-
 
 shared_future<void> RandArray::recBitonicSort(int lo, int cnt, int dir, int count){
   if (cnt>seqThres_) {
     printf("[recBitonicSort]: recursing\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
     int k=cnt/2;
-    shared_future<shared_future<void>> sortLow= workers_.schedule(&RandArray::recBitonicSort, this, lo, k, ASCENDING, count+1);
+    shared_future<shared_future<void>> sortLow= workers_.schedule(&RandArray::recBitonicSort, this,
+        lo, k, ASCENDING, count+1);
     //recBitonicSort(lo, k, ASCENDING);
     //shared_future<void> sortHigh= workers_.schedule(&RandArray::recBitonicSort, this,lo+k,k,DESCENDING);
     recBitonicSort(lo+k, k, DESCENDING, count+cnt);
@@ -143,10 +134,8 @@ void RandArray::bitonicMerge(int lo, int cnt, int dir) {
 
 void RandArray::sort(){
   cout<<"Scheduling tasks...\n";
-  auto result= recBitonicSort(0,numN_,ASCENDING,0);
+  recBitonicSort(0,numN_,ASCENDING,0);
   cout << "All tasks scheduled!\n";
-  if (result.valid()) result.get();
-  cout << "Sorted. Should I wait??\n";
   workers_.waitFinish();
   cout << "Waited as well\n";
 }
