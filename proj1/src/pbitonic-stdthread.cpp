@@ -99,10 +99,12 @@ void RandArray::construct(int frame){
 void RandArray::continuation(int lo, int cnt, int dir, int count,
     shared_future<shared_future<void>> sortLow){
   printf("[continuation]: Enter\t\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
-  auto fut= sortLow.get();// sortHigh.get();
-  if(fut.valid()){
-    auto state= fut.wait_for(chrono::nanoseconds(1));
-    if (state!=future_status::ready){  //reschedule
+  auto continFut= sortLow.get(); //sortHigh.get();
+  // Empty future means that the work is already done (synchronous leaf or completed continuation)
+  if(continFut.valid()){
+    // If prereqs are done, the result should be ready immediately
+    auto state= continFut.wait_for(chrono::nanoseconds(1));
+    if (state!=future_status::ready){  // Result not ready == prereqs not ready :=> reschedule
       cout << "[continuation]: rescheduling\t"<<count<<"\n";
       workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,count,sortLow);
       return;
