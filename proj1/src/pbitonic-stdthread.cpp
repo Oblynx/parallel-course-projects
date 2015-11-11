@@ -37,9 +37,9 @@ class RandArray{
   private:
   //! Thread callback for creating random array slice
   void construct(int frame);
-  void recBitonicSort(int lo, int cnt, int direct,int ID,bool worker);
+  void recBitonicSort(int lo, int cnt, int direct,int ID);
   void bitonicMerge(int lo, int cnt, int direct);
-  void continuation(int lo, int cnt, int dir, int ID, bool worker);
+  void continuation(int lo, int cnt, int dir, int ID);
   inline void exchange(int a, int b) {
     int tmp;
     tmp=data_[a], data_[a]=data_[b], data_[b]=tmp;
@@ -97,49 +97,51 @@ void RandArray::construct(int frame){
   for(int i=start; i<end; i++) data_[i]= rand() %20;
 }
 
-// Each continuation always depends on ID+1
-void RandArray::continuation(int lo, int cnt, int dir, int ID, bool worker){
+// Each continuation always depends on ID+1, ID+cnt
+void RandArray::continuation(int lo, int cnt, int dir, int ID){
   printf("[continuation]: Enter\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+  bool notReady[2]={false,false};
   {
     ConcurMap::const_accessor ac;
     taskComplete_.find(ac, ID+1);
-    if(ac->second == 0){
-      printf("[continuation]: rescheduling\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-      workers_.schedule(&RandArray::continuation, this,lo,cnt,dir,ID,worker);
-      return;
-    }
+    notReady[0]= ac->second == 0;
+    ac.release();
+    taskComplete_.find(ac, ID+cnt);
+    notReady[1]= ac->second == 0;
+  }//If dependency isn't complete, reschedule
+  if(notReady[0] || notReady[1]){
+    printf("[continuation]: rescheduling\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    workers_.schedule(&RandArray::continuation, this,lo,cnt,dir,ID);
+    return;
   }
-  //if(taskComplete_[ID+1]==0)  //If dependency isn't complete, reschedule
   printf("[continuation]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   bitonicMerge(lo,cnt,dir);
-  // Signal this task is complete and erase its dependency, which is no longer useful
-  if (worker){
+  {  // Signal this task is complete and erase its dependencies, which are no longer useful
     ConcurMap::accessor ac;
     taskComplete_.find(ac, ID);
     ac->second= 1;
   }
-  //taskComplete_[ID]= 1;
   taskComplete_.erase(ID+1);
+  taskComplete_.erase(ID+cnt);
 }
 
 // Only insert prereq if this is a left-node (worker==true)
-void RandArray::recBitonicSort(int lo, int cnt, int dir, int ID, bool worker=false){
-  if(worker) taskComplete_.insert(make_pair(ID,0));
+void RandArray::recBitonicSort(int lo, int cnt, int dir, int ID){
+  taskComplete_.insert(make_pair(ID,0));
   if (cnt>seqThres_) {
     printf("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     int k=cnt/2;
-    workers_.schedule(&RandArray::recBitonicSort, this,lo, k, ASCENDING, ID+1, true);
+    workers_.schedule(&RandArray::recBitonicSort, this,lo, k, ASCENDING, ID+1);
     recBitonicSort(lo+k, k, DESCENDING, ID+cnt);
-    workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,ID,worker);
+    workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,ID);
   } else{
     printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
     else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
-    if(worker) {
+    {
       ConcurMap::accessor ac;
       taskComplete_.find(ac,ID);
       ac->second= 2;
-      //taskComplete_[ID]= 2;
     }
   }
 }
