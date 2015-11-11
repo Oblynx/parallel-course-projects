@@ -36,9 +36,10 @@ class RandArray{
   private:
   //! Thread callback for creating random array slice
   void construct(int frame);
-  shared_future<void> recBitonicSort(int lo, int cnt, int direct);
+  shared_future<void> recBitonicSort(int lo, int cnt, int direct,int count);
   void bitonicMerge(int lo, int cnt, int direct);
-  void loopsort();
+  void continuation(int lo, int cnt, int dir, int count,
+    shared_future<shared_future<void>> sortLow);
   inline void exchange(int a, int b) {
     int tmp;
     tmp=data_[a], data_[a]=data_[b], data_[b]=tmp;
@@ -95,53 +96,37 @@ void RandArray::construct(int frame){
   for(int i=start; i<end; i++) data_[i]= rand() %20;
 }
 
-//!  imperative version of bitonic sort
-void RandArray::loopsort(){
-  int k,j,frame;
-  vector<future<void>> results;
-  results.reserve(log2(numN_)*log2(numN_)*threadN_);
-  for (k=2; k<=numN_; k=k<<1) {
-    for (j=k>>1; j>0; j=j>>1) {
-      for (frame=0; frame<threadN_; frame++) {
-        const int start= frame*threadRange_, end= (frame+1)*threadRange_;
-        results.emplace_back(workers_.schedule([=] (){
-          for(int i=start; i<end; i++){
-            int ij=i^j;
-            if ((ij)>i) {
-              if ((i&k)==0 && data_[i] > data_[ij]) 
-                exchange(i,ij);
-              if ((i&k)!=0 && data_[i] < data_[ij])
-                exchange(i,ij);
-            }
-          }
-        }));
-      }
+void RandArray::continuation(int lo, int cnt, int dir, int count,
+    shared_future<shared_future<void>> sortLow){
+  printf("[continuation]: Enter\t\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
+  auto fut= sortLow.get();// sortHigh.get();
+  if(fut.valid()){
+    auto state= fut.wait_for(chrono::nanoseconds(1));
+    if (state!=future_status::ready){  //reschedule
+      cout << "[continuation]: rescheduling\t"<<count<<"\n";
+      workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,count,sortLow);
+      return;
     }
-  }
-  for(auto&& result: results)result.get();
+  } //else it was a leaf node, which is synchronous
+  printf("[continuation]: continuing\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
+  bitonicMerge(lo,cnt,dir);
 }
 
-shared_future<void> RandArray::recBitonicSort(int lo, int cnt, int dir) {
-  static atomic_int count;
-  int localCount= count++;
+
+shared_future<void> RandArray::recBitonicSort(int lo, int cnt, int dir, int count){
   if (cnt>seqThres_) {
-    printf("[recBitonicSort]: recursing\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    printf("[recBitonicSort]: recursing\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
     int k=cnt/2;
-    shared_future<shared_future<void>> sortLow= workers_.schedule(&RandArray::recBitonicSort, this, lo, k, ASCENDING);
+    shared_future<shared_future<void>> sortLow= workers_.schedule(&RandArray::recBitonicSort, this, lo, k, ASCENDING, count+1);
     //recBitonicSort(lo, k, ASCENDING);
     //shared_future<void> sortHigh= workers_.schedule(&RandArray::recBitonicSort, this,lo+k,k,DESCENDING);
-    recBitonicSort(lo+k, k, DESCENDING);
-    return workers_.schedule([=] (){
-      sortLow.get().get();// sortHigh.get();
-      printf("[continuation]: Enter\t\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
-      bitonicMerge(lo,cnt,dir);
-    });
-//    printf("[recBitonicSort]: END\t\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
-    //bitonicMerge(lo, cnt, dir);
+    recBitonicSort(lo+k, k, DESCENDING, count+cnt);
+    return workers_.schedule(&RandArray::continuation,this,lo,cnt,dir,count,sortLow);
   } else{
-    printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", localCount, hash<thread::id>()(this_thread::get_id())%(1<<10));
-    if(dir) return workers_.schedule(qsort,data_.get()+lo, cnt, sizeof(int),compUP);
-    else return workers_.schedule(qsort,data_.get()+lo, cnt, sizeof(int),compDN);
+    printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", count, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
+    else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
+    return shared_future<void>();
   }
 }
 void RandArray::bitonicMerge(int lo, int cnt, int dir) {
@@ -156,9 +141,12 @@ void RandArray::bitonicMerge(int lo, int cnt, int dir) {
 
 void RandArray::sort(){
   cout<<"Scheduling tasks...\n";
-  recBitonicSort(0,numN_,ASCENDING);
+  auto result= recBitonicSort(0,numN_,ASCENDING,0);
   cout << "All tasks scheduled!\n";
+  if (result.valid()) result.get();
+  cout << "Sorted. Should I wait??\n";
   workers_.waitFinish();
+  cout << "Waited as well\n";
 }
 int RandArray::check(){
 //  qsort(checkCpy_.get(), numN_, sizeof(int), compare);
