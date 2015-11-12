@@ -16,11 +16,11 @@ typedef tbb::concurrent_hash_map<int,char> ConcurMap;
 #define DOWN 0
 
 class RandArray{
-  public:
+public:
   //! Call workers to initialize random array
   RandArray(int threadN, int numN, ThreadPool& workers): threadN_(threadN), numN_(numN),
-      workers_(workers), data_(new int[numN]), taskComplete_(0.1*numN_),
-      exchangeComplete_(0.6*numN_/(seqThres_<<2)), serial_(0){
+      workers_(workers), data_(new int[numN]), taskComplete_(round(0.1*numN_)),
+      exchangeComplete_(round(0.6*numN_/(seqThres_<<2))), serial_(0){
     cout << "Constructing RandArray\n";
     srand(1);
     const int smallProblemThres= (seqThres_<<2 > numN_)? seqThres_<<2: numN_;
@@ -39,13 +39,15 @@ class RandArray{
   }
 
   ~RandArray(){ cout << "Destroying RandArray\n"; }
-  private:
+private:
   //! Thread callback for creating random array slice
   void construct(const int frame, const int taskRange);
   void recBitonicSort(const int lo, const int cnt, const int direct, const int ID);
   void bitonicMerge(const int lo, const int cnt, const int direct, const int ID);
   void sortContin(const int lo, const int cnt, const int dir, const int ID);
-  void mergeContin(const int lo, const int cnt, const int dir, const int ID);
+  void mergeContin(const int lo, const int cnt, const int dir, const int ID,
+      const int prereqStart, const int prereqEnd);
+  void mergeFinalize(const int cnt, const int ID);
   inline void exchange(const int a, const int b) {
     int tmp;
     tmp=data_[a], data_[a]=data_[b], data_[b]=tmp;
@@ -111,6 +113,7 @@ void RandArray::sortContin(const int lo, const int cnt, const int dir, const int
   if(taskComplete_.find(ac, ID+1)){
     ac.release();
     if(taskComplete_.find(ac, ID+cnt)){
+      ac.release();
       //printf("[sortContin]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
       bitonicMerge(lo,cnt,dir, ID);
       // TODO: reschedule until bitonicMerge finishes!
@@ -144,30 +147,76 @@ void RandArray::recBitonicSort(const int lo, const int cnt, const int dir, const
     taskComplete_.insert(make_pair(ID,2));
   }
 }
-void RandArray::bitonicMerge(const int lo, const int cnt, const int dir, const int ID) {
+//! For small problems, synchronously merge; for larger sizes, launch asynchronous merging tasks
+void RandArray::bitonicMerge(const int lo, const int cnt, const int dir, const int ID){
   if (cnt>1) {
-    int k=cnt/2;
+    int k= cnt>>1;
     const int smallProblemThres= (seqThres_<<2 > k)? seqThres_<<2: k;
     if (smallProblemThres > k){
-      for(int i=0; i< k/smallProblemThres; i++){
+      const int chunkNumber= k/smallProblemThres;
+      // Request a range of serial numbers
+      const int serialStart= serial_.fetch_add(chunkNumber);
+      const int serialEnd= serialStart+chunkNumber;
+      for(int i=0; i< chunkNumber; i++){
         workers_.schedule([=] (const int serial){
           const int start= lo+i*smallProblemThres, end= lo+(i+1)*smallProblemThres;
           for(int i=start; i<end; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
           this->exchangeComplete_.insert(serial,1);
-        }, serial_++);
+        }, serialStart+i);
       }
       // Schedule the rest of bitonicMerge
-      workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir,ID);
-    } else {  //If problem is too small, run everything sequentially
+      workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir,ID, serialStart,serialEnd);
+    } else {  // If problem is too small, run everything sequentially
       for (int i=lo; i<lo+k; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
-      bitonicMerge(lo, k, dir);
-      bitonicMerge(lo+k, k, dir);
+      bitonicMerge(lo, k, dir, ID+1);
+      bitonicMerge(lo+k, k, dir, ID+cnt);
+      // Signal merge completion
+      ConcurMap::accessor ac;
+      if(taskComplete_.find(ac, ID)) ac->second= 1;
+      else throw new domain_error("[merge]: ERROR! Current node #"+
+                                  to_string(ID)+" already erased!\n");
     }
   }
 }
 
-void RandArray::mergeContin(const int lo, const int cnt, const int dir, const int ID){
+void RandArray::mergeContin(const int lo, const int cnt, const int dir, const int ID,
+    const int prereqStart, const int prereqEnd){
+  ConcurMap::const_accessor ac;
+  for(int serial= prereqStart; serial< prereqEnd; serial++){
+    if(!exchangeComplete_.find(ac, serial)){
+      workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir, ID, prereqStart, prereqEnd);
+      return;
+    }
+    ac.release();
+  }
+  // All prerequisites have completed!
+  const int k= cnt>>1;
+  workers_.schedule(&RandArray::bitonicMerge, this, lo,k,dir, ID+1);
+  bitonicMerge(lo+k, k, dir, ID+cnt);
+  // Schedule a rescheduling of mergeFinalize (which signals merge completion for this ID)
+  workers_.schedule([=] (){
+    workers_.schedule(&RandArray::mergeFinalize, this, cnt, ID);
+  });
 }
+// After previous bitonic merges have completed, signal completion
+void RandArray::mergeFinalize(const int cnt, const int ID){
+  ConcurMap::const_accessor ac;
+  if(taskComplete_.find(ac, ID+1))
+    if(ac->second == 1){
+      ac.release();
+      if(taskComplete_.find(ac, ID+cnt))
+        if(ac->second == 1){
+          ac.release();
+          ConcurMap::accessor acMod;
+          if(taskComplete_.find(acMod, ID)) acMod->second= 1;
+          else throw new domain_error("[merge]: ERROR! Current node #"+
+                                      to_string(ID)+" already erased!\n");
+        }
+    }
+  workers_.schedule(&RandArray::mergeFinalize, this, cnt, ID);
+  //reschedule
+}
+
 void RandArray::sort(){
   cout<<"Scheduling tasks...\n";
   recBitonicSort(0,numN_,ASCENDING,0);
