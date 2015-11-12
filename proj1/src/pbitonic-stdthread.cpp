@@ -19,7 +19,8 @@ class RandArray{
   public:
   //! Call workers to initialize random array
   RandArray(int threadN, int numN, ThreadPool& workers): threadN_(threadN), numN_(numN),
-      workers_(workers), data_(new int[numN]),taskComplete_(0.5*numN_){
+      workers_(workers), data_(new int[numN]), taskComplete_(0.1*numN_),
+      exchangeComplete_(0.6*numN_/(seqThres_<<2)), serial_(0){
     cout << "Constructing RandArray\n";
     srand(1);
     const int smallProblemThres= (seqThres_<<2 > numN_)? seqThres_<<2: numN_;
@@ -42,7 +43,7 @@ class RandArray{
   //! Thread callback for creating random array slice
   void construct(const int frame, const int taskRange);
   void recBitonicSort(const int lo, const int cnt, const int direct, const int ID);
-  void bitonicMerge(const int lo, const int cnt, const int direct);
+  void bitonicMerge(const int lo, const int cnt, const int direct, const int ID);
   void sortContin(const int lo, const int cnt, const int dir, const int ID);
   void mergeContin(const int lo, const int cnt, const int dir, const int ID);
   inline void exchange(const int a, const int b) {
@@ -53,7 +54,8 @@ class RandArray{
   //! Size of array slice for each thread
   ThreadPool& workers_;
   unique_ptr<int[]> data_;
-  ConcurMap taskComplete_;
+  ConcurMap taskComplete_, exchangeComplete_;
+  atomic_int serial_;
   static const int seqThres_, ASCENDING, DESCENDING;
 };
 const int RandArray::seqThres_= 1<<15, RandArray::ASCENDING=1, RandArray::DESCENDING=0;
@@ -110,11 +112,12 @@ void RandArray::sortContin(const int lo, const int cnt, const int dir, const int
     ac.release();
     if(taskComplete_.find(ac, ID+cnt)){
       //printf("[sortContin]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-      bitonicMerge(lo,cnt,dir);
+      bitonicMerge(lo,cnt,dir, ID);
+      // TODO: reschedule until bitonicMerge finishes!
       // Signal this task is complete and erase its dependencies, which are no longer useful
       taskComplete_.insert(make_pair(ID,2));
-      //taskComplete_.erase(ID+1);
-      //taskComplete_.erase(ID+cnt);
+      taskComplete_.erase(ID+1);
+      taskComplete_.erase(ID+cnt);
       return;
     }
   }
@@ -141,19 +144,20 @@ void RandArray::recBitonicSort(const int lo, const int cnt, const int dir, const
     taskComplete_.insert(make_pair(ID,2));
   }
 }
-void RandArray::bitonicMerge(const int lo, const int cnt, const int dir) {
+void RandArray::bitonicMerge(const int lo, const int cnt, const int dir, const int ID) {
   if (cnt>1) {
     int k=cnt/2;
     const int smallProblemThres= (seqThres_<<2 > k)? seqThres_<<2: k;
     if (smallProblemThres > k){
-      vector<future<void>> results;
-      results.reserve(k/smallProblemThres);
-      for(int i=lo; i< lo+k/smallProblemThres; i++)
-        results.push_back(workers_.schedule([=] (){
-          if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
-        }));
-      // TODO: Reschedule until everything is done
-      
+      for(int i=0; i< k/smallProblemThres; i++){
+        workers_.schedule([=] (const int serial){
+          const int start= lo+i*smallProblemThres, end= lo+(i+1)*smallProblemThres;
+          for(int i=start; i<end; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
+          this->exchangeComplete_.insert(serial,1);
+        }, serial_++);
+      }
+      // Schedule the rest of bitonicMerge
+      workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir,ID);
     } else {  //If problem is too small, run everything sequentially
       for (int i=lo; i<lo+k; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
       bitonicMerge(lo, k, dir);
