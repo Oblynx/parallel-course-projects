@@ -7,8 +7,13 @@
 #include <future>
 #include <memory>
 #include <functional>
-//Other tools
-#include <tbb/concurrent_queue.h>
+
+// Required to compile TBB properly with clang...
+#define _LIBCPP_VERSION 1
+// DEBUG: check the C++11 flags that enable "emplace"
+//#include "tbb-4.4/tbb_config.h"
+#include "tbb-4.4/concurrent_queue.h"
+
 #include <iostream>
 
 /*! Maintains a vector of waiting threads, which consume tasks from a task queue.

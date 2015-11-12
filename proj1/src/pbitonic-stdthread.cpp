@@ -6,9 +6,11 @@
 #include <vector>
 #include <atomic>
 #include <chrono>
+
+#include "tbb-4.4/concurrent_hash_map.h"
 #include "thread_pool.h"
-#include <tbb/concurrent_hash_map.h>
 using namespace std;
+
 typedef tbb::concurrent_hash_map<int,char> ConcurMap;
 #define UP 1
 #define DOWN 0
@@ -22,7 +24,9 @@ class RandArray{
     srand(1);
     vector<future<void>> results;
     results.reserve(threadN);
-    for(int i=0; i<threadN; i++) results[i]= workers_.schedule(&RandArray::construct,this,i);
+    for(int i=0; i<threadN; i++)
+      results.push_back(workers_.schedule(&RandArray::construct,this,i));
+    cout << "check1\n";
     for(int i=0; i<threadN; i++) results[i].get();
   }
   void sort();
@@ -37,10 +41,10 @@ class RandArray{
   private:
   //! Thread callback for creating random array slice
   void construct(int frame);
-  void recBitonicSort(int lo, int cnt, int direct,int ID);
-  void bitonicMerge(int lo, int cnt, int direct);
-  void continuation(int lo, int cnt, int dir, int ID);
-  inline void exchange(int a, int b) {
+  void recBitonicSort(const int lo, const int cnt, const int direct, const int ID);
+  void bitonicMerge(const int lo, const int cnt, const int direct);
+  void continuation(const int lo, const int cnt, const int dir, const int ID);
+  inline void exchange(const int a, const int b) {
     int tmp;
     tmp=data_[a], data_[a]=data_[b], data_[b]=tmp;
   }
@@ -50,7 +54,7 @@ class RandArray{
   ThreadPool& workers_;
   unique_ptr<int[]> data_;
   ConcurMap taskComplete_;
-  const int seqThres_= 1<<0, ASCENDING=1, DESCENDING=0;
+  const int seqThres_= 1<<4, ASCENDING=1, DESCENDING=0;
 };
 
 int main(int argc, char** argv){
@@ -83,12 +87,12 @@ int main(int argc, char** argv){
   array.sort();
   duration= chrono::system_clock::now()-start;
   cout<<"--> Array sorted in "<<duration.count()*1000<<"ms\n";
-  array.print();
+  //array.print();
   return array.check();
 }
 
-int compUP (const void * a, const void * b) {return ( *(int*)a - *(int*)b );}
-int compDN (const void * a, const void * b) {return ( *(int*)b - *(int*)a );}
+int compUP (const void *a, const void *b) {return ( *(int*)a - *(int*)b );}
+int compDN (const void *a, const void *b) {return ( *(int*)b - *(int*)a );}
 
 void RandArray::construct(int frame){
   const int start= frame*threadRange_, end= (frame+1)*threadRange_;
@@ -100,14 +104,15 @@ void RandArray::construct(int frame){
 // Each continuation always depends on ID+1, ID+cnt
 void RandArray::continuation(int lo, int cnt, int dir, int ID){
   //printf("[continuation]: Enter\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-  bool notReady[2]={false,false};
+  bool notReady[2]={true,true};
   {
     ConcurMap::const_accessor ac;
-    taskComplete_.find(ac, ID+1);
-    notReady[0]= ac->second == 0;
-    ac.release();
-    taskComplete_.find(ac, ID+cnt);
-    notReady[1]= ac->second == 0;
+    if(taskComplete_.find(ac, ID+1)){
+      notReady[0]= ac->second == 0;
+      ac.release();
+      if(taskComplete_.find(ac, ID+cnt))
+        notReady[1]= ac->second == 0;
+    }
   }//If dependency isn't complete, reschedule
   if(notReady[0] || notReady[1]){
     //printf("[continuation]: rescheduling\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
@@ -129,7 +134,7 @@ void RandArray::continuation(int lo, int cnt, int dir, int ID){
 void RandArray::recBitonicSort(int lo, int cnt, int dir, int ID){
   taskComplete_.insert(make_pair(ID,0));
   if (cnt>seqThres_) {
-    printf("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    //printf("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     int k=cnt/2;
     workers_.schedule(&RandArray::recBitonicSort, this,lo, k, ASCENDING, ID+1);
     recBitonicSort(lo+k, k, DESCENDING, ID+cnt);
@@ -171,8 +176,6 @@ int RandArray::check(){
   std::cout <<"TEST PASSES!\n";
   return true;
 }
-
-
 
 
 
