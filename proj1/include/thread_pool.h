@@ -61,6 +61,11 @@
     void clearTasks(){ tasks_.clear(); }
     void waitFinish(){
       while(!tasks_.empty() || workerWaiting_!=threadNum_){
+        while(!tasks_.empty() || workerWaiting_!=threadNum_){
+          std::this_thread::sleep_for(std::chrono::microseconds(100));
+        }
+        // FIXME!
+        // Check that condition isn't transient. Certainly NOT a guarantee!!!
         std::this_thread::sleep_for(std::chrono::microseconds(100));
       }
     }

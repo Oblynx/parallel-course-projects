@@ -10,11 +10,11 @@ set(TBB_MALLOC_LIBRARY
   "/home/oblivion/ws/var/tbb-4.4/lib/intel64/gcc4.4/libtbbmalloc.so.2") 
 include_directories(include)
 add_compile_options(-std=c++14 -Wall -g3 -O1 -fno-omit-frame-pointer
-  -march=native -fPIC -fsanitize=address)
+  -march=native -fPIC)
 #add_definitions(-DTBB_USE_ASSERT=1)
 
 #######################   Project1   ###############################
-#add_executable(sample-bitonic sample_bitonic.c) 
+add_executable(sample-bitonic sample_bitonic.c) 
 
 add_library(thread_pool src/thread_pool.cpp)
 target_link_libraries(thread_pool
@@ -23,8 +23,7 @@ target_link_libraries(thread_pool
 )
 add_executable(pbitonic-stdthread src/pbitonic-stdthread.cpp)
 target_link_libraries(pbitonic-stdthread
-  #asan
   ${CMAKE_THREAD_LIBS_INIT}
   thread_pool
-  -fsanitize=address
+  -fsanitize=undefined
 )
