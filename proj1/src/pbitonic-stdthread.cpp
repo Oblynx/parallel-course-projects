@@ -43,6 +43,7 @@ private:
   //! Thread callback for creating random array slice
   void construct(const int frame, const int taskRange);
   void recBitonicSort(const int lo, const int cnt, const int direct, const int ID);
+  void sortFinalize(const int cnt, const int ID);
   void bitonicMerge(const int lo, const int cnt, const int direct, const int ID);
   void sortContin(const int lo, const int cnt, const int dir, const int ID);
   void mergeContin(const int lo, const int cnt, const int dir, const int ID,
@@ -116,11 +117,7 @@ void RandArray::sortContin(const int lo, const int cnt, const int dir, const int
       ac.release();
       //printf("[sortContin]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
       bitonicMerge(lo,cnt,dir, ID);
-      // TODO: reschedule until bitonicMerge finishes!
-      // Signal this task is complete and erase its dependencies, which are no longer useful
-      taskComplete_.insert(make_pair(ID,2));
-      taskComplete_.erase(ID+1);
-      taskComplete_.erase(ID+cnt);
+      workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
       return;
     }
   }
@@ -128,7 +125,24 @@ void RandArray::sortContin(const int lo, const int cnt, const int dir, const int
   //printf("[sortContin]: rescheduling\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   workers_.schedule(&RandArray::sortContin, this,lo,cnt,dir,ID);
 }
-
+//! Signal this task is complete and erase its dependencies, which are no longer useful
+void RandArray::sortFinalize(const int cnt, const int ID){
+  ConcurMap::const_accessor ac;
+  if(taskComplete_.find(ac, ID))
+    if(ac->second == 1){
+      ac.release();
+      ConcurMap::accessor acMod;
+      if(taskComplete_.find(acMod, ID)) acMod->second= 2;
+      else throw new domain_error("[merge]: ERROR! Current node #"+
+                                  to_string(ID)+" already erased!\n");
+      acMod.release();
+      taskComplete_.erase(ID+1);
+      taskComplete_.erase(ID+cnt);
+      return;
+    }
+  //reschedule
+  workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
+}
 // Only insert prereq if this is a left-node (worker==true)
 void RandArray::recBitonicSort(const int lo, const int cnt, const int dir, const int ID){
   if (cnt>seqThres_) {
@@ -184,6 +198,7 @@ void RandArray::mergeContin(const int lo, const int cnt, const int dir, const in
   ConcurMap::const_accessor ac;
   for(int serial= prereqStart; serial< prereqEnd; serial++){
     if(!exchangeComplete_.find(ac, serial)){
+      // TODO: Schedule-to-reschedule? (perf)
       workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir, ID, prereqStart, prereqEnd);
       return;
     }
@@ -211,10 +226,11 @@ void RandArray::mergeFinalize(const int cnt, const int ID){
           if(taskComplete_.find(acMod, ID)) acMod->second= 1;
           else throw new domain_error("[merge]: ERROR! Current node #"+
                                       to_string(ID)+" already erased!\n");
+          return;
         }
     }
-  workers_.schedule(&RandArray::mergeFinalize, this, cnt, ID);
   //reschedule
+  workers_.schedule(&RandArray::mergeFinalize, this, cnt, ID);
 }
 
 void RandArray::sort(){
