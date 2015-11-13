@@ -20,10 +20,10 @@ add_library(thread_pool src/thread_pool.cpp)
 target_link_libraries(thread_pool
   PUBLIC ${TBB_LIBRARY}
   PUBLIC ${TBB_MALLOC_LIBRARY}
+  PUBLIC ${CMAKE_THREAD_LIBS_INIT}
 )
 add_executable(pbitonic-stdthread src/pbitonic-stdthread.cpp)
 target_link_libraries(pbitonic-stdthread
-  ${CMAKE_THREAD_LIBS_INIT}
   thread_pool
-  -fsanitize=undefined
+  -fsanitize=address
 )
