@@ -159,7 +159,7 @@ void RandArray::sortContin(const int lo, const int cnt, const int dir, const int
   //printf("[sortContin]: rescheduling\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   workers_.schedule(&RandArray::sortContin, this,lo,cnt,dir,ID);
 }
-//! Signal this task is complete and erase its dependencies, which are no longer useful
+//! Signal this task is complete and erase its dependencies, which are no longer needed 
 void RandArray::sortFinalize(const int cnt, const int ID){
   ConcurMap::const_accessor ac;
   if(taskComplete_.find(ac, ID))
@@ -168,7 +168,7 @@ void RandArray::sortFinalize(const int cnt, const int ID){
       ConcurMap::accessor acMod;
       if(taskComplete_.find(acMod, ID)) acMod->second= 2;
       else throw new domain_error("[merge]: ERROR! Current node #"+
-                                  to_string(ID)+" already erased!\n");
+                                  to_string(ID)+" doesn't exist yet!\n");
       acMod.release();
       taskComplete_.erase(ID+1);
       taskComplete_.erase(ID+cnt);
@@ -201,11 +201,13 @@ void RandArray::bitonicMerge(const int lo, const int cnt, const int dir, const i
       for (int i=lo; i<lo+k; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
       bitonicMerge(lo, k, dir, ID+1);
       bitonicMerge(lo+k, k, dir, ID+cnt);
-      // Signal merge completion
-      ConcurMap::accessor ac;
-      if(taskComplete_.find(ac, ID)) ac->second= 1;
-      else throw new domain_error("[merge]: ERROR! Current node #"+
-                                  to_string(ID)+" already erased!\n");
+      // Signal merge completion: insert ID or modify, if it already exists
+      if(!taskComplete_.insert(make_pair(ID,1))){
+        ConcurMap::accessor ac;
+        if(taskComplete_.find(ac, ID)) ac->second= 1;
+        else throw new domain_error("[merge]: ERROR! Current node #"+
+                                    to_string(ID)+" was JUST deleted by someone else!\n");
+      }
     }
   }
 }
@@ -239,11 +241,13 @@ void RandArray::mergeFinalize(const int cnt, const int ID){
       if(taskComplete_.find(ac, ID+cnt))
         if(ac->second == 1){
           ac.release();
-          ConcurMap::accessor acMod;
-          if(taskComplete_.find(acMod, ID)) acMod->second= 1;
-          else throw new domain_error("[merge]: ERROR! Current node #"+
-                                      to_string(ID)+" already erased!\n");
-          return;
+          if(taskComplete_.insert(make_pair(ID,1))){
+            ConcurMap::accessor acMod;
+            if(taskComplete_.find(acMod, ID)) acMod->second= 1;
+            else throw new domain_error("[merge]: ERROR! Current node #"+
+                                        to_string(ID)+" was JUST deleted by someone else!\n");
+            return;
+          }
         }
     }
   //reschedule
