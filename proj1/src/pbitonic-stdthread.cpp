@@ -106,7 +106,41 @@ void RandArray::construct(const int frame, const int taskRange){
   // As mentioned here: http://www.cplusplus.com/reference/cstdlib/rand/
   for(int i=start; i<end; i++) data_[i]= rand() %20;
 }
+void RandArray::sort(){
+  cout<<"Scheduling tasks...\n";
+  recBitonicSort(0,numN_,ASCENDING,0);
+  cout << "All tasks scheduled!\n";
+  workers_.waitFinish();
+  cout << "Waited as well\n";
+}
+int RandArray::check(){
+  //  qsort(checkCpy_.get(), numN_, sizeof(int), compare);
+  for(int i=0; i<numN_-1; i++) if(data_[i] > data_[i+1]){
+    std::cout <<"TEST FAILS!\n";
+    return false;
+  }
+  std::cout <<"TEST PASSES!\n";
+  return true;
+}
 
+// Only insert prereq if this is a left-node (worker==true)
+void RandArray::recBitonicSort(const int lo, const int cnt, const int dir, const int ID){
+  if (cnt>seqThres_) {
+    //printf("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    int k=cnt/2;
+    workers_.schedule(&RandArray::recBitonicSort, this,lo, k, ASCENDING, ID+1);
+    recBitonicSort(lo+k, k, DESCENDING, ID+cnt);
+    //workers_.schedule(&RandArray::sortContin,this,lo,cnt,dir,ID);
+    workers_.schedule([=] (){
+        workers_.schedule([=] (){workers_.schedule(&RandArray::sortContin,this,lo,cnt,dir,ID);});
+    });
+  } else{
+    //printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
+    else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
+    taskComplete_.insert(make_pair(ID,2));
+  }
+}
 // Each continuation always depends on ID+1, ID+cnt
 void RandArray::sortContin(const int lo, const int cnt, const int dir, const int ID){
   //printf("[sortContin]: Enter\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
@@ -143,24 +177,7 @@ void RandArray::sortFinalize(const int cnt, const int ID){
   //reschedule
   workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
 }
-// Only insert prereq if this is a left-node (worker==true)
-void RandArray::recBitonicSort(const int lo, const int cnt, const int dir, const int ID){
-  if (cnt>seqThres_) {
-    //printf("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-    int k=cnt/2;
-    workers_.schedule(&RandArray::recBitonicSort, this,lo, k, ASCENDING, ID+1);
-    recBitonicSort(lo+k, k, DESCENDING, ID+cnt);
-    //workers_.schedule(&RandArray::sortContin,this,lo,cnt,dir,ID);
-    workers_.schedule([=] (){
-        workers_.schedule([=] (){workers_.schedule(&RandArray::sortContin,this,lo,cnt,dir,ID);});
-    });
-  } else{
-    //printf("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-    if(dir) qsort(data_.get()+lo, cnt, sizeof(int),compUP);
-    else qsort(data_.get()+lo, cnt, sizeof(int),compDN);
-    taskComplete_.insert(make_pair(ID,2));
-  }
-}
+
 //! For small problems, synchronously merge; for larger sizes, launch asynchronous merging tasks
 void RandArray::bitonicMerge(const int lo, const int cnt, const int dir, const int ID){
   if (cnt>1) {
@@ -175,7 +192,7 @@ void RandArray::bitonicMerge(const int lo, const int cnt, const int dir, const i
         workers_.schedule([=] (const int serial){
           const int start= lo+i*smallProblemThres, end= lo+(i+1)*smallProblemThres;
           for(int i=start; i<end; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
-          this->exchangeComplete_.insert(serial,1);
+          this->exchangeComplete_.insert(make_pair(serial,1));
         }, serialStart+i);
       }
       // Schedule the rest of bitonicMerge
@@ -231,23 +248,6 @@ void RandArray::mergeFinalize(const int cnt, const int ID){
     }
   //reschedule
   workers_.schedule(&RandArray::mergeFinalize, this, cnt, ID);
-}
-
-void RandArray::sort(){
-  cout<<"Scheduling tasks...\n";
-  recBitonicSort(0,numN_,ASCENDING,0);
-  cout << "All tasks scheduled!\n";
-  workers_.waitFinish();
-  cout << "Waited as well\n";
-}
-int RandArray::check(){
-//  qsort(checkCpy_.get(), numN_, sizeof(int), compare);
-  for(int i=0; i<numN_-1; i++) if(data_[i] > data_[i+1]){
-    std::cout <<"TEST FAILS!\n";
-    return false;
-  }
-  std::cout <<"TEST PASSES!\n";
-  return true;
 }
 
 
