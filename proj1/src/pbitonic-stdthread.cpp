@@ -137,6 +137,7 @@ int RandArray::check(){
 // Only insert prereq if this is a left-node (worker==true)
 void RandArray::recBitonicSort(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
   if (cnt>seqThres_) {
+    taskComplete_.insert(make_pair(ID,0));
     DBG_PRINTF("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     unsigned k=cnt/2;
     workers_.schedule(&RandArray::recBitonicSort, this,lo, k, ASCENDING, ID+1);
@@ -148,31 +149,25 @@ void RandArray::recBitonicSort(const unsigned lo, const unsigned cnt, const int 
     DBG_PRINTF("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     if(dir) qsort(data_.get()+lo, cnt, sizeof(unsigned),compUP);
     else qsort(data_.get()+lo, cnt, sizeof(unsigned),compDN);
-    // TODO: Probably unnecessary check
-    if(!taskComplete_.insert(make_pair(ID,2))){
-      ConcurMap::accessor acMod;
-      if(taskComplete_.find(acMod, ID)) acMod->second= 2;
-      else throw new domain_error("[sort]: ERROR! Current node #"+
-                                  to_string(ID)+" was JUST deleted by someone else!\n");
-    }
+    taskComplete_.insert(make_pair(ID,1));
   }
 }
 // Depends on ID+1, ID+cnt having been sorted
 void RandArray::sortContin(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
-  { //OnlyOnce
+  /*{ //OnlyOnce
     ConcurMap::const_accessor ac;
     if(nodeStatus_.find(ac,ID)) if(ac->second & 1) return; 
-  }
+  }*/
   ConcurMap::const_accessor ac;
   if(taskComplete_.find(ac, ID+1))
-    if(ac->second == 2){
+    if(ac->second & 1){
       ac.release();
       if(taskComplete_.find(ac, ID+cnt))
-        if(ac->second == 2){
+        if(ac->second & 1){
           ac.release();
-          { //OnlyOnce
+          /*{ //OnlyOnce
             if(!nodeStatus_.insert(make_pair(ID,1))) throw new domain_error("[sortContin]: OnlyOnce ERROR\n");
-          }
+          }*/
           DBG_PRINTF("[sortContin]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
           if (ID==0) printf("\n\n\n");
           bitonicMerge(lo,cnt,dir, ID);
@@ -186,27 +181,26 @@ void RandArray::sortContin(const unsigned lo, const unsigned cnt, const int dir,
 }
 //! Signal this task is complete and erase its dependencies, which are no longer needed 
 void RandArray::sortFinalize(const unsigned cnt, const unsigned ID){
-  { //OnlyOnce
+  /*{ //OnlyOnce
     ConcurMap::const_accessor ac;
     if(nodeStatus_.find(ac,ID)) if(ac->second & 2) return;
-  }
+  }*/
   ConcurMap::const_accessor ac;
   if(taskComplete_.find(ac, ID))
-    if(ac->second == 1){
+    if(ac->second & 4){
       ac.release();
-      { //OnlyOnce
+      /*{ //OnlyOnce
         ConcurMap::accessor ac;
         if(nodeStatus_.find(ac, ID)) ac->second|= 2;
         else throw new domain_error("[sortFinalize]: OnlyOnce ERROR\n");
-      }
+      }*/
       DBG_PRINTF("[sortFinalize]: Making 2\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
       ConcurMap::accessor acMod;
-      if(taskComplete_.find(acMod, ID)) acMod->second= 2;
-      else throw new domain_error("[sort]: ERROR! Current node #"+
-                                  to_string(ID)+" doesn't exist yet!\n");
+      taskComplete_.find(acMod, ID);
+      acMod->second|= 1;
       acMod.release();
-      taskComplete_.erase(ID+1);
-      taskComplete_.erase(ID+cnt);
+      /*taskComplete_.erase(ID+1);
+      taskComplete_.erase(ID+cnt);*/
       // If this is the root node, signal algorithm completion
       if(ID == 0){{
           std::lock_guard<std::mutex> lk(finishMut_);
@@ -224,9 +218,14 @@ void RandArray::sortFinalize(const unsigned cnt, const unsigned ID){
 //! For small problems, synchronously merge; for larger sizes, launch asynchronous merging tasks
 void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
   if (cnt>1) {
-    { //OnlyOnce
+    /*{ //OnlyOnce
       ConcurMap::accessor ac;
       if(nodeStatus_.find(ac, ID)) ac->second&= 3; //Clear merge flags
+    }*/
+    {
+      ConcurMap::accessor ac;
+      taskComplete_.find(ac, ID);
+      ac->second&= ~4u; //clear merge flag
     }
     unsigned k= cnt>>1;
     const unsigned smallProblemThres= (seqThres_<<0 < k)? seqThres_<<0: k;
@@ -250,22 +249,19 @@ void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int di
       bitonicMerge(lo, k, dir, ID+1);
       bitonicMerge(lo+k, k, dir, ID+cnt);
       // Signal merge completion: insert ID or modify, if it already exists
-      if(!taskComplete_.insert(make_pair(ID,1))){
-        ConcurMap::accessor ac;
-        if(taskComplete_.find(ac, ID)) ac->second= 1;
-        else throw new domain_error("[merge]: ERROR! Current node #"+
-                                    to_string(ID)+" was JUST deleted by someone else!\n");
-      }
+      ConcurMap::accessor ac;
+      taskComplete_.find(ac, ID);
+      ac->second|= 4;
     }
   }
 }
 
 void RandArray::mergeContin(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID,
     const unsigned prereqStart, const unsigned prereqEnd){
-  { //OnlyOnce
+  /*{ //OnlyOnce
     ConcurMap::const_accessor ac;
     if(nodeStatus_.find(ac, ID)) if(ac->second & 4) return;
-  }
+  }*/
   ConcurMap::const_accessor ac;
   for(unsigned serial= prereqStart; serial< prereqEnd; serial++){
     if(!exchangeComplete_.find(ac, serial)){
@@ -275,11 +271,11 @@ void RandArray::mergeContin(const unsigned lo, const unsigned cnt, const int dir
     }
     ac.release();
   }
-  { //OnlyOnce
+  /*{ //OnlyOnce
     ConcurMap::accessor ac;
     if(nodeStatus_.find(ac,ID)) ac->second|= 4;
     else throw new domain_error("[mergeContin]: OnlyOnce ERROR\n");
-  }
+  }*/
   // All prerequisites have completed!
   DBG_PRINTF("[mergeContin]: Schedul_merges\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   const unsigned k= cnt>>1;
@@ -292,28 +288,25 @@ void RandArray::mergeContin(const unsigned lo, const unsigned cnt, const int dir
 }
 // After previous bitonic merges have completed, signal completion
 void RandArray::mergeFinalize(const unsigned cnt, const unsigned ID){
-  { //OnlyOnce
+  /*{ //OnlyOnce
     ConcurMap::const_accessor ac;
     if(nodeStatus_.find(ac, ID)) if(ac->second & 8) return;
-  }
+  }*/
   ConcurMap::const_accessor ac;
   if(taskComplete_.find(ac, ID+1))
-    if(ac->second == 1){
+    if(ac->second & 4){
       ac.release();
       if(taskComplete_.find(ac, ID+cnt))
-        if(ac->second == 1){
+        if(ac->second & 4){
           ac.release();
-          { //OnlyOnce
+          /*{ //OnlyOnce
             ConcurMap::accessor ac;
             if(nodeStatus_.find(ac,ID)) ac->second|= 8;
-          }
+          }*/
           DBG_PRINTF("[mergeFinalize]: Making 1\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-          if(!taskComplete_.insert(make_pair(ID,1))){
-            ConcurMap::accessor acMod;
-            if(taskComplete_.find(acMod, ID)) acMod->second= 1;
-            else throw new domain_error("[mergeFin]: ERROR! Current node #"+
-                                        to_string(ID)+" was JUST deleted by someone else!\n");
-          }
+          ConcurMap::accessor acMod;
+          taskComplete_.find(acMod, ID);
+          acMod->second|= 4;
           return;
         }
     }
