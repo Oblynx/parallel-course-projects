@@ -15,10 +15,10 @@ void ThreadPool::startWorkers()
       {
         std::function<void()> task;
         try{
-          workerWaiting_++;  //a.k.a. waiting
+          //workerWaiting_++;  //a.k.a. waiting
           tasks_.pop(task);
-          workerWaiting_--;  //a.k.a. busy
-          notTransientFinish_.clear();
+          //workerWaiting_--;  //a.k.a. busy
+          //notTransientFinish_.clear();
           task();
         }catch(tbb::user_abort){
           // Normal control flow when the destructor is called
