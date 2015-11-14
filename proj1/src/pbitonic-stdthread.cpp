@@ -10,7 +10,7 @@
 #include "thread_pool.h"
 #ifdef __DEBUG__
 #define COUT cout
-#define DBG_PRINTF if(ID & ~(1u)) printf
+#define DBG_PRINTF if(!(ID & ~3u)) printf
 #else
 #define COUT while(0) cout
 #define DBG_PRINTF while(0) printf
@@ -41,7 +41,6 @@ public:
     for(unsigned i=0; i<numN_; i++) cout << data_[i] << ' ';
     cout << '\n';
   }
-
   ~RandArray(){ cout << "Destroying RandArray\n"; }
 private:
   //! Thread callback for creating random array slice
