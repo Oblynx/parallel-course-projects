@@ -7,6 +7,7 @@
 #include <atomic>
 #include <chrono>
 #include "tbb-4.4/concurrent_unordered_map.h"
+#include "tbb-4.4/concurrent_hash_map.h"
 #include "thread_pool.h"
 #ifdef __DEBUG__
 #define COUT cout
@@ -16,8 +17,6 @@
 #define DBG_PRINTF while(0) printf
 #endif
 using namespace std;
-
-typedef tbb::concurrent_unordered_map<unsigned,unsigned char> ConcurMap;
 
 class ConstIter: public iterator<input_iterator_tag, pair<unsigned,unsigned char>>{
   typedef pair<unsigned, unsigned char> T;
@@ -34,15 +33,18 @@ public:
 };
 
 class RandArray{
+  typedef tbb::concurrent_unordered_map<unsigned, unsigned char> UnordMap;
+  typedef tbb::concurrent_hash_map<unsigned, unsigned char> HashMap;
 public:
   //! Call workers to initialize random array
   RandArray(unsigned numN, ThreadPool& workers): numN_(numN),
       workers_(workers), data_(new unsigned[numN]),
-      nodeStatus_(ConstIter(0,0), ConstIter(2*numN_-1,0), 1*numN_),
-      exchangeComplete_(numN_/(seqThres_<<2)), serial_(0){
+      nodeStatus_(numN_),
+      //nodeStatus_(new unsigned char[2*numN]),
+      exchangeComplete_(numN_/seqThres_), serial_(0){
     cout << "Constructing RandArray\n";
     srand(1);
-    const unsigned smallProblemThres= (seqThres_<<2 > numN_)? seqThres_<<2: numN_;
+    const unsigned smallProblemThres= (seqThres_ > numN_)? seqThres_: numN_;
     vector<future<void>> results;
     results.reserve(numN_/smallProblemThres);
     for(unsigned i=0; i< numN_/smallProblemThres; i++)
@@ -76,7 +78,8 @@ private:
   //! Size of array slice for each thread
   ThreadPool& workers_;
   unique_ptr<unsigned[]> data_;
-  ConcurMap nodeStatus_, exchangeComplete_;
+  UnordMap nodeStatus_;
+  HashMap exchangeComplete_;
   atomic<unsigned> serial_;
   static const unsigned seqThres_, ASCENDING, DESCENDING;
   //! Signal that all tasks have finished
@@ -84,7 +87,7 @@ private:
   std::condition_variable finishCnd_;
   bool finished_;
 };
-const unsigned RandArray::seqThres_= 1<<0, RandArray::ASCENDING=1, RandArray::DESCENDING=0;
+const unsigned RandArray::seqThres_= 1<<21, RandArray::ASCENDING=1, RandArray::DESCENDING=0;
 
 int main(int argc, char** argv){
   if (argc<3){
@@ -97,7 +100,7 @@ int main(int argc, char** argv){
   if (logThreadN > 8){
     cout << "Max thread number: 2^8\n";
     return 2;
-  }else if (logNumN > 24){
+  }else if (logNumN > 27){
     cout << "Max elements number: 2^24\n";
     return 3;
   }
@@ -136,7 +139,7 @@ void RandArray::sort(){
   COUT << "All tasks scheduled!\n";
   std::unique_lock<std::mutex> lk(finishMut_);
   finishCnd_.wait(lk, [=] { return finished_; });
-  workers_.waitFinish();
+  //workers_.waitFinish();
   COUT << "Waited as well\n";
 }
 int RandArray::check(){
@@ -155,7 +158,7 @@ int RandArray::check(){
 
 // Only insert prereq if this is a left-node (worker==true)
 void RandArray::recBitonicSort(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
-  //nodeStatus_[ID]= 0;
+  nodeStatus_[ID]= 0;
   if (cnt>seqThres_) {
     DBG_PRINTF("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     unsigned k=cnt/2;
@@ -176,11 +179,13 @@ void RandArray::sortContin(const unsigned lo, const unsigned cnt, const int dir,
   if((nodeStatus_[ID+1] & 1) && (nodeStatus_[ID+cnt] & 1)){
     DBG_PRINTF("[sortContin]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     bitonicMerge(lo,cnt,dir, ID);
-    workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
+    workers_.schedule([=]{workers_.schedule([=]{
+          workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
+    });});
     return;
   }
   //If dependency isn't complete, reschedule
-  workers_.schedule(&RandArray::sortContin, this,lo,cnt,dir,ID);
+  workers_.schedule([=] {workers_.schedule(&RandArray::sortContin, this,lo,cnt,dir,ID);});
 }
 //! Signal this task is complete and erase its dependencies, which are no longer needed 
 void RandArray::sortFinalize(const unsigned cnt, const unsigned ID){
@@ -197,7 +202,7 @@ void RandArray::sortFinalize(const unsigned cnt, const unsigned ID){
     return;
   }
   //reschedule
-  workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
+  workers_.schedule([=]{workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);});
 }
 
 //! For small problems, synchronously merge; for larger sizes, launch asynchronous merging tasks
@@ -205,18 +210,17 @@ void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int di
   if (cnt>1) {
     nodeStatus_[ID]&= ~4u; //clear merge flag
     unsigned k= cnt>>1;
-    const unsigned smallProblemThres= (seqThres_<<2 < k)? seqThres_<<2: k;
+    const unsigned smallProblemThres= (seqThres_ < k)? seqThres_: k;
     if (smallProblemThres < k){
       const unsigned chunkNumber= k/smallProblemThres;
       // Request a range of serial numbers
       const unsigned serialStart= serial_.fetch_add(chunkNumber);
       const unsigned serialEnd= serialStart+chunkNumber;
       for(unsigned i=0; i< chunkNumber; i++){
-        exchangeComplete_[serialStart+i]= 0;
         workers_.schedule([=] (const unsigned serial){
           const unsigned start= lo+i*smallProblemThres, end= lo+(i+1)*smallProblemThres;
           for(unsigned i=start; i<end; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
-          this->exchangeComplete_[serial]= 1;
+          this->exchangeComplete_.insert(make_pair(serial,1));
         }, serialStart+i);
       }
       // Schedule the rest of bitonicMerge
@@ -234,13 +238,19 @@ void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int di
 
 void RandArray::mergeContin(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID,
     const unsigned prereqStart, const unsigned prereqEnd){
+  HashMap::const_accessor ac;
   for(unsigned serial= prereqStart; serial< prereqEnd; serial++){
-    if(!(exchangeComplete_[serial] & 1)){
-      // TODO: Schedule-to-reschedule?
-      workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir, ID, prereqStart, prereqEnd);
+    if(!exchangeComplete_.find(ac, serial)){
+      // Schedule-to-reschedule?
+      workers_.schedule([=]{
+          workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir, ID, prereqStart, prereqEnd);
+      });
       return;
     }
+    ac.release();
   }
+  // Free up some memory!!!
+  for(unsigned serial= prereqStart; serial< prereqEnd; serial++) exchangeComplete_.erase(serial);
   // All prerequisites have completed!
   DBG_PRINTF("[mergeContin]: Schedul_merges\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   const unsigned k= cnt>>1;
@@ -259,7 +269,7 @@ void RandArray::mergeFinalize(const unsigned cnt, const unsigned ID){
     return;
   }
   //reschedule
-  workers_.schedule(&RandArray::mergeFinalize, this, cnt, ID);
+  workers_.schedule([=] {workers_.schedule(&RandArray::mergeFinalize, this, cnt, ID);});
 }
 
 
