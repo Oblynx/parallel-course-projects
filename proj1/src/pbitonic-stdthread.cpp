@@ -6,8 +6,6 @@
 #include <vector>
 #include <atomic>
 #include <chrono>
-#include "tbb-4.4/concurrent_unordered_map.h"
-#include "tbb-4.4/concurrent_hash_map.h"
 #include "thread_pool.h"
 #ifdef __DEBUG__
 #define COUT cout
@@ -18,33 +16,20 @@
 #endif
 using namespace std;
 
-class ConstIter: public iterator<input_iterator_tag, pair<unsigned,unsigned char>>{
-  typedef pair<unsigned, unsigned char> T;
-  T c;
-  unsigned& ID;
-public:
-  ConstIter(unsigned ID, unsigned char s): c(make_pair(ID,s)), ID(c.first) {}
-  ConstIter(const ConstIter& ot)= default;
-  ConstIter& operator++() {ID++; return *this;}
-  ConstIter operator++(int) {ConstIter tmp(*this); operator++(); return tmp;}
-  bool operator==(const ConstIter& rhs) {return ID==rhs.ID;}
-  bool operator!=(const ConstIter& rhs) {return ID!=rhs.ID;}
-  T& operator*() {return c;}
-};
+int compUP (const void *a, const void *b) {return ( *(unsigned*)a - *(unsigned*)b );}
+int compDN (const void *a, const void *b) {return ( *(unsigned*)b - *(unsigned*)a );}
 
 class RandArray{
-  typedef tbb::concurrent_unordered_map<unsigned, unsigned char> UnordMap;
-  typedef tbb::concurrent_hash_map<unsigned, unsigned char> HashMap;
 public:
   //! Call workers to initialize random array
-  RandArray(unsigned numN, ThreadPool& workers): numN_(numN),
+  RandArray(unsigned numN, ThreadPool& workers): numN_(numN), exchangeBuffLength_(2*numN_/seqThres_),
       workers_(workers), data_(new unsigned[numN]),
-      nodeStatus_(numN_),
-      //nodeStatus_(new unsigned char[2*numN]),
-      exchangeComplete_(numN_/seqThres_), serial_(0){
+      nodeStatus_(new unsigned char[2*numN]),
+      exchangeComplete_(new unsigned char[exchangeBuffLength_]), serial_(0){
     cout << "Constructing RandArray\n";
     srand(1);
     const unsigned smallProblemThres= (seqThres_ > numN_)? seqThres_: numN_;
+    for(unsigned i=0; i< exchangeBuffLength_; i++) exchangeComplete_[i]= 0;
     vector<future<void>> results;
     results.reserve(numN_/smallProblemThres);
     for(unsigned i=0; i< numN_/smallProblemThres; i++)
@@ -52,6 +37,9 @@ public:
     for(unsigned i=0; i< numN_/smallProblemThres; i++) results[i].get();
   }
   void sort();
+  void seqSort(){
+    qsort(data_.get(), numN_, sizeof(unsigned), compUP);
+  }
   //! Check result correctness. Could also be a simple out-of-order search of course
   int check();
   void print(){
@@ -74,12 +62,12 @@ private:
     tmp=data_[a], data_[a]=data_[b], data_[b]=tmp;
   }
 
-  const unsigned numN_;
+  const unsigned numN_, exchangeBuffLength_;
   //! Size of array slice for each thread
   ThreadPool& workers_;
   unique_ptr<unsigned[]> data_;
-  UnordMap nodeStatus_;
-  HashMap exchangeComplete_;
+  unique_ptr<unsigned char[]> nodeStatus_;
+  unique_ptr<unsigned char[]> exchangeComplete_;
   atomic<unsigned> serial_;
   static const unsigned seqThres_, ASCENDING, DESCENDING;
   //! Signal that all tasks have finished
@@ -87,7 +75,7 @@ private:
   std::condition_variable finishCnd_;
   bool finished_;
 };
-const unsigned RandArray::seqThres_= 1<<21, RandArray::ASCENDING=1, RandArray::DESCENDING=0;
+const unsigned RandArray::seqThres_= 1<<19, RandArray::ASCENDING=1, RandArray::DESCENDING=0;
 
 int main(int argc, char** argv){
   if (argc<3){
@@ -107,24 +95,25 @@ int main(int argc, char** argv){
   unsigned threadN, numN;
   numN= 1<<logNumN;
   threadN= (logThreadN>logNumN)? 1<<logNumN:1<<logThreadN; // Not more threads than elements
-
   // Input done, let's get the threads running...
+
   ThreadPool workers(threadN);
   auto start= chrono::system_clock::now();
   RandArray array(numN, workers);
   chrono::duration<double> duration= chrono::system_clock::now()-start;
   cout<<"--> Array constructed in "<<duration.count()*1000<<"ms\n";
   //array.print();
-  start= chrono::system_clock::now();
-  array.sort();
+  start= chrono::system_clock::now();  
+  if(argc == 4){
+    if(strcmp(argv[3],"-qsort") || strcmp(argv[3], "-seq")) array.seqSort();
+    else array.sort();
+  }
+  else array.sort();
   duration= chrono::system_clock::now()-start;
   cout<<"--> Array sorted in "<<duration.count()*1000<<"ms\n";
   //array.print();
   return array.check();
 }
-
-int compUP (const void *a, const void *b) {return ( *(unsigned*)a - *(unsigned*)b );}
-int compDN (const void *a, const void *b) {return ( *(unsigned*)b - *(unsigned*)a );}
 
 void RandArray::construct(const unsigned frame, const unsigned taskRange){
   const unsigned start= frame*taskRange, end= (frame+1)*taskRange;
@@ -143,7 +132,6 @@ void RandArray::sort(){
   COUT << "Waited as well\n";
 }
 int RandArray::check(){
-  //  qsort(checkCpy_.get(), numN_, sizeof(unsigned), compare);
   for(unsigned i=0; i<numN_-1; i++) if(data_[i] > data_[i+1]){
     std::cout <<"\n\t   ####################   \
                  \n\t--| ### Test FAIL! ### |--\
@@ -218,10 +206,14 @@ void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int di
       const unsigned serialEnd= serialStart+chunkNumber;
       for(unsigned i=0; i< chunkNumber; i++){
         workers_.schedule([=] (const unsigned serial){
+          if(exchangeComplete_[serial]){
+            cout << "$$$ FATAL ERROR: Chunk queue length exceeded\n";
+            exit(1);
+          }
           const unsigned start= lo+i*smallProblemThres, end= lo+(i+1)*smallProblemThres;
           for(unsigned i=start; i<end; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
-          this->exchangeComplete_.insert(make_pair(serial,1));
-        }, serialStart+i);
+          exchangeComplete_[serial]= 1;
+        }, (serialStart+i)%exchangeBuffLength_);
       }
       // Schedule the rest of bitonicMerge
       workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir,ID, serialStart,serialEnd);
@@ -238,19 +230,17 @@ void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int di
 
 void RandArray::mergeContin(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID,
     const unsigned prereqStart, const unsigned prereqEnd){
-  HashMap::const_accessor ac;
   for(unsigned serial= prereqStart; serial< prereqEnd; serial++){
-    if(!exchangeComplete_.find(ac, serial)){
+    if(!exchangeComplete_[serial%exchangeBuffLength_]){
       // Schedule-to-reschedule?
-      workers_.schedule([=]{
+      //workers_.schedule([=]{
           workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir, ID, prereqStart, prereqEnd);
-      });
+      //});
       return;
     }
-    ac.release();
   }
-  // Free up some memory!!!
-  for(unsigned serial= prereqStart; serial< prereqEnd; serial++) exchangeComplete_.erase(serial);
+  for(unsigned serial= prereqStart; serial< prereqEnd; serial++)
+    exchangeComplete_[serial%exchangeBuffLength_]= 0;
   // All prerequisites have completed!
   DBG_PRINTF("[mergeContin]: Schedul_merges\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
   const unsigned k= cnt>>1;
