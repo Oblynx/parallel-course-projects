@@ -82,6 +82,7 @@
 
     //! Only for testing. [release]->remove
     void setWorkerN(const int& n) { threadNum_= n; }
+    unsigned workers() { return threadNum_; }
   protected:
     //! Threads that consume tasks
     std::vector< std::thread > workers_;

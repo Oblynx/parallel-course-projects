@@ -22,8 +22,8 @@ int compDN (const void *a, const void *b) {return ( *(unsigned*)b - *(unsigned*)
 class RandArray{
 public:
   //! Call workers to initialize random array
-  RandArray(unsigned numN, ThreadPool& workers): numN_(numN), exchangeBuffLength_(2*numN_/seqThres_),
-      workers_(workers), data_(new unsigned[numN]),
+  RandArray(unsigned numN, ThreadPool& workers): numN_(numN), seqThres_(numN/workers.workers()>>1),
+      exchangeBuffLength_(2*numN_/seqThres_), workers_(workers), data_(new unsigned[numN]),
       nodeStatus_(new unsigned char[2*numN]),
       exchangeComplete_(new unsigned char[exchangeBuffLength_]), serial_(0){
     cout << "Constructing RandArray\n";
@@ -62,20 +62,21 @@ private:
     tmp=data_[a], data_[a]=data_[b], data_[b]=tmp;
   }
 
-  const unsigned numN_, exchangeBuffLength_;
+  const unsigned numN_, seqThres_, exchangeBuffLength_;
   //! Size of array slice for each thread
   ThreadPool& workers_;
   unique_ptr<unsigned[]> data_;
   unique_ptr<unsigned char[]> nodeStatus_;
   unique_ptr<unsigned char[]> exchangeComplete_;
   atomic<unsigned> serial_;
-  static const unsigned seqThres_, ASCENDING, DESCENDING;
+  static const unsigned ASCENDING, DESCENDING;
   //! Signal that all tasks have finished
   std::mutex finishMut_;
   std::condition_variable finishCnd_;
   bool finished_;
 };
-const unsigned RandArray::seqThres_= 1<<19, RandArray::ASCENDING=1, RandArray::DESCENDING=0;
+//const unsigned RandArray::seqThres_= 1<<19;
+const unsigned RandArray::ASCENDING=1, RandArray::DESCENDING=0;
 
 int main(int argc, char** argv){
   if (argc<3){
