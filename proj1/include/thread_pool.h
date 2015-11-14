@@ -59,17 +59,17 @@
 
     //! Clears tasks queue
     void clearTasks(){ tasks_.clear(); }
-    /*void waitFinish(){
+    void waitFinish(){
       while(!tasks_.empty() || workerWaiting_!=threadNum_ || !notTransientFinish_.test_and_set()){
         while(!tasks_.empty() || workerWaiting_!=threadNum_){
-          std::this_thread::sleep_for(std::chrono::microseconds(200));
+          std::this_thread::sleep_for(std::chrono::microseconds(threadNum_*20+50));
         }
         // FIXME!
         // Check that condition isn't transient. Certainly NOT a guarantee!!!
         notTransientFinish_.test_and_set();
-        std::this_thread::sleep_for(std::chrono::microseconds(400));
+        std::this_thread::sleep_for(std::chrono::microseconds(threadNum_*50));
       }
-    }*/
+    }
     
     //! Constructs workers and sets them waiting. [release]->protected
     void startWorkers();
@@ -85,7 +85,7 @@
   protected:
     //! Threads that consume tasks
     std::vector< std::thread > workers_;
-    //std::atomic<unsigned> workerWaiting_;
+    std::atomic<unsigned> workerWaiting_;
     //! Concurrent queue that produces tasks
     tbb::concurrent_bounded_queue< std::function<void()> > tasks_;
     size_t threadNum_= 0;
@@ -101,6 +101,7 @@
     */
     std::atomic_flag beginworking_;
     std::atomic_flag endworking_;
+    std::atomic_flag notTransientFinish_;
     //!@}
   };
 

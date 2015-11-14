@@ -15,7 +15,7 @@ add_compile_options(-std=c++14 -Wall -g -O1 -fno-omit-frame-pointer
 add_definitions(-D__DEBUG__)
 
 #######################   Project1   ###############################
-add_executable(sample-bitonic sample_bitonic.c) 
+#add_executable(sample-bitonic sample_bitonic.c) 
 
 add_library(thread_pool src/thread_pool.cpp)
 target_link_libraries(thread_pool
@@ -26,5 +26,5 @@ target_link_libraries(thread_pool
 add_executable(pbitonic-stdthread src/pbitonic-stdthread.cpp)
 target_link_libraries(pbitonic-stdthread
   thread_pool
-  -fsanitize=address
+  #-fsanitize=thread
 )
