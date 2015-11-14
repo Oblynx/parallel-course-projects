@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
-set(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_CXX_COMPILER g++)
 project(parallel-course-projects)
 
 find_package(Threads REQUIRED)
@@ -9,13 +9,13 @@ set(TBB_LIBRARY
 set(TBB_MALLOC_LIBRARY 
   "/home/oblivion/ws/var/tbb-4.4/lib/intel64/gcc4.4/libtbbmalloc.so.2") 
 include_directories(include)
-add_compile_options(-std=c++14 -Wall -g -O1 -fno-omit-frame-pointer
-  -march=native -fPIC)
+#add_compile_options(-std=c++14 -Wall -g -O1 -fno-omit-frame-pointer -march=native -fPIC)
+add_compile_options(-std=c++14 -Wall -O3 -march=native)
 #add_definitions(-DTBB_USE_ASSERT=1)
 #add_definitions(-D__DEBUG__)
 
 #######################   Project1   ###############################
-#add_executable(sample-bitonic sample_bitonic.c) 
+add_executable(sample-bitonic sample_bitonic.c) 
 
 add_library(thread_pool src/thread_pool.cpp)
 target_link_libraries(thread_pool
@@ -28,3 +28,5 @@ target_link_libraries(pbitonic-stdthread
   thread_pool
   #-fsanitize=thread
 )
+#add_executable(pbitonic-omp src/pbitonic-omp.cpp)
+#target_link_libraries(pbitonic-omp -fopenmp)
