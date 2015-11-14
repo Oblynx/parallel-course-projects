@@ -12,7 +12,7 @@ include_directories(include)
 add_compile_options(-std=c++14 -Wall -g -O1 -fno-omit-frame-pointer
   -march=native -fPIC)
 #add_definitions(-DTBB_USE_ASSERT=1)
-add_definitions(-D__DEBUG__)
+#add_definitions(-D__DEBUG__)
 
 #######################   Project1   ###############################
 #add_executable(sample-bitonic sample_bitonic.c) 

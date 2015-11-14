@@ -6,7 +6,7 @@
 #include <vector>
 #include <atomic>
 #include <chrono>
-#include "tbb-4.4/concurrent_hash_map.h"
+#include "tbb-4.4/concurrent_unordered_map.h"
 #include "thread_pool.h"
 #ifdef __DEBUG__
 #define COUT cout
@@ -17,14 +17,29 @@
 #endif
 using namespace std;
 
-typedef tbb::concurrent_hash_map<unsigned,unsigned char> ConcurMap;
+typedef tbb::concurrent_unordered_map<unsigned,unsigned char> ConcurMap;
+
+class ConstIter: public iterator<input_iterator_tag, pair<unsigned,unsigned char>>{
+  typedef pair<unsigned, unsigned char> T;
+  T c;
+  unsigned& ID;
+public:
+  ConstIter(unsigned ID, unsigned char s): c(make_pair(ID,s)), ID(c.first) {}
+  ConstIter(const ConstIter& ot)= default;
+  ConstIter& operator++() {ID++; return *this;}
+  ConstIter operator++(int) {ConstIter tmp(*this); operator++(); return tmp;}
+  bool operator==(const ConstIter& rhs) {return ID==rhs.ID;}
+  bool operator!=(const ConstIter& rhs) {return ID!=rhs.ID;}
+  T& operator*() {return c;}
+};
 
 class RandArray{
 public:
   //! Call workers to initialize random array
   RandArray(unsigned numN, ThreadPool& workers): numN_(numN),
-      workers_(workers), data_(new unsigned[numN]), nodeStatus_(round(1*numN_)),
-      exchangeComplete_(round(0.6*numN_/(seqThres_<<2))), serial_(0){
+      workers_(workers), data_(new unsigned[numN]),
+      nodeStatus_(ConstIter(0,0), ConstIter(2*numN_-1,0), 1*numN_),
+      exchangeComplete_(numN_/(seqThres_<<2)), serial_(0){
     cout << "Constructing RandArray\n";
     srand(1);
     const unsigned smallProblemThres= (seqThres_<<2 > numN_)? seqThres_<<2: numN_;
@@ -69,7 +84,7 @@ private:
   std::condition_variable finishCnd_;
   bool finished_;
 };
-const unsigned RandArray::seqThres_= 1<<2, RandArray::ASCENDING=1, RandArray::DESCENDING=0;
+const unsigned RandArray::seqThres_= 1<<0, RandArray::ASCENDING=1, RandArray::DESCENDING=0;
 
 int main(int argc, char** argv){
   if (argc<3){
@@ -140,7 +155,7 @@ int RandArray::check(){
 
 // Only insert prereq if this is a left-node (worker==true)
 void RandArray::recBitonicSort(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
-  nodeStatus_.insert(make_pair(ID,0));
+  //nodeStatus_[ID]= 0;
   if (cnt>seqThres_) {
     DBG_PRINTF("[recBitonicSort]: recursing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     unsigned k=cnt/2;
@@ -153,49 +168,34 @@ void RandArray::recBitonicSort(const unsigned lo, const unsigned cnt, const int 
     DBG_PRINTF("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
     if(dir) qsort(data_.get()+lo, cnt, sizeof(unsigned),compUP);
     else qsort(data_.get()+lo, cnt, sizeof(unsigned),compDN);
-    ConcurMap::accessor ac;
-    if(!nodeStatus_.find(ac, ID)) throw new runtime_error("ERROR");
-    ac->second|= 1;
+    nodeStatus_[ID]|= 1;
   }
 }
 // Depends on ID+1, ID+cnt having been sorted
 void RandArray::sortContin(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
-  ConcurMap::const_accessor ac;
-  if(nodeStatus_.find(ac, ID+1))
-    if(ac->second & 1){
-      ac.release();
-      if(nodeStatus_.find(ac, ID+cnt))
-        if(ac->second & 1){
-          ac.release();
-          DBG_PRINTF("[sortContin]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-          bitonicMerge(lo,cnt,dir, ID);
-          workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
-          return;
-        }
-    }
+  if((nodeStatus_[ID+1] & 1) && (nodeStatus_[ID+cnt] & 1)){
+    DBG_PRINTF("[sortContin]: continuing\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    bitonicMerge(lo,cnt,dir, ID);
+    workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
+    return;
+  }
   //If dependency isn't complete, reschedule
   workers_.schedule(&RandArray::sortContin, this,lo,cnt,dir,ID);
 }
 //! Signal this task is complete and erase its dependencies, which are no longer needed 
 void RandArray::sortFinalize(const unsigned cnt, const unsigned ID){
-  ConcurMap::const_accessor ac;
-  if(nodeStatus_.find(ac, ID))
-    if(ac->second & 4){
-      ac.release();
-      DBG_PRINTF("[sortFinalize]: Making 2\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-      ConcurMap::accessor acMod;
-      if(!nodeStatus_.find(acMod, ID)) throw new runtime_error("ERROR");
-      acMod->second|= 1;
-      acMod.release();
-      // If this is the root node, signal algorithm completion
-      if(ID == 0){{
-          std::lock_guard<std::mutex> lk(finishMut_);
-          finished_= true;
-        }
-        finishCnd_.notify_all();
+  if(nodeStatus_[ID] & 4){
+    DBG_PRINTF("[sortFinalize]: Making 2\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    nodeStatus_[ID]|= 1;
+    // If this is the root node, signal algorithm completion
+    if(ID == 0){{
+        std::lock_guard<std::mutex> lk(finishMut_);
+        finished_= true;
       }
-      return;
+      finishCnd_.notify_all();
     }
+    return;
+  }
   //reschedule
   workers_.schedule(&RandArray::sortFinalize, this, cnt, ID);
 }
@@ -203,12 +203,7 @@ void RandArray::sortFinalize(const unsigned cnt, const unsigned ID){
 //! For small problems, synchronously merge; for larger sizes, launch asynchronous merging tasks
 void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
   if (cnt>1) {
-    {
-      ConcurMap::accessor ac;
-      if(!nodeStatus_.find(ac, ID)) throw new runtime_error("ERROR\n");
-
-      ac->second&= ~4u; //clear merge flag
-    }
+    nodeStatus_[ID]&= ~4u; //clear merge flag
     unsigned k= cnt>>1;
     const unsigned smallProblemThres= (seqThres_<<2 < k)? seqThres_<<2: k;
     if (smallProblemThres < k){
@@ -217,10 +212,11 @@ void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int di
       const unsigned serialStart= serial_.fetch_add(chunkNumber);
       const unsigned serialEnd= serialStart+chunkNumber;
       for(unsigned i=0; i< chunkNumber; i++){
+        exchangeComplete_[serialStart+i]= 0;
         workers_.schedule([=] (const unsigned serial){
           const unsigned start= lo+i*smallProblemThres, end= lo+(i+1)*smallProblemThres;
           for(unsigned i=start; i<end; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);
-          this->exchangeComplete_.insert(make_pair(serial,1));
+          this->exchangeComplete_[serial]= 1;
         }, serialStart+i);
       }
       // Schedule the rest of bitonicMerge
@@ -231,23 +227,19 @@ void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int di
       bitonicMerge(lo, k, dir, ID+1);
       bitonicMerge(lo+k, k, dir, ID+cnt);
       // Signal merge completion
-      ConcurMap::accessor ac;
-      if(!nodeStatus_.find(ac, ID)) throw new runtime_error("ERROR!\n");
-      ac->second|= 4;
+      nodeStatus_[ID]|= 4;
     }
   }
 }
 
 void RandArray::mergeContin(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID,
     const unsigned prereqStart, const unsigned prereqEnd){
-  ConcurMap::const_accessor ac;
   for(unsigned serial= prereqStart; serial< prereqEnd; serial++){
-    if(!exchangeComplete_.find(ac, serial)){
+    if(!(exchangeComplete_[serial] & 1)){
       // TODO: Schedule-to-reschedule?
       workers_.schedule(&RandArray::mergeContin, this,lo,cnt,dir, ID, prereqStart, prereqEnd);
       return;
     }
-    ac.release();
   }
   // All prerequisites have completed!
   DBG_PRINTF("[mergeContin]: Schedul_merges\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
@@ -261,21 +253,11 @@ void RandArray::mergeContin(const unsigned lo, const unsigned cnt, const int dir
 }
 // After previous bitonic merges have completed, signal completion
 void RandArray::mergeFinalize(const unsigned cnt, const unsigned ID){
-  ConcurMap::const_accessor ac;
-  if(nodeStatus_.find(ac, ID+1))
-    if(ac->second & 4){
-      ac.release();
-      if(nodeStatus_.find(ac, ID+cnt))
-        if(ac->second & 4){
-          ac.release();
-          DBG_PRINTF("[mergeFinalize]: Making 1\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-          ConcurMap::accessor acMod;
-          if(!nodeStatus_.find(acMod, ID)) throw new runtime_error("ERROR!\n");
-          acMod->second|= 4;
-          return;
-        }
-    }
-  ac.release();
+  if((nodeStatus_[ID+1] & 4) && (nodeStatus_[ID+cnt] & 4)){
+    DBG_PRINTF("[mergeFinalize]: Making 1\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
+    nodeStatus_[ID]|= 4;
+    return;
+  }
   //reschedule
   workers_.schedule(&RandArray::mergeFinalize, this, cnt, ID);
 }
