@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
 #ifndef BATCH_EXPERIMENTS
   printf("Imperative wall clock time = %f\n", seq_time);
 #else
-  printf("%f\n",seq_time*1000);
+  printf("%f ",seq_time*1000);
 #endif
 
   test();

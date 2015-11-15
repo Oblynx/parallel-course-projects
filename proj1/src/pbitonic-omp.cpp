@@ -75,7 +75,7 @@ int main(int argc, char** argv){
 #ifndef BATCH_EXPERIMENTS
   cout<<"--> Array constructed in "<<duration.count()*1000<<"ms\n";                                 
 #else
-  cout<<duration.count()*1000<<'\n';
+  cout<<duration.count()*1000<<' ';
 #endif
   array.sort();
   duration= chrono::system_clock::now()-start;                                                      
