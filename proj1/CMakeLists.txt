@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 2.8.12)
 set(CMAKE_CXX_COMPILER g++)
 project(parallel-course-projects)
 
@@ -30,5 +30,5 @@ target_link_libraries(pbitonic-stdthread
   #-fsanitize=thread
 )
 add_executable(pbitonic-omp src/pbitonic-omp.cpp)
-target_compile_options(pbitonic-omp PUBLIC -fopenmp)
-target_link_libraries(pbitonic-omp -fopenmp)
+target_compile_options(pbitonic-omp PUBLIC ${OpenMP_CXX_FLAGS})
+target_link_libraries(pbitonic-omp ${OpenMP_CXX_FLAGS})
