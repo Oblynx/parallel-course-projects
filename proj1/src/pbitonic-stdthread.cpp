@@ -26,7 +26,9 @@ public:
       exchangeBuffLength_(2*numN_/seqThres_), workers_(workers), data_(new unsigned[numN]),
       nodeStatus_(new unsigned char[2*numN]),
       exchangeComplete_(new unsigned char[exchangeBuffLength_]), serial_(0){
+#ifndef BATCH_EXPERIMENTS
     cout << "Constructing RandArray\n";
+#endif
     srand(1);
     const unsigned smallProblemThres= (seqThres_ > numN_)? seqThres_: numN_;
     for(unsigned i=0; i< exchangeBuffLength_; i++) exchangeComplete_[i]= 0;
@@ -46,7 +48,11 @@ public:
     for(unsigned i=0; i<numN_; i++) cout << data_[i] << ' ';
     cout << '\n';
   }
-  ~RandArray(){ cout << "Destroying RandArray\n"; }
+  ~RandArray(){
+#ifndef BATCH_EXPERIMENTS
+    cout << "Destroying RandArray\n";
+#endif
+  }
 private:
   //! Thread callback for creating random array slice
   void construct(const unsigned frame, const unsigned taskRange);
@@ -102,7 +108,11 @@ int main(int argc, char** argv){
   auto start= chrono::system_clock::now();
   RandArray array(numN, workers);
   chrono::duration<double> duration= chrono::system_clock::now()-start;
-  cout<<"--> Array constructed in "<<duration.count()*1000<<"ms\n";
+#ifndef BATCH_EXPERIMENTS
+  cout<<"--> Array constructed in "<<duration.count()*1000<<"ms\n";                                 
+#else
+  cout<<duration.count()*1000<<'\n';
+#endif
   //array.print();
   start= chrono::system_clock::now();  
   if(argc == 4){
@@ -111,7 +121,11 @@ int main(int argc, char** argv){
   }
   else array.sort();
   duration= chrono::system_clock::now()-start;
+#ifndef BATCH_EXPERIMENTS
   cout<<"--> Array sorted in "<<duration.count()*1000<<"ms\n";
+#else
+  cout<<duration.count()*1000<<'\n';
+#endif
   //array.print();
   return array.check();
 }
@@ -134,14 +148,18 @@ void RandArray::sort(){
 }
 int RandArray::check(){
   for(unsigned i=0; i<numN_-1; i++) if(data_[i] > data_[i+1]){
+#ifndef BATCH_EXPERIMENTS
     std::cout <<"\n\t   ####################   \
                  \n\t--| ### Test FAIL! ### |--\
                  \n\t   ####################   \n\n";
+#endif
     return false;
   }
+#ifndef BATCH_EXPERIMENTS
   std::cout <<"\n\t   ####################   \
                \n\t--| ### Test PASS! ### |--\
                \n\t   ####################   \n\n";
+#endif
   return true;
 }
 

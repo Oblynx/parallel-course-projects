@@ -13,7 +13,9 @@ public:
   //! Call workers to initialize random array
   RandArray(const unsigned numN, const unsigned threadN): numN_(numN), threadN_(threadN),
       data_(new unsigned[numN]), seqThres_((numN/threadN)>>1){
+#ifndef BATCH_EXPERIMENTS
     cout << "Constructing RandArray\n";
+#endif
     #pragma omp parallel
     {
       unsigned seed= omp_get_thread_num();
@@ -28,7 +30,11 @@ public:
     for(unsigned i=0; i<numN_; i++) cout << data_[i] << ' ';
     cout << '\n';
   }
-  ~RandArray(){ cout << "Destroying RandArray\n"; }
+  ~RandArray(){
+#ifndef BATCH_EXPERIMENTS
+    cout << "Destroying RandArray\n";
+#endif
+  }
 private:
   //! Thread callback for creating random array slice
   void recBitonicSort(const unsigned lo, const unsigned cnt, const int direct);
@@ -66,10 +72,18 @@ int main(int argc, char** argv){
   auto start= chrono::system_clock::now();
   RandArray array(numN, threadN);
   chrono::duration<double> duration= chrono::system_clock::now()-start;
+#ifndef BATCH_EXPERIMENTS
   cout<<"--> Array constructed in "<<duration.count()*1000<<"ms\n";                                 
+#else
+  cout<<duration.count()*1000<<'\n';
+#endif
   array.sort();
   duration= chrono::system_clock::now()-start;                                                      
+#ifndef BATCH_EXPERIMENTS
   cout<<"--> Array sorted in "<<duration.count()*1000<<"ms\n";                                      
+#else
+  cout<<duration.count()*1000<<'\n';
+#endif
   return array.check();                                                                             
 }    
 
@@ -81,14 +95,18 @@ void RandArray::sort(){
 int RandArray::check(){
   //  qsort(checkCpy_.get(), numN_, sizeof(unsigned), compare);
   for(unsigned i=0; i<numN_-1; i++) if(data_[i] > data_[i+1]){
+#ifndef BATCH_EXPERIMENTS
     std::cout <<"\n\t   ####################   \
                  \n\t--| ### Test FAIL! ### |--\
                  \n\t   ####################   \n\n";
+#endif
     return false;
   }
+#ifndef BATCH_EXPERIMENTS
   std::cout <<"\n\t   ####################   \
                \n\t--| ### Test PASS! ### |--\
                \n\t   ####################   \n\n";
+#endif
   return true;
 }
 

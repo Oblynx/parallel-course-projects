@@ -45,7 +45,7 @@ const int DESCENDING = 0;
 void init(void);
 void print(void);
 void sort(void);
-void test(void);
+int test(void);
 inline void exchange(int i, int j);
 void compare(int i, int j, int dir);
 void bitonicMerge(int lo, int cnt, int dir);
@@ -73,8 +73,11 @@ int main(int argc, char **argv) {
 
   seq_time = (double)((endwtime.tv_usec - startwtime.tv_usec)/1.0e6
       + endwtime.tv_sec - startwtime.tv_sec);
-
+#ifndef BATCH_EXPERIMENTS
   printf("Imperative wall clock time = %f\n", seq_time);
+#else
+  printf("%f\n",seq_time*1000);
+#endif
 
   test();
 
@@ -86,9 +89,13 @@ int main(int argc, char **argv) {
   seq_time = (double)((endwtime.tv_usec - startwtime.tv_usec)/1.0e6
       + endwtime.tv_sec - startwtime.tv_sec);
 
+#ifndef BATCH_EXPERIMENTS
   printf("Recursive wall clock time = %f\n", seq_time);
+#else
+  printf("%f\n",seq_time*1000);
+#endif
 
-  test();
+  return test();
 
   // print();
 }
@@ -96,25 +103,32 @@ int main(int argc, char **argv) {
 /** -------------- SUB-PROCEDURES  ----------------- **/ 
 
 /** procedure test() : verify sort results **/
-void test() {
+int test() {
   int pass = 1;
   int i;
   for (i = 1; i < N; i++) {
     pass &= (a[i-1] <= a[i]);
   }
 
+#ifndef BATCH_EXPERIMENTS
   printf(" TEST %s\n",(pass) ? "PASSed" : "FAILed");
+#endif
+  return pass;
 }
 
 
 /** procedure init() : initialize array "a" with data **/
 void init() {
   int i;
+#ifndef BATCH_EXPERIMENTS
   printf("Initialising:\n");
+#endif
   for (i = 0; i < N; i++) {
     a[i] = rand() % 20; // (N - i);
   }
+#ifndef BATCH_EXPERIMENTS
   printf("\nReady for sorting\n\n");
+#endif
 }
 
 /** procedure  print() : print array elements **/
