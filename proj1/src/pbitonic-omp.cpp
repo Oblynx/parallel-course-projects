@@ -18,9 +18,9 @@ public:
 #endif
     #pragma omp parallel
     {
-      unsigned seed= omp_get_thread_num();
+      unsigned seed= 10*omp_get_thread_num();
       #pragma omp for schedule(static, seqThres_)
-      for(unsigned i=0; i<numN; i++) data_[i]= rand_r(&seed) %2000;
+      for(unsigned i=0; i<numN; i++) data_[i]= rand_r(&seed);
     }
   }
   void sort();

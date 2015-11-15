@@ -1,3 +1,22 @@
+/*  The ThreadPool is based on a Github project. Notice:
+  Copyright (c) 2012 Jakob Progsch, Václav Zeman
+  This software is provided 'as-is', without any express or implied
+  warranty. In no event will the authors be held liable for any damages
+  arising from the use of this software.
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+     1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+     2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+     3. This notice may not be removed or altered from any source
+     distribution.
+
+  --> This is an altered version of the original code by Konstantinos Samaras-Tsakiris.
+*/
 #ifndef THREAD_POOL
 #define THREAD_POOL
 
@@ -59,17 +78,19 @@
 
     //! Clears tasks queue
     void clearTasks(){ tasks_.clear(); }
-    void waitFinish(){
-      while(!tasks_.empty() || workerWaiting_!=threadNum_ || !notTransientFinish_.test_and_set()){
-        while(!tasks_.empty() || workerWaiting_!=threadNum_){
-          std::this_thread::sleep_for(std::chrono::microseconds(threadNum_*20+50));
-        }
-        // FIXME!
-        // Check that condition isn't transient. Certainly NOT a guarantee!!!
-        notTransientFinish_.test_and_set();
-        std::this_thread::sleep_for(std::chrono::microseconds(threadNum_*50));
-      }
-    }
+
+    // [[deprecated]]
+    // void waitFinish(){
+    //   while(!tasks_.empty() || workerWaiting_!=threadNum_ || !notTransientFinish_.test_and_set()){
+    //     while(!tasks_.empty() || workerWaiting_!=threadNum_){
+    //       std::this_thread::sleep_for(std::chrono::microseconds(threadNum_*20+50));
+    //     }
+    //     // FIXME!
+    //     // Check that condition isn't transient. Certainly NOT a guarantee!!!
+    //     notTransientFinish_.test_and_set();
+    //     std::this_thread::sleep_for(std::chrono::microseconds(threadNum_*50));
+    //   }
+    // }
     
     //! Constructs workers and sets them waiting. [release]->protected
     void startWorkers();

@@ -46,7 +46,11 @@ void init(void);
 void print(void);
 void sort(void);
 int test(void);
-inline void exchange(int i, int j);
+/** INLINE procedure exchange() : pair swap **/
+inline void exchange(int i, int j){
+  int t;
+  t = a[i], a[i] = a[j], a[j] = t;
+}
 void compare(int i, int j, int dir);
 void bitonicMerge(int lo, int cnt, int dir);
 void recBitonicSort(int lo, int cnt, int dir);
@@ -138,13 +142,6 @@ void print() {
     printf("%d\n", a[i]);
   }
   printf("\n");
-}
-
-
-/** INLINE procedure exchange() : pair swap **/
-inline void exchange(const int i, const int j) {
-  int t;
-  t = a[i], a[i] = a[j], a[j] = t;
 }
 
 

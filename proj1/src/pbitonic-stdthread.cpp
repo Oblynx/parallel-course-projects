@@ -29,7 +29,6 @@ public:
 #ifndef BATCH_EXPERIMENTS
     cout << "Constructing RandArray\n";
 #endif
-    srand(1);
     const unsigned smallProblemThres= (seqThres_ > numN_)? seqThres_: numN_;
     for(unsigned i=0; i< exchangeBuffLength_; i++) exchangeComplete_[i]= 0;
     vector<future<void>> results;
@@ -134,7 +133,9 @@ void RandArray::construct(const unsigned frame, const unsigned taskRange){
   const unsigned start= frame*taskRange, end= (frame+1)*taskRange;
   // Hopefully the C++ stdlib implementation of rand() has no data races, unlike the C version
   // As mentioned here: http://www.cplusplus.com/reference/cstdlib/rand/
-  for(unsigned i=start; i<end; i++) data_[i]= rand() %20;
+  // But instead of taking chances, here goes rand_r()
+  unsigned seed= time(NULL);
+  for(unsigned i=start; i<end; i++) data_[i]= rand_r(&seed);
 }
 void RandArray::sort(){
   finished_= false;
