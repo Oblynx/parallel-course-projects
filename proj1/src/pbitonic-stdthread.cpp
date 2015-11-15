@@ -127,7 +127,7 @@ int main(int argc, char** argv){
   cout<<duration.count()*1000<<'\n';
 #endif
   //array.print();
-  return array.check();
+  return !array.check();
 }
 
 void RandArray::construct(const unsigned frame, const unsigned taskRange){

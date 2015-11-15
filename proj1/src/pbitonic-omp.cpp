@@ -84,7 +84,7 @@ int main(int argc, char** argv){
 #else
   cout<<duration.count()*1000<<'\n';
 #endif
-  return array.check();                                                                             
+  return !array.check();                                                                             
 }    
 
 void RandArray::sort(){

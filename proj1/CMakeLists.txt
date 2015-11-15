@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 2.8.9)
 set(CMAKE_CXX_COMPILER g++)
 project(parallel-course-projects)
 
@@ -21,9 +21,9 @@ add_executable(sample-bitonic sample_bitonic.c)
 
 add_library(thread_pool src/thread_pool.cpp)
 target_link_libraries(thread_pool
-  PUBLIC ${TBB_LIBRARY}
-  PUBLIC ${TBB_MALLOC_LIBRARY}
-  PUBLIC ${CMAKE_THREAD_LIBS_INIT}
+  ${TBB_LIBRARY}
+  ${TBB_MALLOC_LIBRARY}
+  ${CMAKE_THREAD_LIBS_INIT}
 )
 add_executable(pbitonic-stdthread src/pbitonic-stdthread.cpp)
 target_link_libraries(pbitonic-stdthread
@@ -31,5 +31,5 @@ target_link_libraries(pbitonic-stdthread
   #-fsanitize=thread
 )
 add_executable(pbitonic-omp src/pbitonic-omp.cpp)
-target_compile_options(pbitonic-omp PUBLIC ${OpenMP_CXX_FLAGS})
+set_target_properties(pbitonic-omp PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 target_link_libraries(pbitonic-omp ${OpenMP_CXX_FLAGS})

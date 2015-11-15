@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
   printf("%f\n",seq_time*1000);
 #endif
 
-  return test();
+  return !test();
 
   // print();
 }
