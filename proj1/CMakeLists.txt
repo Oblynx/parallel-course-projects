@@ -11,11 +11,11 @@ set(TBB_MALLOC_LIBRARY
   "/home/oblivion/ws/var/tbb-4.4/lib/intel64/gcc4.4/libtbbmalloc.so.2"
 )
 include_directories(include)
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2 -march=native")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O3 -march=native -fno-builtin")
 set(CMAKE_C_FLAGS "-Wall -O2 -march=native")
 ### Debugging options
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-  set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -g -O1 -fno-omit-frame-pointer -march=native -fPIC")
+  set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -O1 -fno-omit-frame-pointer -march=native -fPIC")
   add_definitions(-D__DEBUG__)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 #add_definitions(-DBATCH_EXPERIMENTS)

@@ -23,7 +23,8 @@ class RandArray{
 public:
   //! Call workers to initialize random array
   RandArray(unsigned numN, ThreadPool& workers): numN_(numN), seqThres_(numN/workers.workers()>>1),
-      exchangeBuffLength_(2*numN_/seqThres_), workers_(workers), data_(new unsigned[numN]),
+      exchangeBuffLength_(2*numN_/seqThres_), workers_(workers), 
+      //data_(new unsigned[numN]),
       nodeStatus_(new unsigned char[2*numN]),
       exchangeComplete_(new unsigned char[exchangeBuffLength_]), serial_(0){
 #ifndef BATCH_EXPERIMENTS
@@ -39,7 +40,7 @@ public:
   }
   void sort();
   void seqSort(){
-    qsort(data_.get(), numN_, sizeof(unsigned), compUP);
+    qsort(data_, numN_, sizeof(unsigned), compUP);
   }
   //! Check result correctness. Could also be a simple out-of-order search of course
   int check();
@@ -57,7 +58,7 @@ private:
   void construct(const unsigned frame, const unsigned taskRange);
   void recBitonicSort(const unsigned lo, const unsigned cnt, const int direct, const unsigned ID);
   void sortFinalize(const unsigned cnt, const unsigned ID);
-  void bitonicMerge(const unsigned lo, const unsigned cnt, const int direct, const unsigned ID);
+  inline void bitonicMerge(const unsigned lo, const unsigned cnt, const int direct, const unsigned ID);
   void sortContin(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID);
   void mergeContin(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID,
       const unsigned prereqStart, const unsigned prereqEnd);
@@ -70,7 +71,8 @@ private:
   const unsigned numN_, seqThres_, exchangeBuffLength_;
   //! Size of array slice for each thread
   ThreadPool& workers_;
-  unique_ptr<unsigned[]> data_;
+  //unique_ptr<unsigned[]> data_;
+  unsigned data_[1<<28];
   unique_ptr<unsigned char[]> nodeStatus_;
   unique_ptr<unsigned char[]> exchangeComplete_;
   atomic<unsigned> serial_;
@@ -94,7 +96,7 @@ int main(int argc, char** argv){
   if (logThreadN > 8){
     cout << "Max thread number: 2^8\n";
     return 2;
-  }else if (logNumN > 27){
+  }else if (logNumN > 30){
     cout << "Max elements number: 2^24\n";
     return 3;
   }
@@ -163,7 +165,6 @@ int RandArray::check(){
 #endif
   return true;
 }
-
 // Only insert prereq if this is a left-node (worker==true)
 void RandArray::recBitonicSort(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
   nodeStatus_[ID]= 0;
@@ -177,8 +178,8 @@ void RandArray::recBitonicSort(const unsigned lo, const unsigned cnt, const int 
     });
   } else{
     DBG_PRINTF("[recBitonicSort]: LEAF\t\t#%d\t%zu\n", ID, hash<thread::id>()(this_thread::get_id())%(1<<10));
-    if(dir) qsort(data_.get()+lo, cnt, sizeof(unsigned),compUP);
-    else qsort(data_.get()+lo, cnt, sizeof(unsigned),compDN);
+    if(dir) qsort(data_+lo, cnt, sizeof(unsigned),compUP);
+    else qsort(data_+lo, cnt, sizeof(unsigned),compDN);
     nodeStatus_[ID]|= 1;
   }
 }
@@ -214,7 +215,7 @@ void RandArray::sortFinalize(const unsigned cnt, const unsigned ID){
 }
 
 //! For small problems, synchronously merge; for larger sizes, launch asynchronous merging tasks
-void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
+inline void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int dir, const unsigned ID){
   if (cnt>1) {
     nodeStatus_[ID]&= ~4u; //clear merge flag
     unsigned k= cnt>>1;
@@ -228,7 +229,7 @@ void RandArray::bitonicMerge(const unsigned lo, const unsigned cnt, const int di
         workers_.schedule([=] (const unsigned serial){
           if(exchangeComplete_[serial]){
             cout << "$$$ FATAL ERROR: Chunk queue length exceeded\n";
-            exit(1);
+            exit(5);
           }
           const unsigned start= lo+i*smallProblemThres, end= lo+(i+1)*smallProblemThres;
           for(unsigned i=start; i<end; i++) if(dir == (data_[i]>data_[i+k])) exchange(i,i+k);

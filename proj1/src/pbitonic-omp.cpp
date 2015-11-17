@@ -12,7 +12,8 @@ class RandArray{
 public:
   //! Call workers to initialize random array
   RandArray(const unsigned numN, const unsigned threadN): numN_(numN), threadN_(threadN),
-      data_(new unsigned[numN]), seqThres_((numN/threadN)>>1){
+      //data_(new unsigned[numN]),
+      seqThres_((numN/threadN)>>1){
 #ifndef BATCH_EXPERIMENTS
     cout << "Constructing RandArray\n";
 #endif
@@ -44,7 +45,8 @@ private:
     tmp=data_[a], data_[a]=data_[b], data_[b]=tmp;
   }
   const unsigned numN_, threadN_;
-  const unique_ptr<unsigned[]> data_;
+  //const unique_ptr<unsigned[]> data_;
+  unsigned data_[1<<28];
   const unsigned seqThres_, ASCENDING=1, DESCENDING=0;
 };
 
@@ -59,7 +61,7 @@ int main(int argc, char** argv){
   if (logThreadN > 8){                                                                              
     cout << "Max thread number: 2^8\n";                                                             
     return 2;                                                                                       
-  }else if (logNumN > 27){                                                                          
+  }else if (logNumN > 30){                                                                          
     cout << "Max elements number: 2^24\n";                                                          
     return 3;                                                                                       
   }                                                                                                 
@@ -93,7 +95,6 @@ void RandArray::sort(){
   recBitonicSort(0, numN_, ASCENDING);
 }
 int RandArray::check(){
-  //  qsort(checkCpy_.get(), numN_, sizeof(unsigned), compare);
   for(unsigned i=0; i<numN_-1; i++) if(data_[i] > data_[i+1]){
 #ifndef BATCH_EXPERIMENTS
     std::cout <<"\n\t   ####################   \
@@ -119,8 +120,8 @@ void RandArray::recBitonicSort(const unsigned lo, const unsigned cnt, const int 
     #pragma omp taskwait
     bitonicMerge(lo, cnt, dir);
   } else {
-    if(dir) qsort(data_.get()+lo, cnt, sizeof(unsigned),compUP);
-    else    qsort(data_.get()+lo, cnt, sizeof(unsigned),compDN);
+    if(dir) qsort(data_+lo, cnt, sizeof(unsigned),compUP);
+    else    qsort(data_+lo, cnt, sizeof(unsigned),compDN);
   }
 }
 
