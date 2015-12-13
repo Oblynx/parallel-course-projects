@@ -30,3 +30,11 @@ build/
 *.exe
 *.out
 *.app
+
+# Cleanup proj1
+proj1/cmake
+proj1/include/tbb-4.4
+proj1/logcache
+proj1/report
+proj1/suppressTSan.list
+
