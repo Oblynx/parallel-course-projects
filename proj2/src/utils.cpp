@@ -1,55 +1,56 @@
-#include <memory>
-#include <vector>
-#include <queue>
-#include <deque>
+#include "utils.h"
+#include <cmath>
+using namespace std;
 
-struct Element{
-  //! Calculate dist or return it, if it was previously calculated 
-  double d(const Element& q){
-    if (!distInit_) dist_= (q.x[0]-x[0])*(q.x[0]-x[0]) + (q.x[1]-x[1])*(q.x[1]-x[1]) + 
-                          (q.x[2]-x[2])*(q.x[2]-x[2]);
-    return dist_;
+Cube& CubeArray::locateQ(const Element& q){
+  const unsigned x= floor(q.x/param.xsize), y= floor(q.y/param.ysize),
+                 z= floor(q.z/param.zsize);
+  Cube& qCube= data_[x+param.cols*y+param.pageSize*z];
+  return qCube;
+}
+
+std::deque<Element*> Search::query(const Element& q){
+  init(cubeArray_.locateQ(q));
+  search(q);
+  while( nn_.size() < param.k ){
+    expand();
+    search(q);
   }
-  void resetD() { distInit_= false; }
-  //! Used in priority queue. Must be called after dist has been initialized!
-  bool operator<(const Element& other){ return dist_ < other.dist_; }
-  double x[3];    //!< Position vector
-private:
-  double dist_;   //!< Memorize distance from current query
-  bool distInit_= false;
-};
+  return nn_.get_container();
+}
+void Search::search(const Element& q){
+  for(auto&& cube : searchSpace_)
+    for(Element& elt : cube->data_)
+      if (nn_.size() < param.k) nn_.push(&elt);
+      else if (nn_.top()->d(q) > elt.d(q)){
+        nn_.top()->resetD();
+        nn_.pop();
+        nn_.push(&elt);
+      } else elt.resetD();
+}
 
-//! Collection of all the Elements that occupy a rectangular portion of the total space
-struct Box{
-  double xlim[2], ylim[2], zlim[2];
-  int address;  //!< Its address in the array it belongs to
-  std::vector<Element> data_;
-};
+void Search::init(Cube& center){
+  searchLim_[0]= center.x-1, searchLim_[1]= center.x+1, searchLim_[2]= center.y-1;
+  searchLim_[3]= center.y+1, searchLim_[4]= center.z-1, searchLim_[5]= center.z+1;
+  for(int x= center.x-1; x<= center.x+1; x++)
+    for(int y= center.y-1; y<= center.y+1; y++)
+      for(int z= center.z-1; z<= center.z+1; z++){
+        add({x,y,z});
+        //searchSpace_.push_back(&cubeArray_[{x,y,z}]);
+        //TOCHECK
+      }
+}
+//! Calculate address for each new cube and retrieve its reference
+//! 3 cases: either the cube exists in CubeArray or another processor has in (very unlikely) or out-of-bounds
+// 
+void Search::expand(){
+  //TODO
+  
+}
 
-//! Collection of all the boxes that a process accesses directly.
-//! Indexed in row-col-page order (x+rowSize*y+pageSize*z)
-class BoxArray{
-public:
-  //! Which box does Q belong to?
-  Box& locateQ(Element q);
-private:
-  std::vector<Box> data_;
-};
+void Search::add(Point3 cd){
+  
+}
 
-class Search{
-  typedef std::priority_queue<Element&, std::deque<Element&>> EltMaxHeap;
-public:
-  //! Start a new search and return Q's nearest neighbors
-  std::deque<Element> query(Element& q);
-  //! Search for new nearest neighbors in the constructed search space and expand the NN list
-  void search();
-  //! Add the next layer of boxes in 3D space to the search space and remove the old
-  void expand();
-  //! First expansion is special, because it keeps the central box containing the Query
-  void init();
-private:
-  void add(Box& newBox) {}
-  std::deque<Box&> searchSpace_;
-  EltMaxHeap nn;
-};
-
+//TODO: create Element point cloud...
+//TODO: local->global coordinate transform
