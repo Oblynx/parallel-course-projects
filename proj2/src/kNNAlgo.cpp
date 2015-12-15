@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "kNNAlgo.h"
 #include <cmath>
 using namespace std;
 
@@ -34,11 +34,8 @@ void Search::init(Cube& center){
   searchLim_.h.y= center.y+1, searchLim_.l.z= center.z-1, searchLim_.h.z= center.z+1;
   for(int x= center.x-1; x<= center.x+1; x++)
     for(int y= center.y-1; y<= center.y+1; y++)
-      for(int z= center.z-1; z<= center.z+1; z++){
+      for(int z= center.z-1; z<= center.z+1; z++)
         add({x,y,z});
-        //searchSpace_.push_back(&cubeArray_[{x,y,z}]);
-        //TOCHECK
-      }
 }
 //! Calculate address for each new cube and retrieve its reference
 //! 3 cases: either the cube exists in CubeArray or another processor has it (very unlikely) or out-of-bounds
@@ -74,11 +71,7 @@ void Search::expand(){
 }
 
 void Search::add(Point3 cd){
-	//Check if cube is local
-	if (cd.x>=0 && cd.y>=0 && cd.z>=0 && cd.x<param.cols && cd.y<param.rows && cd.z<param.pages){
-		searchSpace_.push_back(&cubeArray_[cd]);	
-	} else {
-	char nb, x,y,z;		// 1-26
+	char nb, x,y,z;		// 0-26
 	x= (cd.x<0)? 0: (cd.x<param.cols)?   1:  2;
 	y= (cd.y<0)? 0: (cd.y<param.rows)?   4:  8;
 	z= (cd.z<0)? 0: (cd.z<param.pages)? 16: 32;
@@ -117,8 +110,10 @@ void Search::add(Point3 cd){
 		case 26:	nb=25; break;
 		case 42:	nb=26; break;
 	}
+	if (nb == 19) searchSpace_.push_back(&cubeArray_[cd]);	//local CubeArray
+	else{
+		//TODO: Not in local CubeArray; needs global coord transform
 	}
-
 }
 
 //TODO: create Element point cloud...
