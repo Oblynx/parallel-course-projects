@@ -13,7 +13,8 @@ public:
 
 struct Point3{
   Point3(int x, int y, int z): x(x), y(y), z(z) {}
-  const int x,y,z;
+	Point3() =default;
+  int x,y,z;
 };
 
 struct Parameters{
@@ -95,7 +96,7 @@ private:
   //! 3 cases: 1. Cube exists in this process's CubeArray  2. Owned by another process  3. out-of-bounds
   void add(Point3 coord);
   std::deque<Cube*> searchSpace_;
-  int searchLim_[6];
+	struct { Point3 l,h; } searchLim_;
   EltMaxQAdapter nn_;
   CubeArray& cubeArray_;
   const Parameters& param;
