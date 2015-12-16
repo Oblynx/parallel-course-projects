@@ -1,14 +1,16 @@
+#pragma once
 #include <memory>
 #include <vector>
 #include <queue>
 #include <deque>
+#include "utils.h"
 
 struct Element{
+  Element(Point3 cd): x(cd.x), y(cd.y), z(cd.z) {}
   Element(double x, double y, double z): x(x), y(y), z(z) {}
   //! Calculate dist or return it, if it was previously calculated 
   double d(const Element& q){
-    if (!distInit_) dist_= (q.x[0]-x[0])*(q.x[0]-x[0]) + (q.x[1]-x[1])*(q.x[1]-x[1]) + 
-                          (q.x[2]-x[2])*(q.x[2]-x[2]);
+    if (!distInit_) dist_= (q.x-x)*(q.x-x) + (q.y-y)*(q.y-y) + (q.z-z)*(q.z-z);
     return dist_;
   }
   void resetD() { distInit_= false; }
@@ -23,7 +25,8 @@ private:
 //! The smallest indivisible part of the search space. Collection of all the Elements that occupy
 //! a rectangular portion of the total space
 struct Cube{
-  Cube(int x, int y, int z): x(x), y(y), z(z) {}
+  Cube(int x, int y, int z): x(x), y(y), z(z) {/*TODO: reserve!*/}
+  void place(Point3 elt) { data_.emplace_back(elt); }
   double xlim[2], ylim[2], zlim[2];
   const int x,y,z;    //!< Its coordinates in the array it belongs to (address= x+y*cols+z*pageSize)
   std::vector<Element> data_;
@@ -45,6 +48,7 @@ public:
   Cube& operator[](Point3 coord){
     return data_[coord.x+ coord.y*param.cols+ coord.z*param.pageSize];
   }
+  void place(Point3 cd) { locateQ(cd).place(cd); }
 private:
   std::vector<Cube> data_;
   const Parameters& param;
