@@ -2,6 +2,14 @@
 #include <cstdio>
 //#include <mpi.h>
 
+#ifdef DEBUG
+  #define PRINTF printf
+  #define COUT cout
+#else
+  #define PRINTF while(0) printf
+  #define COUT   while(0) cout
+#endif
+
 double xor128();
 //! Allows access to the underlying container in STL adapters like priority_queue
 template <class Container>
@@ -11,10 +19,19 @@ public:
     container_type get_container() { return this->c; }
 };
 
-struct Point3{
-  Point3(double x, double y, double z): x(x), y(y), z(z) {}
-	Point3() =default;
+template<class T> struct lessPtr{
+  constexpr bool operator()(const T a, const T b) const { return *a < *b; }
+};
+
+struct Point3d{
+  Point3d(double x, double y, double z): x(x), y(y), z(z) {}
+	Point3d() =default;
   double x,y,z;
+};
+struct Point3{
+  Point3(int x, int y, int z): x(x), y(y), z(z) {}
+	Point3() =default;
+  int x,y,z;
 };
 
 struct Parameters{

@@ -1,31 +1,45 @@
 #include "kNNAlgo.h"
 #include <cmath>
+#include <iostream>
 using namespace std;
 
 Cube& CubeArray::locateQ(const Element& q){
   const unsigned x= floor(q.x/param.xsize), y= floor(q.y/param.ysize),
                  z= floor(q.z/param.zsize);
-  Cube& qCube= data_[x+param.cols*y+param.pageSize*z];
-  return qCube;
+  return data_[x+param.cols*y+param.pageSize*z];
 }
-
 std::deque<Element*> Search::query(const Element& q){
-  init(cubeArray_.locateQ(q));
-  search(q);
-  while( nn_.size() < param.k ){
+  EltMaxQAdapter nn;
+  searchSpace_.clear();
+  Cube& qloc= cubeArray_.locateQ(q);
+  init(qloc);
+  //locate, sesp
+  /*
+  printf("Q located in: (%d,%d,%d)\n", qloc.x,qloc.y,qloc.z);
+  for(auto&& elt : searchSpace_)
+    printf("\t-> (%d,%d,%d)\n", elt->x,elt->y,elt->z);
+  */
+  search(q,nn);
+  while( nn.size() < param.k ){
+    COUT<<"Not found! Expanding\n"; 
+    char c; cin >> c;
     expand();
-    search(q);
+    search(q,nn);
   }
-  return nn_.get_container();
+  return nn.get_container();
 }
-void Search::search(const Element& q){
+void Search::search(const Element& q, EltMaxQAdapter& nn){
   for(auto&& cube : searchSpace_)
-    for(Element& elt : cube->data_)
-      if (nn_.size() < param.k) nn_.push(&elt);
-      else if (nn_.top()->d(q) > elt.d(q)){
-        nn_.top()->resetD();
-        nn_.pop();
-        nn_.push(&elt);
+    for(auto&& elt : cube->data_)
+      if (nn.size() < param.k) {
+        elt.d(q);       //Force calculation of distance
+        nn.push(&elt);
+      }
+      else if (nn.top()->d(q) > elt.d(q)){
+        PRINTF("Inserted: (%f,%f,%f)\tDist: %f, max: %f\n", elt.x,elt.y,elt.z,elt.d(q),nn.top()->d(q));
+        nn.top()->resetD();
+        nn.pop();
+        nn.push(&elt);
       } else elt.resetD();
 }
 
@@ -71,10 +85,10 @@ void Search::expand(){
 }
 
 void Search::add(Point3 cd){
-	char nb, x,y,z;		// 0-26
-	x= (cd.x<0)? 0: (cd.x<param.cols)?   1:  2;
-	y= (cd.y<0)? 0: (cd.y<param.rows)?   4:  8;
-	z= (cd.z<0)? 0: (cd.z<param.pages)? 16: 32;
+	char nb=0, x,y,z;		// 0-26
+	x= (cd.x<0)? 0: (cd.x<static_cast<int>(param.cols ))?  1:  2;
+	y= (cd.y<0)? 0: (cd.y<static_cast<int>(param.rows ))?  4:  8;
+	z= (cd.z<0)? 0: (cd.z<static_cast<int>(param.pages))? 16: 32;
 	switch (x|y|z) {
 		case 0:		nb=0; break;
 			//2 zeros
@@ -112,6 +126,7 @@ void Search::add(Point3 cd){
 	}
 	if (nb == 19) searchSpace_.push_back(&cubeArray_[cd]);	//local CubeArray
 	else{
+    cout << "[expand]: ERROR! "<<nb<<" not in local CubeArray! "<<cd.x<<' '<<cd.y<<' '<<cd.z<<"\n";
 		//TODO: Not in local CubeArray; needs global coord transform
 	}
 }
