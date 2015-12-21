@@ -1,5 +1,5 @@
 //http://stackoverflow.com/questions/23376925/generating-doubles-with-xorshift-generator
-double xor128(void) {
+float xor128(void) {
   static int x = 123456789;
   static int y = 362436069;
   static int z = 521288629;

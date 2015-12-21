@@ -106,7 +106,7 @@ void Search::add(Point3 cd){
 }
 
 void Search::request(Point3 processCd, Point3 globCd){
-
+  cubeRequests_.push_back(mpi.IsendCoordinates(globCd, 1, param.rank(processCd)));
 }
 void Search::waitRequestsFinish(){
 }
