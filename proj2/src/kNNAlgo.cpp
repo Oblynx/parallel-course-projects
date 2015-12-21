@@ -4,9 +4,9 @@
 using namespace std;
 
 Cube& CubeArray::locateQ(const Element& q){
-  const unsigned x= floor(q.x/param.xsize), y= floor(q.y/param.ysize),
-                 z= floor(q.z/param.zsize);
-  return data_[x+param.cols*y+param.pageSize*z];
+  const unsigned x= floor(q.x/param.xCubeL), y= floor(q.y/param.yCubeL),
+                 z= floor(q.z/param.zCubeL);
+  return data_[x+param.xCubeArr*y+param.pageSize*z];
 }
 std::deque<Element*> Search::query(const Element& q){
   EltMaxQAdapter nn;
@@ -81,55 +81,33 @@ void Search::expand(){
 			for(y=searchLim_.l.y; z<=searchLim_.h.y; z++)
 				add({x,y,z});
 	}
-  //TODO: New searchLim if out-of-bounds?
+  //TODO: New searchLim if out-of-bounds? [unnecessary]
+  waitRequestsFinish();
 }
 
 void Search::add(Point3 cd){
-	char nb=0, x,y,z;		// 0-26
-	x= (cd.x<0)? 0: (cd.x<static_cast<int>(param.cols ))?  1:  2;
-	y= (cd.y<0)? 0: (cd.y<static_cast<int>(param.rows ))?  4:  8;
-	z= (cd.z<0)? 0: (cd.z<static_cast<int>(param.pages))? 16: 32;
-	switch (x|y|z) {
-		case 0:		nb=0; break;
-			//2 zeros
-		case 1:		nb=1; break;
-		case 2:		nb=2; break;
-		case 4:		nb=3; break;
-		case 8:		nb=4; break;
-		case 16:	nb=5; break;
-		case 32:	nb=6; break;
-
-			//1 zero
-		case 5:		nb=7; break;
-		case 9:		nb=8; break;
-		case 17:	nb=9; break;
-		case 33:	nb=10; break;
-
-		case 6:		nb=11; break;
-		case 10:	nb=12; break;
-		case 18:	nb=13; break;
-		case 34:	nb=14; break;
-
-		case 20:	nb=15; break;
-		case 36:	nb=16; break;
-		case 24:	nb=17; break;
-		case 40:	nb=18; break;
-			//0 zero
-		case 21:	nb=19; break; 
-		case 37:	nb=20; break;
-		case 25:	nb=21; break;
-		case 41:	nb=22; break;
-		case 22:	nb=23; break;
-		case 38:	nb=24; break;
-		case 26:	nb=25; break;
-		case 42:	nb=26; break;
-	}
-	if (nb == 19) searchSpace_.push_back(&cubeArray_[cd]);	//local CubeArray
-	else{
-    cout << "[expand]: ERROR! "<<nb<<" not in local CubeArray! "<<cd.x<<' '<<cd.y<<' '<<cd.z<<"\n";
-		//TODO: Not in local CubeArray; needs global coord transform
-	}
+	char x,y,z;
+	x= (cd.x<0)? 0: (cd.x<static_cast<int>(param.xCubeArr ))?  1:  2;
+	y= (cd.y<0)? 0: (cd.y<static_cast<int>(param.yCubeArr ))?  4:  8;
+	z= (cd.z<0)? 0: (cd.z<static_cast<int>(param.zCubeArr))? 16: 32;
+  if((x|y|z) == 21) searchSpace_.push_back(&cubeArray_[cd]);	//local CubeArray
+  else{
+    auto glob= cubeArray_.global(cd);
+    //If ! out-of-bounds, request cube from neighbor
+    if (!(glob.x<0 || glob.y<0 || glob.z<0 || glob.x>param.xArrGl*param.xCubeArr ||
+          glob.y>param.yArrGl*param.yCubeArr || glob.z>param.zArrGl*param.zCubeArr)){
+      cout << "[expand]: ERROR! "<<" not in local CubeArray! "<<cd.x<<' '<<cd.y<<' '<<cd.z<<"\n";
+      cout << "\tGlobal: "<<glob.x<<' '<<glob.y<<' '<<glob.z<<'\n';
+      //The coordinates of the CubeArray that contains the point 
+      auto containingCubeArrayCd= Point3(glob.x/param.xArrGl, glob.y/param.yArrGl, glob.z/param.zArrGl);
+      request(containingCubeArrayCd, glob);
+    }
+  }
 }
 
+void Search::request(Point3 processCd, Point3 globCd){
+
+}
+void Search::waitRequestsFinish(){
+}
 //TODO: create Element point cloud...
-//TODO: local->global coordinate transform

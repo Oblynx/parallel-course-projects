@@ -35,14 +35,15 @@ struct Point3{
 };
 
 struct Parameters{
-  Parameters(unsigned k, double xsize, double ysize, double zsize, unsigned rows,
-             unsigned cols, unsigned pages):
-    k(k), xsize(xsize), ysize(ysize), zsize(zsize), rows(rows), cols(cols),
-    pages(pages), pageSize(rows*cols) {}
-  const unsigned k;    //!< Number of neighbors to return
-  const double xsize, ysize, zsize;   //!< Cube length in each dimension
-  const unsigned rows, cols, pages;     //!< Number of Cubes in CubeArray in each dimension
-  const unsigned pageSize;
+  Parameters(unsigned k, double xCubeL, double yCubeL, double zCubeL, int yCubeArr,
+             int xCubeArr, int zCubeArr, int xArrGl=1, int yArrGl=1, int zArrGl=1):
+    k(k), xCubeL(xCubeL), yCubeL(yCubeL), zCubeL(zCubeL), xCubeArr(xCubeArr), yCubeArr(yCubeArr), 
+    zCubeArr(zCubeArr), xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl), pageSize(yCubeArr*xCubeArr) {}
+  const unsigned k;                           //!< Number of neighbors to return
+  const double xCubeL, yCubeL, zCubeL;        //!< Cube length in each dimension
+  const int xCubeArr, yCubeArr, zCubeArr;     //!< Number of Cubes in CubeArray in each dimension
+  const int xArrGl,yArrGl,zArrGl;                      //!< Number of CubeArrays in entire space
+  const int pageSize;                         //!< Size of an "page" of all the columns and rows in CubeArray
 };
 /*
 class MPIhandler{

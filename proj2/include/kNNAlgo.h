@@ -28,32 +28,35 @@ private:
 struct Cube{
   Cube(int x, int y, int z): x(x), y(y), z(z) {/*TODO: reserve!*/}
   Cube& place(Point3d elt) { data_.emplace_back(elt); return *this;/*data_.back();*/ }
-  const int x,y,z;            //!< Its coordinates in the array it belongs to (address= x+y*cols+z*pageSize)
+  const int x,y,z;            //!< Its coordinates in the array it belongs to (address= x+y*xCubeArr+z*pageSize)
   std::vector<Element> data_;
 };
 
 //! Collection of all the boxes that a process accesses directly. (each process constructs 1)
-//! Indexed in row-col-page order (x+cols*y+pageSize*z)
+//! Indexed in row-col-page order (x+xCubeArr*y+pageSize*z)
 class CubeArray{
 public:
-  CubeArray(const Parameters& param): param(param) {
-    data_.reserve(param.rows*param.cols*param.pages);
-    unsigned x,y,z;
-    for(z=0; z<param.pages; z++) for(y=0; y<param.rows; y++) for(x=0; x<param.cols; x++)
+  CubeArray(const Parameters& param, int xGl, int yGl, int zGl): param(param),x(xGl),
+      y(yGl),z(zGl) {
+    data_.reserve(param.yCubeArr*param.xCubeArr*param.zCubeArr);
+    int x,y,z;
+    for(z=0; z<param.zCubeArr; z++) for(y=0; y<param.yCubeArr; y++) for(x=0; x<param.xCubeArr; x++)
       data_.emplace_back(x,y,z);
   }
   //! Which box does Q belong to?
   Cube& locateQ(const Element& q);
   //! Return element at given coordinates
   Cube& operator[](Point3 coord){
-    return data_[coord.x+ coord.y*param.cols+ coord.z*param.pageSize];
+    return data_[coord.x+ coord.y*param.xCubeArr+ coord.z*param.pageSize];
   }
   Cube& place(Point3d cd) { return locateQ(cd).place(cd); }
+  Point3 global(Point3 cd) {
+    return {cd.x+param.xCubeArr*x, cd.y+param.yCubeArr*y, cd.z+param.zCubeArr*z};
+  }
 private:
   std::vector<Cube> data_;
   const Parameters& param;
-  //! Global neighbor IDs; 0 -> out-of-bounds. Order: -x,+x,-y,+y,-z,+z
-  const unsigned neighborID[6]={0,0,0,0,0,0}; //TODO!  
+  int x,y,z;  //!< CubeArray coordinates in global space
 };
 
 //! Performs operations on the total search space, which is a CubeArray instance. Doesn't hold
@@ -75,6 +78,10 @@ private:
   //! Fetch a new Cube ref given the coordinates and add it to the search space
   //! 3 cases: 1. Cube exists in this process's CubeArray  2. Owned by another process  3. out-of-bounds
   void add(Point3 coord);
+  //! Request Cube globCd from remote process processCd [MPI]
+  void request(Point3 processCd, Point3 globCd);
+  //! Wait for any MPI request that might have been initiated from expand to finish [future]
+  void waitRequestsFinish();
   std::deque<Cube*> searchSpace_;
 	struct { Point3 l,h; } searchLim_;
   CubeArray& cubeArray_;
