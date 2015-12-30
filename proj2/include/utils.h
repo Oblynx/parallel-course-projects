@@ -12,6 +12,13 @@
 #endif
 
 float xor128();
+float min(float a, float b);
+//TODO: don't assume args are float (enable_if)
+template<typename First, typename... Args>
+float min(First f, Args... args){
+  float tmp= min(args...);
+  return (f<tmp)?f:tmp;
+}
 //! Allows access to the underlying container in STL adapters like priority_queue
 template <class Container>
 class ContainerAccessor : public Container {
@@ -36,18 +43,23 @@ struct Point3{
 };
 
 struct Parameters{
-  Parameters(unsigned k, float xCubeL, float yCubeL, float zCubeL, int yCubeArr,
+  Parameters(unsigned k, int overlapCubes, float xCubeL, float yCubeL, float zCubeL, int yCubeArr,
              int xCubeArr, int zCubeArr, int xArrGl=1, int yArrGl=1, int zArrGl=1):
     k(k), xCubeL(xCubeL), yCubeL(yCubeL), zCubeL(zCubeL), xCubeArr(xCubeArr), yCubeArr(yCubeArr), 
-    zCubeArr(zCubeArr), xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl), pageSize(yCubeArr*xCubeArr) {}
+    zCubeArr(zCubeArr), xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl), pageSize(yCubeArr*xCubeArr),
+    xOverlap(overlapCubes*xCubeL/xCubeArr), yOverlap(overlapCubes*yCubeL/yCubeArr),
+    zOverlap(overlapCubes*zCubeL/zCubeArr) {}
+
+  Parameters(const Parameters&) =delete;
   const unsigned k;                           //!< Number of neighbors to return
   const float xCubeL, yCubeL, zCubeL;         //!< Cube length in each dimension
   const int xCubeArr, yCubeArr, zCubeArr;     //!< Number of Cubes in CubeArray in each dimension
   const int xArrGl,yArrGl,zArrGl;             //!< Number of CubeArrays in entire space
   const int pageSize;                         //!< Size of an "page" of all the columns and rows in CubeArray
+  const float xOverlap, yOverlap, zOverlap;
   const int ranks[];
 
-  int rank(Point3 pCd){
+  int rank(Point3 pCd) const{
     return ranks[pCd.x+pCd.y*xArrGl+pCd.z*yArrGl*xArrGl];
   }
 };

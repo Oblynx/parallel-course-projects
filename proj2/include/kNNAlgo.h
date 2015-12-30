@@ -29,6 +29,11 @@ private:
 struct Cube{
   Cube(int x, int y, int z): x(x), y(y), z(z) {/*TODO: reserve!*/}
   Cube& place(Point3f elt) { data_.emplace_back(elt); return *this;/*data_.back();*/ }
+  float distFromBoundary(Element q){
+    return min(abs(q.x-(x-1)*param.xCubeL), abs(q.x-x*param.xCubeL),
+               abs(q.y-(y-1)*param.xCubeL), abs(q.y-y*param.xCubeL),
+               abs(q.z-(z-1)*param.xCubeL), abs(q.z-z*param.xCubeL));
+  }
   const int x,y,z;            //!< Its coordinates in the array it belongs to (address= x+y*xCubeArr+z*pageSize)
   std::vector<Element> data_;
 };

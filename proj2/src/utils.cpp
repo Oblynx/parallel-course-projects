@@ -10,3 +10,4 @@ float xor128(void) {
   x = y; y = z; z = w;
   return (w = w ^ (w >> 19) ^ t ^ (t >> 8))/4294967296.0;
 } 
+float min(float a, float b) { return (a<b)?a:b; }

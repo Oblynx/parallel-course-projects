@@ -12,20 +12,17 @@ std::deque<Element*> Search::query(const Element& q){
   EltMaxQAdapter nn;
   searchSpace_.clear();
   Cube& qloc= cubeArray_.locateQ(q);
-  init(qloc);
-  //locate, sesp
-  /*
-  printf("Q located in: (%d,%d,%d)\n", qloc.x,qloc.y,qloc.z);
-  for(auto&& elt : searchSpace_)
-    printf("\t-> (%d,%d,%d)\n", elt->x,elt->y,elt->z);
-  */
+  searchSpace_.push_back(&qloc);
+  searchLim_.l.x= qloc.x-1, searchLim_.h.x= qloc.x+1, searchLim_.l.y= qloc.y-1;
+  searchLim_.h.y= qloc.y+1, searchLim_.l.z= qloc.z-1, searchLim_.h.z= qloc.z+1;
   search(q,nn);
-  while( nn.size() < param.k ){
-    COUT<<"Not found! Expanding\n"; 
-    char c; cin >> c;
-    expand();
-    search(q,nn);
-  }
+  if(nn.top()->d(q) > qloc.distFromBoundary(q))
+    while( nn.size() < param.k ){
+      COUT<<"Not found! Expanding\n"; 
+      char c; cin >> c;
+      expand();
+      search(q,nn);
+    }
   return nn.get_container();
 }
 void Search::search(const Element& q, EltMaxQAdapter& nn){
@@ -41,15 +38,6 @@ void Search::search(const Element& q, EltMaxQAdapter& nn){
         nn.pop();
         nn.push(&elt);
       } else elt.resetD();
-}
-
-void Search::init(Cube& center){
-  searchLim_.l.x= center.x-1, searchLim_.h.x= center.x+1, searchLim_.l.y= center.y-1;
-  searchLim_.h.y= center.y+1, searchLim_.l.z= center.z-1, searchLim_.h.z= center.z+1;
-  for(int x= center.x-1; x<= center.x+1; x++)
-    for(int y= center.y-1; y<= center.y+1; y++)
-      for(int z= center.z-1; z<= center.z+1; z++)
-        add({x,y,z});
 }
 //! Calculate address for each new cube and retrieve its reference
 //! 3 cases: either the cube exists in CubeArray or another processor has it (very unlikely) or out-of-bounds
@@ -81,7 +69,8 @@ void Search::expand(){
 			for(y=searchLim_.l.y; z<=searchLim_.h.y; z++)
 				add({x,y,z});
 	}
-  //TODO: New searchLim if out-of-bounds? [unnecessary]
+  searchLim_.l.x--, searchLim_.h.x++, searchLim_.l.y--;
+  searchLim_.h.y++, searchLim_.l.z--, searchLim_.h.z++;
   waitRequestsFinish();
 }
 
