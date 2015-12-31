@@ -56,7 +56,7 @@ struct Parameters{
   const int xCubeArr, yCubeArr, zCubeArr;     //!< Number of Cubes in CubeArray in each dimension
   const int xArrGl,yArrGl,zArrGl;             //!< Number of CubeArrays in entire space
   const int pageSize;                         //!< Size of an "page" of all the columns and rows in CubeArray
-  const float xOverlap, yOverlap, zOverlap;
+  const float xOverlap, yOverlap, zOverlap;   //!< Percentage of overlap between CubeArrays
   const int ranks[];
 
   int rank(Point3 pCd) const{
