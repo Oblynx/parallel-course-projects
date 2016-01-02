@@ -5,7 +5,9 @@
 #include <queue>
 #include <deque>
 #include <future>
+#include <cmath>
 #include "utils.h"
+#include "mpi_handler.h"
 
 struct Element{
   Element(Point3f cd): x(cd.x), y(cd.y), z(cd.z) {}
@@ -27,14 +29,15 @@ private:
 //! The smallest indivisible part of the search space. Collection of all the Elements that occupy
 //! a rectangular portion of the total space
 struct Cube{
-  Cube(int x, int y, int z): x(x), y(y), z(z) {/*TODO: reserve!*/}
+  Cube(const Parameters& param, int x, int y, int z): x(x), y(y), z(z), param(param) {/*TODO: reserve!*/}
   Cube& place(Point3f elt) { data_.emplace_back(elt); return *this;/*data_.back();*/ }
   float distFromBoundary(Element q){
-    return min(abs(q.x-(x-1)*param.xCubeL), abs(q.x-x*param.xCubeL),
-               abs(q.y-(y-1)*param.xCubeL), abs(q.y-y*param.xCubeL),
-               abs(q.z-(z-1)*param.xCubeL), abs(q.z-z*param.xCubeL));
+    return min(fabs(q.x-(x-1)*param.xCubeL), fabs(q.x-x*param.xCubeL),
+               fabs(q.y-(y-1)*param.xCubeL), fabs(q.y-y*param.xCubeL),
+               fabs(q.z-(z-1)*param.xCubeL), fabs(q.z-z*param.xCubeL));
   }
   const int x,y,z;            //!< Its coordinates in the array it belongs to (address= x+y*xCubeArr+z*pageSize)
+  const Parameters& param;
   std::vector<Element> data_;
 };
 
@@ -47,7 +50,7 @@ public:
     data_.reserve(param.yCubeArr*param.xCubeArr*param.zCubeArr);
     int x,y,z;
     for(z=0; z<param.zCubeArr; z++) for(y=0; y<param.yCubeArr; y++) for(x=0; x<param.xCubeArr; x++)
-      data_.emplace_back(x,y,z);
+      data_.emplace_back(param,x,y,z);
   }
   //! Which box does Q belong to?
   Cube& locateQ(const Element& q);
@@ -71,7 +74,7 @@ class Search{
   typedef std::priority_queue<Element*, std::deque<Element*>, lessPtr<Element*>> EltMaxQ;
   typedef ContainerAccessor<EltMaxQ> EltMaxQAdapter;
 public:
-  Search(CubeArray& cubeArray, const Parameters& param, const MPIhandler& mpi): cubeArray_(cubeArray),
+  Search(CubeArray& cubeArray, const Parameters& param, MPIhandler& mpi): cubeArray_(cubeArray),
       param(param), mpi(mpi) {}
   //! Start a new search and return Q's nearest neighbors. The Elements' distance is *not* reset for Elements in the returned deque.
   std::deque<Element*> query(const Element& q);
@@ -95,5 +98,5 @@ private:
 	struct { Point3 l,h; } searchLim_;
   CubeArray& cubeArray_;
   const Parameters& param;
-  const MPIhandler& mpi;
+  MPIhandler& mpi;
 };

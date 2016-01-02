@@ -1,5 +1,6 @@
-#include <kNNAlgo.h>
 #include <math.h>
+#include "kNNAlgo.h"
+#include "mpi_handler.h"
 
 struct PointAddress{
   Point3f p;
