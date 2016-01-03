@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.9)
-set(CMAKE_CXX_COMPILER mpic++)
+set(CMAKE_CXX_COMPILER mpic++.mpich)  #also mpic++.mpich2
+# Run execs with mpirun.mpich?
 project(parallel-course-projects)
 
 include_directories(

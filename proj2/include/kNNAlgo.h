@@ -94,7 +94,7 @@ private:
   void waitRequestsFinish();
   
   std::deque<Cube*> searchSpace_;
-  std::deque<std::future<void>> cubeRequests_;
+  std::deque<int> cubeRequests_;
 	struct { Point3 l,h; } searchLim_;
   CubeArray& cubeArray_;
   const Parameters& param;

@@ -88,7 +88,7 @@ void Search::add(Point3 cd){
       cout << "[expand]: ERROR! "<<" not in local CubeArray! "<<cd.x<<' '<<cd.y<<' '<<cd.z<<"\n";
       cout << "\tGlobal: "<<glob.x<<' '<<glob.y<<' '<<glob.z<<'\n';
       //The coordinates of the CubeArray that contains the point 
-      auto containingCubeArrayCd= Point3(glob.x/param.xArrGl, glob.y/param.yArrGl, glob.z/param.zArrGl);
+      Point3 containingCubeArrayCd {glob.x/param.xArrGl, glob.y/param.yArrGl, glob.z/param.zArrGl};
       request(containingCubeArrayCd, glob);
     }
   }

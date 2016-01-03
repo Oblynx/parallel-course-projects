@@ -30,14 +30,16 @@ template<class T> struct lessPtr{
   constexpr bool operator()(const T a, const T b) const { return *a < *b; }
 };
 
+//! C compatible struct of 3 floats
 struct Point3f{
-  Point3f(float x, float y, float z): x(x), y(y), z(z) {}
-	Point3f() =default;
+  //Point3f(float x, float y, float z): x(x), y(y), z(z) {}
+	//Point3f() =default;
   float x,y,z;
 };
+//! C compatible struct of 3 ints
 struct Point3{
-  Point3(int x, int y, int z): x(x), y(y), z(z) {}
-	Point3() =default;
+  //Point3(int x, int y, int z): x(x), y(y), z(z) {}
+	//Point3() =default;
   int x,y,z;
 };
 

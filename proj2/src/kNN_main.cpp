@@ -1,7 +1,9 @@
 #include <math.h>
 #include "kNNAlgo.h"
 #include "mpi_handler.h"
+using namespace std;
 
+//! C compatible struct with point and address of containing CubeArray(s)
 struct PointAddress{
   Point3f p;
   int address[8];
@@ -42,8 +44,42 @@ PointAddress queryGenerator(const Parameters& param){
 
 //TODO: Parameter::overlap -> factor between [0,1] that is compared with the coord's fractional part
 
+//! Returns send request code to receive asynchronously
+template<typename F>
+int allComm(F generator, const Parameters& param, MPIhandler& mpi, const int pointN,
+            const int procN, int* rcvBuf){
+  unique_ptr<PointAddress[]> buf(new PointAddress[pointN]);
+  unique_ptr<int[]> sSizeBuf(new int[procN]), rSizeBuf(new int[procN]);
+  unique_ptr<Point3f[]> sendBuf;
+  for(int i=0;i<procN;i++) sSizeBuf[i]=0, rSizeBuf[i]=0;
+  //Generate the points in buffer
+  for(int i=0;i<pointN;i++){
+    buf[i]= generator(param);
+    //Increase the size of every destination address
+    for(int j=0; j<buf[i].addrUsed;j++) sSizeBuf[buf[i].address[j]]++;
+  }
+  //All2all comms for size
+  int sSizeReq= mpi.Ialltoall(sSizeBuf.get(),procN,MPI_INT,rSizeBuf.get(),procN);
+  unique_ptr<int[]> sAddrCumul(new int[procN]);   //Start displacements for each proc in sendBuf
+  sAddrCumul[0]=0;
+  for(int i=1; i<procN; i++) sAddrCumul[i]= sAddrCumul[i-1]+sSizeBuf[i-1];
+  
+  //Create send buffer
+  for(int i=0;i<pointN;i++) for(int j=0; j<buf[i].addrUsed; j++)
+    sendBuf[sAddrCumul[buf[i].address[j]]++]= buf[i].p;
+  //Wait for size comms to complete
+  mpi.wait(sSizeReq);
+  //size OK, communicate sendBuf
+  //TODO: Alltoallv send
+  return mpi.Ialltoallv(sendBuf.get(),sSizeBuf.get(),procN,mpi.getPoint3f(),rcvBuf,rSizeBuf.get());
+}
+
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
+  int N=1<<20, Q=1<<16, P=1;
+  Parameters param(5,0,1, 0.1,0.1,0.1, 10,10,10);
   //Generate N/P points
+  auto recvPoints= allComm(pointGenerator, param,mpi,N,P);
   //Generate N/P queries
+  auto recvQueries= allComm(queryGenerator, param,mpi,N,P);
 }
