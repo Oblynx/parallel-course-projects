@@ -1,5 +1,6 @@
 #include <limits.h>
 #include <stdexcept>
+#include <iostream>
 #include "mpi_handler.h"
 using namespace std;
 
@@ -20,11 +21,12 @@ void MPIhandler::AsyncRequest::IsendCoordinates(Point3 cd, int n, int dest){
   throw new runtime_error("### Called AsyncRequest::IsendCoordinates!!! ###\n");
 }
 //! MPI_Ialltoall wrapper
-void MPIhandler::AsyncRequest::Ialltoall(const void* sendBuf, int sendCnt, MPI_Datatype type, void* rcvBuf, int rcvCnt){
+void MPIhandler::AsyncRequest::Ialltoall(const void* sendBuf, const int sendCnt, MPI_Datatype type, void* rcvBuf, const int rcvCnt){
   if(requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Attempted to start transit\
                                                 while another is pending.\n");
   requestInTransit=true;
   mpi.error= MPI_Ialltoall(sendBuf,sendCnt,type,rcvBuf,rcvCnt,type,MPI_COMM_WORLD,&pendingRequest);
+  if(mpi.error) PRINTF("--> [MPI]: Error in Ialltoall comm!!! errcode=%d",mpi.error);
 }
 //! MPI Ialltoallv wrapper
 void MPIhandler::AsyncRequest::Ialltoallv(const void* sendBuf, const int sendCnt[], const int sdispl[],
@@ -37,8 +39,6 @@ void MPIhandler::AsyncRequest::Ialltoallv(const void* sendBuf, const int sendCnt
 }
 void MPIhandler::AsyncRequest::wait(){
   if(!requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Called wait while no request pending!\n");
-  MPI_Status status;
-  MPI_Wait(&pendingRequest, &status);
-  //TODO: Check status!
+  MPI_Wait(&pendingRequest, MPI_STATUS_IGNORE);
   requestInTransit=false;
 }

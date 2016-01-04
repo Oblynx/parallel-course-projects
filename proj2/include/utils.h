@@ -1,13 +1,15 @@
 #pragma once
 #include <cstdio>
 #include <future>
+#include <iostream>
+#include <cmath>
 
 #ifdef __DEBUG__
   #define PRINTF printf
-  #define COUT cout
+  #define COUT std::cout
 #else
   #define PRINTF while(0) printf
-  #define COUT   while(0) cout
+  #define COUT   while(0) std::cout
 #endif
 
 float xor128();
@@ -45,10 +47,12 @@ struct Point3{
 
 struct Parameters{
   Parameters(unsigned k, int overlapCubes, int procNum,
-             float xCubeL, float yCubeL, float zCubeL, int xCubeArr,
-             int yCubeArr, int zCubeArr, int xArrGl=1, int yArrGl=1, int zArrGl=1):
-    k(k), xCubeL(xCubeL), yCubeL(yCubeL), zCubeL(zCubeL), xCubeArr(xCubeArr), yCubeArr(yCubeArr), 
-    zCubeArr(zCubeArr), xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl), pageSize(yCubeArr*xCubeArr),
+             float xCubeL, float yCubeL, float zCubeL,
+             int xArrGl=1, int yArrGl=1, int zArrGl=1):
+    k(k), xCubeL(xCubeL), yCubeL(yCubeL), zCubeL(zCubeL),
+    xCubeArr(round(1/(xArrGl*xCubeL))),yCubeArr(round(1/(yArrGl*yCubeL))),zCubeArr(round(1/(zArrGl*zCubeL))),
+    xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl),
+    pageSize(yCubeArr*xCubeArr),
     xOverlap(overlapCubes*xCubeL/xCubeArr), yOverlap(overlapCubes*yCubeL/yCubeArr),
     zOverlap(overlapCubes*zCubeL/zCubeArr), ranks(new int[procNum]) {}
 

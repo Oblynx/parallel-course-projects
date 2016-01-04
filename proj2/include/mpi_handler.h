@@ -9,6 +9,7 @@ public:
 	MPIhandler(int* argc, char*** argv);
   MPIhandler(char): disabled(true) {}
 	~MPIhandler();
+  void barrier() { MPI_Barrier(MPI_COMM_WORLD); }
   MPI_Datatype typePoint3f(){ return pfT; }
   MPI_Datatype typePoint3() { return pT;  }
   int procN() { return procN_; }
@@ -32,4 +33,6 @@ private:
 	int error, rank_, procN_;
   const char disabled=false;
 };
+
+
 

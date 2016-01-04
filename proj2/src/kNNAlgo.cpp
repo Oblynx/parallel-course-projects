@@ -38,7 +38,7 @@ void Search::search(const Element& q, EltMaxQ& nn, deque<Cube*>& searchSpace){
         elt.d(q);       //Force calculation of distance
         nn.push(&elt);
       } else if (nn.top()->d(q) > elt.d(q)){  //If better candidate
-        PRINTF("Inserted: (%f,%f,%f)\tDist: %f, max: %f\n", elt.x,elt.y,elt.z,elt.d(q),nn.top()->d(q));
+        //PRINTF("Inserted: (%f,%f,%f)\tDist: %f, max: %f\n", elt.x,elt.y,elt.z,elt.d(q),nn.top()->d(q));
         nn.top()->resetD();
         nn.pop();
         nn.push(&elt);

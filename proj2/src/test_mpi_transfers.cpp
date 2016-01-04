@@ -30,10 +30,10 @@ PointAddress pointGenerator(const Parameters& param){
 //! Generates random points and assigns them only to the CubeArray that contains them
 PointAddress queryGenerator(const Parameters& param){
   //PointAddress p {{xor128(),xor128(),xor128()},{0},1};
-  PointAddress p{{(float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX},{0},0};
-  p.address[p.addrUsed++]=  (int)(p.p.x/(param.xCubeL*param.xCubeArr))+
-                            (int)(p.p.y/(param.yCubeL*param.yCubeArr))*param.xArrGl+
-                            (int)(p.p.z/(param.zCubeL*param.zCubeArr))*param.yArrGl*param.xArrGl;
+  PointAddress p{{(float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX},{0},1};
+  p.address[0]= (int)p.p.x/(param.xCubeL*param.xCubeArr)+
+                (int)p.p.y/(param.yCubeL*param.yCubeArr)*param.xArrGl+
+                (int)p.p.z/(param.zCubeL*param.zCubeArr)*param.yArrGl*param.xArrGl;
   return p;
 }
 
@@ -41,7 +41,7 @@ PointAddress queryGenerator(const Parameters& param){
 
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
-  const int N=1<<20, Q=1<<12, P= mpi.procN(), rank= mpi.rank();
+  const int N=1<<3, P= mpi.procN();
   PRINTF("#%d: MPI handler constructed, procN=%d\n",mpi.rank(),P);
   mpi.barrier();
   //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
@@ -53,37 +53,9 @@ int main(int argc, char** argv){
   //Generate N/P points
   All2allTransfer pointTransfer(pointGenerator,param,mpi,N/P,P);
   COUT << "#"<<mpi.rank()<<": Points comm started\n";
-  mpi.barrier();
-  //Generate Q/P queries
-  All2allTransfer queryTransfer(queryGenerator,param,mpi,Q/P,P);
-  COUT << "#"<<mpi.rank()<<": Queries comm started\n";
-  
   //Sync points
   int ptsN;
   auto points= pointTransfer.get(ptsN);
-  CubeArray cubeArray(param,rank%param.xArrGl,rank/param.xArrGl,rank/(param.xArrGl*param.yArrGl));   
-  for(int i=0; i<ptsN; i++) cubeArray.place(points[i]);
-  COUT<<"#"<<mpi.rank()<<": All points received\n";
-  //for(int i=0; i<points.pointsReceived(); i++) PRINTF("%f,%f,%f\n", rcvPoints[i].x, rcvPoints[i].y, rcvPoints[i].z);
-
-  //Sync queries
-  int qN;
-  auto queries= queryTransfer.get(qN);
-  COUT<<"#"<<mpi.rank()<<": All queries received\n";
-  mpi.barrier();
-
-  //Start search
-  COUT<<"#"<<mpi.rank()<<": Starting search\n";
-  Search search(cubeArray, param, mpi);
-  for(int i=0; i<qN; i++) search.query(queries[i]);
-
-  //Test
-  COUT<<"#"<<mpi.rank()<<": Testing\n";
-  Point3f testQ {0.5,0.5,0.5};
-  auto qres= search.query(testQ);
-  printf("NN for (%f, %f, %f):\n", testQ.x, testQ.y, testQ.z);
-  for(auto&& elt : qres)
-    printf("\t-> (%f,%f,%f): d= %e\n", elt->x,elt->y,elt->z,elt->d(testQ));
-  printf("\n");
-  return 0; 
+  for(int i=0; i<ptsN; i++) PRINTF("#%d: (%f,%f,%f)\n",mpi.rank(),points[i].x,points[i].y,points[i].z);
+  return 0;
 }

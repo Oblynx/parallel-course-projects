@@ -31,7 +31,7 @@ private:
 struct Cube{
   Cube(const Parameters& param, int x, int y, int z): x(x), y(y), z(z), param(param) {/*TODO: reserve!*/}
   Cube& place(Point3f elt) { 
-    PRINTF("%f,%f,%f <- %d,%d,%d\n", elt.x,elt.y,elt.z, x,y,z);
+    //PRINTF("%f,%f,%f <- %d,%d,%d\n", elt.x,elt.y,elt.z, x,y,z);
     data_.push_back(elt); return *this;/*data_.back();*/ }
   float distFromBoundary(Element q){
     return min(fabs(q.x-(x-1)*param.xCubeL), fabs(q.x-x*param.xCubeL),
