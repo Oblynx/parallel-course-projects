@@ -30,7 +30,9 @@ private:
 //! a rectangular portion of the total space
 struct Cube{
   Cube(const Parameters& param, int x, int y, int z): x(x), y(y), z(z), param(param) {/*TODO: reserve!*/}
-  Cube& place(Point3f elt) { data_.emplace_back(elt); return *this;/*data_.back();*/ }
+  Cube& place(Point3f elt) { 
+    PRINTF("%f,%f,%f <- %d,%d,%d\n", elt.x,elt.y,elt.z, x,y,z);
+    data_.push_back(elt); return *this;/*data_.back();*/ }
   float distFromBoundary(Element q){
     return min(fabs(q.x-(x-1)*param.xCubeL), fabs(q.x-x*param.xCubeL),
                fabs(q.y-(y-1)*param.xCubeL), fabs(q.y-y*param.xCubeL),
@@ -58,7 +60,9 @@ public:
   Cube& operator[](Point3 coord){
     return data_[coord.x+ coord.y*param.xCubeArr+ coord.z*param.pageSize];
   }
-  Cube& place(Point3f cd) { return locateQ(cd).place(cd); }
+  Cube& place(Point3f elt) {
+    return locateQ(elt).place(elt); }
+  //! Global coordinates of point cd
   Point3 global(Point3 cd) {
     return {cd.x+param.xCubeArr*x, cd.y+param.yCubeArr*y, cd.z+param.zCubeArr*z};
   }
@@ -72,29 +76,26 @@ private:
 //! any actual data, only manages references
 class Search{
   typedef std::priority_queue<Element*, std::deque<Element*>, lessPtr<Element*>> EltMaxQ;
-  typedef ContainerAccessor<EltMaxQ> EltMaxQAdapter;
+  //typedef ContainerAccessor<EltMaxQ> EltMaxQAdapter;
 public:
   Search(CubeArray& cubeArray, const Parameters& param, MPIhandler& mpi): cubeArray_(cubeArray),
       param(param), mpi(mpi) {}
   //! Start a new search and return Q's nearest neighbors. The Elements' distance is *not* reset for Elements in the returned deque.
   std::deque<Element*> query(const Element& q);
-  //! Search for new nearest neighbors in the constructed search space and expand the NN list
-  void search(const Element& q, EltMaxQAdapter& nn);
-  //! Add the next layer of boxes in 3D space to the search space and remove the old
-  void expand();
-  //! First expansion is special, because it keeps the central box containing the Query
-  void init(Cube& center);
 private:
+  //! Search for new nearest neighbors in the constructed search space and expand the NN list
+  void search(const Element& q, EltMaxQ& nn, std::deque<Cube*>& searchSpace);
+  //! Add the next layer of boxes in 3D space to the search space and remove the old
+  void expand(std::deque<Cube*>& searchSpace);
   //! Fetch a new Cube ref given the coordinates and add it to the search space
   //! 3 cases: 1. Cube exists in this process's CubeArray  2. Owned by another process  3. out-of-bounds
-  void add(Point3 coord);
+  void add(Point3 coord, std::deque<Cube*>& searchSpace);
   //! Request Cube globCd from remote process processCd [MPI]
   void request(Point3 processCd, Point3 globCd);
   //! Wait for any MPI request that might have been initiated from expand to finish [future]
   void waitRequestsFinish();
   
-  std::deque<Cube*> searchSpace_;
-  std::deque<int> cubeRequests_;
+  std::deque<MPIhandler::AsyncRequest> cubeRequests_;
 	struct { Point3 l,h; } searchLim_;
   CubeArray& cubeArray_;
   const Parameters& param;

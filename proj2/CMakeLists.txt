@@ -12,7 +12,7 @@ set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -O2 -march=native")
 #set(CMAKE_C_FLAGS "-Wall -O2 -march=native")
 ### Debugging options
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-  set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -g -O1 -fno-omit-frame-pointer -march=native -fPIC")
+  set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -g -Og -fno-omit-frame-pointer -march=native -fPIC")
   add_definitions(-D__DEBUG__)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
@@ -23,6 +23,13 @@ add_library(mpi_handler src/mpi_handler.cpp)
 
 add_executable(kNNsingle src/kNN_single_main.cpp)
 target_link_libraries(kNNsingle
+  kNNAlgo
+  utils
+  mpi_handler
+)
+
+add_executable(kNN src/kNN_main.cpp)
+target_link_libraries(kNN
   kNNAlgo
   utils
   mpi_handler

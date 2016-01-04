@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <future>
 
-#ifdef DEBUG
+#ifdef __DEBUG__
   #define PRINTF printf
   #define COUT cout
 #else

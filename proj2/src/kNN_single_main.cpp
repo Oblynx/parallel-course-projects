@@ -19,7 +19,7 @@ int main(){
   q[Q-1]= {0.4124, 0.413, 0.4128};
   printf("Queries produced\n");
   Search search(cubeArray, param,mpi);
-  //for(int i=0; i<Q-1; i++) search.query(q[i]);
+  for(int i=0; i<Q-1; i++) search.query(q[i]);
   auto qres= search.query(q[Q-1]);
   printf("3NN for Point3(%f, %f, %f):\n", q[Q-1].x, q[Q-1].y, q[Q-1].z);
   for(auto&& elt : qres)

@@ -1,4 +1,5 @@
 #include <math.h>
+#include <iostream>
 #include "kNNAlgo.h"
 #include "mpi_handler.h"
 using namespace std;
@@ -7,13 +8,13 @@ using namespace std;
 struct PointAddress{
   Point3f p;
   int address[8];
-  char addrUsed;
+  short addrUsed;
 };
 
 //! Generates random points + corresponding *CubeArray* (aka proc) address
 PointAddress pointGenerator(const Parameters& param){
-  PointAddress p{{(float)rand(),(float)rand(),(float)rand()},{0},0};
-  char x,y,z;
+  //PointAddress p{{xor128(),xor128(),xor128()},{0},0};
+  PointAddress p{{(float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX},{0},0};
   float cdxf,cdyf,cdzf; 
   //Divide coord by CubeArray length (=_CubeL*_CubeArr)
   //Integral part: CubeArray coordinate
@@ -35,7 +36,8 @@ PointAddress pointGenerator(const Parameters& param){
 }
 //! Generates random points and assigns them only to the CubeArray that contains them
 PointAddress queryGenerator(const Parameters& param){
-  PointAddress p {{(float)rand(),(float)rand(),(float)rand()},{0},1};
+  //PointAddress p {{xor128(),xor128(),xor128()},{0},1};
+  PointAddress p{{(float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX},{0},1};
   p.address[0]= (int)p.p.x/(param.xCubeL*param.xCubeArr)+
                 (int)p.p.y/(param.yCubeL*param.yCubeArr)*param.xArrGl+
                 (int)p.p.z/(param.zCubeL*param.zCubeArr)*param.yArrGl*param.xArrGl;
@@ -44,42 +46,107 @@ PointAddress queryGenerator(const Parameters& param){
 
 //TODO: Parameter::overlap -> factor between [0,1] that is compared with the coord's fractional part
 
-//! Returns send request code to receive asynchronously
-template<typename F>
-int allComm(F generator, const Parameters& param, MPIhandler& mpi, const int pointN,
-            const int procN, int* rcvBuf){
-  unique_ptr<PointAddress[]> buf(new PointAddress[pointN]);
-  unique_ptr<int[]> sSizeBuf(new int[procN]), rSizeBuf(new int[procN]);
-  unique_ptr<Point3f[]> sendBuf;
-  for(int i=0;i<procN;i++) sSizeBuf[i]=0, rSizeBuf[i]=0;
-  //Generate the points in buffer
-  for(int i=0;i<pointN;i++){
-    buf[i]= generator(param);
-    //Increase the size of every destination address
-    for(int j=0; j<buf[i].addrUsed;j++) sSizeBuf[buf[i].address[j]]++;
+class All2allTransfer{
+ public:
+  //! Returns send request code to receive asynchronously
+  template<typename F>
+  All2allTransfer(F generator, const Parameters& param, MPIhandler& mpi, const int pointN,
+                  const int procN): sSizeBuf(new int[procN]), rSizeBuf(new int[procN]), mpi(mpi),asyncRequest(mpi) {
+    COUT<<"[transfer]: begin constructor\n";
+    unique_ptr<PointAddress[]> buf(new PointAddress[pointN]);
+    for(int i=0;i<procN;i++) sSizeBuf[i]=0, rSizeBuf[i]=0;
+    //Generate the points in buffer
+    for(int i=0;i<pointN;i++){
+      buf[i]= generator(param);
+      //Increase the size of every destination address
+      for(int j=0; j<buf[i].addrUsed;j++){
+        //COUT<<"[transfer]: point and address: "<<buf[i].p.x<<' '<<buf[i].p.y<<' '<<buf[i].p.z<<';'<<buf[i].address[0]<<';'<<buf[i].addrUsed<<'\n';
+        sSizeBuf[buf[i].address[j]]++;
+      }
+    }
+    COUT<<"[transfer]: Requesting MPI communications\n";
+    //All2all comms for size
+    asyncRequest.Ialltoall(sSizeBuf.get(),procN,MPI_INT,rSizeBuf.get(),procN);
+    sdispl.reset(new int[procN]); //Start displacements for each proc in sendBuf
+    sdispl[0]=0;
+    for(int i=1; i<procN; i++){
+      sdispl[i]= sdispl[i-1]+sSizeBuf[i-1];
+      cout<<sdispl[i]<<' ';
+    }
+    
+    COUT<<"\n[transfer]: Creating send buffer\n";
+    //Create send buffer
+    sendBuf.reset(new Point3f[sdispl[procN-1]+sSizeBuf[procN-1]]);
+    for(int i=0;i<pointN;i++) for(int j=0; j<buf[i].addrUsed; j++){
+      //cout<<sdispl[buf[i].address[j]]<<'\n';
+      sendBuf[sdispl[buf[i].address[j]]++]= buf[i].p;
+    }
+    COUT<<"[transfer]: Waiting for size comm\n";
+    //Wait for size comms to complete
+    asyncRequest.wait();
+    //size OK, communicate sendBuf
+    sdispl[0]=0;
+    for(int i=1; i<procN; i++) sdispl[i]= sdispl[i-1]+sSizeBuf[i-1];
+    rdispl.reset(new int[procN]);
+    rdispl[0]=0;
+    for(int i=1; i<procN; i++) rdispl[i]= rdispl[i-1]+rSizeBuf[i-1];
+    //TODO: Test rdispl
+    //Calculate the number of points this proc will receive
+    rcvSize_=0;
+    for(int i=0;i<procN;i++) rcvSize_+= rSizeBuf[i];
+    rcvBuf.reset(new Point3f[rcvSize_]);
+    COUT<<"[transfer]: Requesting point transfer comms\n";
+    asyncRequest.Ialltoallv(sendBuf.get(),sSizeBuf.get(),sdispl.get(),mpi.typePoint3f(),
+                            rcvBuf.get(),rSizeBuf.get(),rdispl.get());
+    COUT<<"[transfer]: Requested\n";
   }
-  //All2all comms for size
-  int sSizeReq= mpi.Ialltoall(sSizeBuf.get(),procN,MPI_INT,rSizeBuf.get(),procN);
-  unique_ptr<int[]> sAddrCumul(new int[procN]);   //Start displacements for each proc in sendBuf
-  sAddrCumul[0]=0;
-  for(int i=1; i<procN; i++) sAddrCumul[i]= sAddrCumul[i-1]+sSizeBuf[i-1];
-  
-  //Create send buffer
-  for(int i=0;i<pointN;i++) for(int j=0; j<buf[i].addrUsed; j++)
-    sendBuf[sAddrCumul[buf[i].address[j]]++]= buf[i].p;
-  //Wait for size comms to complete
-  mpi.wait(sSizeReq);
-  //size OK, communicate sendBuf
-  //TODO: Alltoallv send
-  return mpi.Ialltoallv(sendBuf.get(),sSizeBuf.get(),procN,mpi.getPoint3f(),rcvBuf,rSizeBuf.get());
-}
+  unique_ptr<Point3f[]> get() {
+    asyncRequest.wait();
+    sSizeBuf.reset(nullptr),rSizeBuf.reset(nullptr),sendBuf.reset(nullptr);
+    sdispl.reset(nullptr), rdispl.reset(nullptr);
+    return std::move(rcvBuf);
+  }
+  int pointsReceived() { return rcvSize_; }
+ private:
+  unique_ptr<int[]> sSizeBuf,rSizeBuf, sdispl,rdispl; //!<Size and displacement
+  unique_ptr<Point3f[]> sendBuf,rcvBuf;
+  int rcvSize_;
+  MPIhandler& mpi;
+  MPIhandler::AsyncRequest asyncRequest;
+};
 
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
-  int N=1<<20, Q=1<<16, P=1;
-  Parameters param(5,0,1, 0.1,0.1,0.1, 10,10,10);
+  COUT << "MPI handler constructed\n";
+  const int N=1<<20, Q=1<<17, P= mpi.procN(), rank= mpi.rank();
+  //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
+  Parameters param(5,0,1, 0.1,0.1,0.1, 10,10,10, 1,1,1);
   //Generate N/P points
-  auto recvPoints= allComm(pointGenerator, param,mpi,N,P);
-  //Generate N/P queries
-  auto recvQueries= allComm(queryGenerator, param,mpi,N,P);
+  All2allTransfer points(pointGenerator,param,mpi,N/P,P);
+  COUT << "Points comm started\n";
+  //Generate Q/P queries
+  All2allTransfer queries(queryGenerator,param,mpi,Q/P,P);
+  
+  //Sync points
+  auto rcvPoints= points.get();
+  CubeArray cubeArray(param,rank%param.xArrGl,rank/param.xArrGl,rank/(param.xArrGl*param.yArrGl));   
+  for(int i=0; i<points.pointsReceived(); i++) cubeArray.place(rcvPoints[i]);
+  COUT<<"All points received\n";
+  //for(int i=0; i<points.pointsReceived(); i++) PRINTF("%f,%f,%f\n", rcvPoints[i].x, rcvPoints[i].y, rcvPoints[i].z);
+
+  //Sync queries
+  auto rcvQ= queries.get();
+  COUT<<"All queries received\n";
+  Search search(cubeArray, param, mpi);
+  for(int i=0; i<queries.pointsReceived(); i++) search.query(rcvQ[i]);
+
+  //Test
+  COUT<<"Testing\n";
+  Point3f testQ {0.5,0.5,0.5};
+  auto qres= search.query(testQ);
+  printf("NN for (%f, %f, %f):\n", testQ.x, testQ.y, testQ.z);
+  for(auto&& elt : qres)
+    printf("\t-> (%f,%f,%f): d= %e\n", elt->x,elt->y,elt->z,elt->d(testQ));
+  printf("\n");
+  return 0; 
 }
