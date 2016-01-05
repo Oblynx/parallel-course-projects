@@ -66,6 +66,9 @@ public:
   Point3 global(Point3 cd) {
     return {cd.x+param.xCubeArr*x, cd.y+param.yCubeArr*y, cd.z+param.zCubeArr*z};
   }
+  Point3 local(Point3 cd) {
+    return {cd.x-param.xCubeArr*x, cd.y-param.yCubeArr*y, cd.z-param.zCubeArr*z};
+  }
 private:
   std::vector<Cube> data_;
   const Parameters& param;

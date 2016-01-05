@@ -45,12 +45,14 @@ struct Point3{
   int x,y,z;
 };
 
+//! Total number of Cubes per dim must be divisible by number of CubeArrays on same dim
 struct Parameters{
   Parameters(unsigned k, int overlapCubes, int procNum,
-             float xCubeL, float yCubeL, float zCubeL,
+             int xCubeTot, int yCubeTot, int zCubeTot,
              int xArrGl=1, int yArrGl=1, int zArrGl=1):
-    k(k), xCubeL(xCubeL), yCubeL(yCubeL), zCubeL(zCubeL),
-    xCubeArr(round(1/(xArrGl*xCubeL))),yCubeArr(round(1/(yArrGl*yCubeL))),zCubeArr(round(1/(zArrGl*zCubeL))),
+    k(k),
+    xCubeL(1.0/xCubeTot), yCubeL(1.0/yCubeTot), zCubeL(1.0/zCubeTot),
+    xCubeArr(xCubeTot/xArrGl), yCubeArr(yCubeTot/yArrGl), zCubeArr(zCubeTot/zArrGl),
     xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl),
     pageSize(yCubeArr*xCubeArr),
     xOverlap(overlapCubes*xCubeL/xCubeArr), yOverlap(overlapCubes*yCubeL/yCubeArr),

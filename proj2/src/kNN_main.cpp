@@ -37,15 +37,14 @@ PointAddress queryGenerator(const Parameters& param){
   return p;
 }
 
-//TODO: Parameter::overlap -> factor between [0,1] that is compared with the coord's fractional part
-
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
-  const int N=1<<20, Q=1<<12, P= mpi.procN(), rank= mpi.rank();
+  const int N=1<<22, Q=1<<12, P= mpi.procN(), rank= mpi.rank();
   PRINTF("#%d: MPI handler constructed, procN=%d\n",mpi.rank(),P);
   mpi.barrier();
   //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
-  Parameters param(5,0,1, 0.1,0.1,0.1, 2,1,1);
+  Parameters param(5,0,1, 10,10,10, 2,1,1);
+  //Different random seed for each process
   std::hash<std::string> hasher;
   int seed= hasher(std::to_string(mpi.rank()))%(1<<20);
   seed= (seed<0)? -seed: seed;
@@ -61,10 +60,13 @@ int main(int argc, char** argv){
   //Sync points
   int ptsN;
   auto points= pointTransfer.get(ptsN);
+/*!!!*/mpi.barrier();
   CubeArray cubeArray(param,rank%param.xArrGl,rank/param.xArrGl,rank/(param.xArrGl*param.yArrGl));   
-  for(int i=0; i<ptsN; i++) cubeArray.place(points[i]);
+  for(int i=0; i<ptsN; i++) {
+    if(i==445 || i==446) PRINTF("#%d -- %d/%d, (%f,%f,%f)\n",mpi.rank(),i,ptsN,points[i].x,points[i].y,points[i].z);
+    cubeArray.place(points[i]);
+  }
   COUT<<"#"<<mpi.rank()<<": All points received\n";
-  //for(int i=0; i<points.pointsReceived(); i++) PRINTF("%f,%f,%f\n", rcvPoints[i].x, rcvPoints[i].y, rcvPoints[i].z);
 
   //Sync queries
   int qN;
@@ -79,7 +81,9 @@ int main(int argc, char** argv){
 
   //Test
   COUT<<"#"<<mpi.rank()<<": Testing\n";
-  Point3f testQ {0.5,0.5,0.5};
+  Point3f testQ;
+  if(!mpi.rank()) testQ= {0.2,0.5,0.5};
+  else testQ= {0.8,0.5,0.5};
   auto qres= search.query(testQ);
   printf("NN for (%f, %f, %f):\n", testQ.x, testQ.y, testQ.z);
   for(auto&& elt : qres)

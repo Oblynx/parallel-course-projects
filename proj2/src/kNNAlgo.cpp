@@ -4,9 +4,9 @@
 using namespace std;
 
 Cube& CubeArray::locateQ(const Element& q){
-  const unsigned x= floor(q.x/param.xCubeL), y= floor(q.y/param.yCubeL),
-                 z= floor(q.z/param.zCubeL);
-  return data_[x+param.xCubeArr*y+param.pageSize*z];
+  //Global coords
+  auto cd= local({(int)floor(q.x/param.xCubeL),(int)floor(q.y/param.yCubeL),(int)floor(q.z/param.zCubeL)});
+  return data_[cd.x+cd.y*param.xCubeArr+cd.z*param.pageSize];
 }
 std::deque<Element*> Search::query(const Element& q){
   EltMaxQ nn;

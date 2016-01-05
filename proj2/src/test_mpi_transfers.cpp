@@ -37,8 +37,6 @@ PointAddress queryGenerator(const Parameters& param){
   return p;
 }
 
-//TODO: Parameter::overlap -> factor between [0,1] that is compared with the coord's fractional part
-
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
   const int N=1<<3, P= mpi.procN();

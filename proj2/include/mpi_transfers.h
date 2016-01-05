@@ -14,7 +14,6 @@ class All2allTransfer{
   template<typename F>
   All2allTransfer(F generator, const Parameters& param, MPIhandler& mpi, const int pointN,
                   const int procN): sSizeBuf(new int[procN]), rSizeBuf(new int[procN]), mpi(mpi),asyncRequest(mpi) {
-    //COUT<<"[transfer#"<<mpi.rank()<<"]: begin constructor\n";
     //PRINTF("\t###- Cube length: %f,%f,%f; CubeArray length: %d,%d,%d", param.xCubeL,param.yCubeL,param.zCubeL,param.xCubeArr,param.yCubeArr,param.zCubeArr);
     std::unique_ptr<PointAddress[]> buf(new PointAddress[pointN]);
     for(int i=0;i<procN;i++) sSizeBuf[i]=0, rSizeBuf[i]=0;
@@ -70,6 +69,7 @@ class All2allTransfer{
                             rcvBuf.get(),rSizeBuf.get(),rdispl.get());
   }
   std::unique_ptr<Point3f[]> get(int& rcvN) {
+    //PRINTF("[getTransfer#%d]: enter\n",mpi.rank());
     asyncRequest.wait();
     sSizeBuf.reset(nullptr),rSizeBuf.reset(nullptr),sendBuf.reset(nullptr);
     sdispl.reset(nullptr), rdispl.reset(nullptr);
