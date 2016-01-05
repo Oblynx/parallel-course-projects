@@ -1,8 +1,14 @@
+//! Test initial MPI all2all communications and the routing of points in the overlapping regions
+#ifndef __DEBUG__
+  #define __DEBUG__
+#endif
 #include <math.h>
 #include <iostream>
 #include "kNNAlgo.h"
 #include "mpi_transfers.h"
 using namespace std;
+
+MPIhandler* mpiGl;
 
 //! Generates random points + corresponding *CubeArray* (aka proc) address
 PointAddress pointGenerator(const Parameters& param){
@@ -25,6 +31,11 @@ PointAddress pointGenerator(const Parameters& param){
   if(frx < param.xOverlap && cdx-1 >= 0) p.address[p.addrUsed++]= p.address[0]-1;
   if(fry < param.yOverlap && cdy-1 >= 0) p.address[p.addrUsed++]= p.address[0]-param.xArrGl;
   if(frz < param.zOverlap && cdz-1 >= 0) p.address[p.addrUsed++]= p.address[0]-param.xArrGl*param.yArrGl;
+  if(p.addrUsed>1){
+    string addresses;
+    for(int i=0; i<p.addrUsed; i++) addresses+= to_string(p.address[i]), addresses+= ";";
+    PRINTF("[PointGenerator#%d]: (%f,%f,%f)-> %s\n", mpiGl->rank(),p.p.x,p.p.y,p.p.z,addresses.c_str());
+  }
   return p;
 }
 //! Generates random points and assigns them only to the CubeArray that contains them
@@ -39,18 +50,20 @@ PointAddress queryGenerator(const Parameters& param){
 
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
-  const int N=1<<3, P= mpi.procN();
+  mpiGl= &mpi;
+  const int N=1<<5, P= mpi.procN();
   PRINTF("#%d: MPI handler constructed, procN=%d\n",mpi.rank(),P);
   mpi.barrier();
   //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
-  Parameters param(5,0,1, 0.1,0.1,0.1, 2,1,1);
+  Parameters param(5,1, 20,20,10, 2,2,1);
+  if(!mpi.rank()) PRINTF("overlaps: %d->(%f,%f,%f)\n", param.overlapCubes, param.xOverlap, param.yOverlap, param.zOverlap);
   std::hash<std::string> hasher;
   int seed= hasher(std::to_string(mpi.rank()))%(1<<20);
   seed= (seed<0)? -seed: seed;
   srand(seed);
   //Generate N/P points
   All2allTransfer pointTransfer(pointGenerator,param,mpi,N/P,P);
-  COUT << "#"<<mpi.rank()<<": Points comm started\n";
+  PRINTF("#%d: Points comm started\n", mpi.rank());
   //Sync points
   int ptsN;
   auto points= pointTransfer.get(ptsN);

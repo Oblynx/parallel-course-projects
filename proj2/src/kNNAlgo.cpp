@@ -6,7 +6,7 @@ using namespace std;
 Cube& CubeArray::locateQ(const Element& q){
   //Global coords
   auto cd= local({(int)floor(q.x/param.xCubeL),(int)floor(q.y/param.yCubeL),(int)floor(q.z/param.zCubeL)});
-  return data_[cd.x+cd.y*param.xCubeArr+cd.z*param.pageSize];
+  return operator[](cd);
 }
 Cube& CubeArray::place(Point3f elt) {
   return locateQ(elt).place(elt);
@@ -26,10 +26,10 @@ std::deque<Element> Search::query(const Element& q){
   searchLim_.l.x= qloc.x, searchLim_.h.x= qloc.x, searchLim_.l.y= qloc.y;
   searchLim_.h.y= qloc.y, searchLim_.l.z= qloc.z, searchLim_.h.z= qloc.z;
   search(q,nn,searchSpace);
-  //If the greatest kNN distance (squared!) found is bigger than the distance from the boundary...
   nn.top()->resetD();
-  Element& tmp= *nn.top();
-  PRINTF("[Query#%d]: Top point (%f,%f,%f), qloc (%d,%d,%d), d=%e, distBoundary=%e\n",mpi.rank(),tmp.x,tmp.y,tmp.z, qloc.x,qloc.y,qloc.z, tmp.distStateful(q), cubeArray_.distFromBoundary(q,qloc));
+  //Element& tmp= *nn.top();
+  //PRINTF("[Query#%d]: Top point (%f,%f,%f), qloc (%d,%d,%d), d=%e, distBoundary=%e\n",mpi.rank(),tmp.x,tmp.y,tmp.z, qloc.x,qloc.y,qloc.z, tmp.distStateful(q), cubeArray_.distFromBoundary(q,qloc));
+  // If the greatest kNN distance (squared!) found is bigger than the distance from the boundary...
   if(nn.empty() || nn.top()->distStateful(q) > cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc))
     while( nn.size() < param.k ){
       COUT<<"Not found! Expanding\n"; 
@@ -128,4 +128,3 @@ void Search::request(const int rank, const Point3 globCd){
 }
 void Search::waitRequestsFinish(){
 }
-//TODO: create Element point cloud...

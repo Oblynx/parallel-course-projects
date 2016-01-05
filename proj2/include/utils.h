@@ -47,8 +47,8 @@ struct Parameters{
     xCubeArr(xCubeTot/xArrGl), yCubeArr(yCubeTot/yArrGl), zCubeArr(zCubeTot/zArrGl),
     xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl),
     pageSize(yCubeArr*xCubeArr),
-    xOverlap(overlapCubes*xCubeL/xCubeArr), yOverlap(overlapCubes*yCubeL/yCubeArr),
-    zOverlap(overlapCubes*zCubeL/zCubeArr), overlapCubes(overlapCubes) {}
+    xOverlap((float)overlapCubes/xCubeArr), yOverlap((float)overlapCubes/yCubeArr),
+    zOverlap((float)overlapCubes/zCubeArr), overlapCubes(overlapCubes) {}
 
   Parameters(const Parameters&) =delete;
   const unsigned k;                           //!< Number of neighbors to return

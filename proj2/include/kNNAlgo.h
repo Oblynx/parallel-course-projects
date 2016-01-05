@@ -46,7 +46,8 @@ public:
   CubeArray(const Parameters& param, int xGl, int yGl, int zGl): param(param),x(xGl),y(yGl),z(zGl),
             bndL({xGl*param.xCubeL*param.xCubeArr, yGl*param.yCubeL*param.yCubeArr,zGl*param.zCubeL*param.zCubeArr}),
             bndH({(xGl+1)*param.xCubeL*param.xCubeArr,(yGl+1)*param.yCubeL*param.yCubeArr,(zGl+1)*param.zCubeL*param.zCubeArr}) {
-    data_.reserve(param.yCubeArr*param.xCubeArr*param.zCubeArr);
+    data_.reserve((param.yCubeArr+2*param.overlapCubes)*(param.xCubeArr+2*param.overlapCubes)*
+                  (param.zCubeArr+2*param.overlapCubes));
     int x,y,z;
     for(z=0-param.overlapCubes; z<param.zCubeArr+param.overlapCubes; z++)
       for(y=0-param.overlapCubes; y<param.yCubeArr+param.overlapCubes; y++)
@@ -55,9 +56,10 @@ public:
     }
   //! Which box does Q belong to?
   Cube& locateQ(const Element& q);
-  //! Return element at given coordinates
-  Cube& operator[](Point3 coord){
-    return data_[coord.x+ coord.y*param.xCubeArr+ coord.z*param.pageSize];
+  //! Return Cube at given (local) coordinates
+  Cube& operator[](Point3 cd){
+    return data_[(cd.x+param.overlapCubes) + (cd.y+param.overlapCubes)*param.xCubeArr +
+                 (cd.z+param.overlapCubes)*param.yCubeArr*param.xCubeArr];
   }
   //! Place a new element in its corresponding Cube in CubeArray
   Cube& place(Point3f elt); 

@@ -39,11 +39,11 @@ PointAddress queryGenerator(const Parameters& param){
 
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
-  const int N=1<<25, Q=1<<12, P= mpi.procN(), rank= mpi.rank();
+  const int N=1<<25, Q=1<<10, P= mpi.procN(), rank= mpi.rank();
   PRINTF("#%d: MPI handler constructed, procN=%d\n",mpi.rank(),P);
   mpi.barrier();
   //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
-  Parameters param(5,0, 10,10,10, 2,1,1);
+  Parameters param(5,0, 10,10,10, 2,2,1);
   //Different random seed for each process
   std::hash<std::string> hasher;
   int seed= hasher(std::to_string(mpi.rank()))%(1<<20);
@@ -51,11 +51,11 @@ int main(int argc, char** argv){
   srand(seed);
   //Generate N/P points
   All2allTransfer pointTransfer(pointGenerator,param,mpi,N/P,P);
-  COUT << "#"<<mpi.rank()<<": Points comm started\n";
+  PRINTF("#%d: Points comm started\n",mpi.rank());
   mpi.barrier();
   //Generate Q/P queries
   All2allTransfer queryTransfer(queryGenerator,param,mpi,Q/P,P);
-  COUT << "#"<<mpi.rank()<<": Queries comm started\n";
+  PRINTF("#%d: Queries comm started\n",mpi.rank());
   
   //Sync points
   int ptsN;
@@ -63,24 +63,23 @@ int main(int argc, char** argv){
 /*!!!*/mpi.barrier();
   CubeArray cubeArray(param,rank%param.xArrGl,rank/param.xArrGl,rank/(param.xArrGl*param.yArrGl));   
   for(int i=0; i<ptsN; i++) {
-    if(i==445 || i==446) PRINTF("#%d -- %d/%d, (%f,%f,%f)\n",mpi.rank(),i,ptsN,points[i].x,points[i].y,points[i].z);
     cubeArray.place(points[i]);
   }
-  COUT<<"#"<<mpi.rank()<<": All points received\n";
+  PRINTF("#%d: All points received\n",mpi.rank());
 
   //Sync queries
   int qN;
   auto queries= queryTransfer.get(qN);
-  COUT<<"#"<<mpi.rank()<<": All queries received\n";
+  PRINTF("#%d: All queries received\n",mpi.rank());
   mpi.barrier();
 
   //Start search
-  COUT<<"#"<<mpi.rank()<<": Starting search\n";
+  PRINTF("#%d: Starting search\n",mpi.rank());
   Search search(cubeArray, param, mpi);
   //for(int i=0; i<qN; i++) search.query(queries[i]);
 
   //Test
-  COUT<<"#"<<mpi.rank()<<": Testing\n";
+  PRINTF("#%d: Testing\n",mpi.rank());
   Point3f testQ;
   if(!mpi.rank()) testQ= {0.2,0.5,0.5};
   else testQ= {0.8,0.5,0.5};

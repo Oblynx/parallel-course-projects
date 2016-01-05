@@ -21,16 +21,24 @@ add_library(kNNAlgo src/kNNAlgo.cpp)
 add_library(utils src/utils.cpp)
 add_library(mpi_handler src/mpi_handler.cpp)
 
-add_executable(kNNsingle src/kNN_single_main.cpp)
-target_link_libraries(kNNsingle
-  kNNAlgo
-  utils
-  mpi_handler
-)
-
 add_executable(kNN src/kNN_main.cpp)
 target_link_libraries(kNN
   kNNAlgo
   utils
   mpi_handler
 )
+
+#######################   TESTS   ###############################
+add_executable(test_kNNsingle src/test_kNNsingle.cpp)
+target_link_libraries(test_kNNsingle
+  kNNAlgo
+  utils
+  mpi_handler
+)
+add_executable(test_mpiTransfers src/test_mpi_transfers.cpp)
+target_link_libraries(test_mpiTransfers
+  kNNAlgo
+  utils
+  mpi_handler
+)
+

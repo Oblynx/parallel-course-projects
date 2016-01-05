@@ -29,7 +29,7 @@ class All2allTransfer{
     /*{std::string showSizes;
       for(int i=0; i<procN; i++) showSizes+= std::to_string(sSizeBuf[i]), showSizes+= ';';
     PRINTF("[transfer#%d]: Send sizes = %s -|\n",mpi.rank(),showSizes.c_str());}*/
-    COUT<<"\n[transfer#"<<mpi.rank()<<"]: Requesting Size communications\n";
+    PRINTF("[transfer#%d]: Requesting Size comms\n",mpi.rank());
     //All2all comms for size -- CAUTION! count is per process!!!
     asyncRequest.Ialltoall(sSizeBuf.get(),1,MPI_INT,rSizeBuf.get(),1);
 
@@ -37,17 +37,15 @@ class All2allTransfer{
     sdispl[0]=0;
     for(int i=1; i<procN; i++) sdispl[i]= sdispl[i-1]+sSizeBuf[i-1];
     
-    //COUT<<"\n[transfer#"<<mpi.rank()<<"]: Creating send buffer\n";
     //Create send buffer
     sendBuf.reset(new Point3f[sdispl[procN-1]+sSizeBuf[procN-1]]);
     for(int i=0;i<pointN;i++) for(int j=0; j<buf[i].addrUsed; j++)
         sendBuf[sdispl[buf[i].address[j]]++]= buf[i].p;
     
     //Wait for size comms to complete
-    //COUT<<"[transfer#"<<mpi.rank()<<"]: Waiting for size comm\n";
     asyncRequest.wait();
     mpi.barrier();
-    COUT<<"[transfer#"<<mpi.rank()<<"]: Size comm complete!\n";
+    PRINTF("[transfer#%d]: Size comm complete!\n",mpi.rank());
     /*{std::string showSizes;
       for(int i=0; i<procN; i++) showSizes+= std::to_string(rSizeBuf[i]), showSizes+= ';';
     PRINTF("[transfer#%d]: Receive sizes = %s -|\n",mpi.rank(),showSizes.c_str());}*/
@@ -62,9 +60,9 @@ class All2allTransfer{
     //Calculate the number of points this proc will receive
     rcvSize_=0;
     for(int i=0;i<procN;i++) rcvSize_+= rSizeBuf[i];
-    COUT<<"[tranfer#"<<mpi.rank()<<"]: rcvSize_="<<rcvSize_<<'\n';
+    PRINTF("[transfer#%d]: rcvSize=%d\n",mpi.rank(),rcvSize_);
     rcvBuf.reset(new Point3f[rcvSize_]);
-    COUT<<"[transfer#"<<mpi.rank()<<"]: Requesting point transfer comms\n";
+    PRINTF("[transfer#%d]: Requesting point transfer comms\n",mpi.rank());
     asyncRequest.Ialltoallv(sendBuf.get(),sSizeBuf.get(),sdispl.get(),mpi.typePoint3f(),
                             rcvBuf.get(),rSizeBuf.get(),rdispl.get());
   }
