@@ -1,13 +1,37 @@
 #include <math.h>
 #include <iostream>
+#include <cfloat>
 #include "kNNAlgo.h"
 #include "mpi_transfers.h"
 using namespace std;
 
+PointAddress createRand(){
+  PointAddress p{{(float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX},{0},0};
+  if(1.0-p.p.x <= FLT_EPSILON) p.p.x-= FLT_EPSILON;
+  if(1.0-p.p.y <= FLT_EPSILON) p.p.y-= FLT_EPSILON;
+  if(1.0-p.p.z <= FLT_EPSILON) p.p.z-= FLT_EPSILON;
+  if(p.p.x <= FLT_EPSILON) p.p.x+= FLT_EPSILON;
+  if(p.p.y <= FLT_EPSILON) p.p.y+= FLT_EPSILON;
+  if(p.p.z <= FLT_EPSILON) p.p.z+= FLT_EPSILON;
+  return p;
+}
+
+const int sN=100;
+float sx=0,sy=0,sz=0;
+
 //! Generates random points + corresponding *CubeArray* (aka proc) address
 PointAddress pointGenerator(const Parameters& param){
-  //PointAddress p{{xor128(),xor128(),xor128()},{0},0};
-  PointAddress p{{(float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX},{0},0};
+  /*sx+= 1.0/sN;
+  if(sx-1<= FLT_EPSILON) sx=0, sy+= 1.0/sN;
+  if(sy-1<= FLT_EPSILON) sy=0, sz+= 1.0/sN;
+  PointAddress p{{sx,sy,sz},{0},0};
+  if(1.0-p.p.x <= FLT_EPSILON) p.p.x-= FLT_EPSILON;
+  if(1.0-p.p.y <= FLT_EPSILON) p.p.y-= FLT_EPSILON;
+  if(1.0-p.p.z <= FLT_EPSILON) p.p.z-= FLT_EPSILON;
+  if(p.p.x <= FLT_EPSILON) p.p.x+= FLT_EPSILON;
+  if(p.p.y <= FLT_EPSILON) p.p.y+= FLT_EPSILON;
+  if(p.p.z <= FLT_EPSILON) p.p.z+= FLT_EPSILON;*/
+  auto p= createRand();
   float cdxf,cdyf,cdzf; 
   //Divide coord by CubeArray length (=_CubeL*_CubeArr)
   //Integral part: CubeArray coordinate
@@ -29,8 +53,7 @@ PointAddress pointGenerator(const Parameters& param){
 }
 //! Generates random points and assigns them only to the CubeArray that contains them
 PointAddress queryGenerator(const Parameters& param){
-  //PointAddress p {{xor128(),xor128(),xor128()},{0},1};
-  PointAddress p{{(float)rand()/RAND_MAX,(float)rand()/RAND_MAX,(float)rand()/RAND_MAX},{0},0};
+  auto p= createRand();
   p.address[p.addrUsed++]=  (int)(p.p.x/(param.xCubeL*param.xCubeArr))+
                             (int)(p.p.y/(param.yCubeL*param.yCubeArr))*param.xArrGl+
                             (int)(p.p.z/(param.zCubeL*param.zCubeArr))*param.yArrGl*param.xArrGl;
@@ -39,16 +62,19 @@ PointAddress queryGenerator(const Parameters& param){
 
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
-  const int N=1<<25, Q=1<<10, P= mpi.procN(), rank= mpi.rank();
+   int N=sN*sN*sN-1, Q=1<<10, P= mpi.procN(), rank= mpi.rank();
+  N=1<<26;
   PRINTF("#%d: MPI handler constructed, procN=%d\n",mpi.rank(),P);
   mpi.barrier();
   //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
-  Parameters param(5,0, 10,10,10, 2,2,1);
+  Parameters param(5,2, 20,20,20, 2,2,1);
   //Different random seed for each process
   std::hash<std::string> hasher;
   int seed= hasher(std::to_string(mpi.rank()))%(1<<20);
   seed= (seed<0)? -seed: seed;
   srand(seed);
+
+  
   //Generate N/P points
   All2allTransfer pointTransfer(pointGenerator,param,mpi,N/P,P);
   PRINTF("#%d: Points comm started\n",mpi.rank());
@@ -60,12 +86,11 @@ int main(int argc, char** argv){
   //Sync points
   int ptsN;
   auto points= pointTransfer.get(ptsN);
-/*!!!*/mpi.barrier();
-  CubeArray cubeArray(param,rank%param.xArrGl,rank/param.xArrGl,rank/(param.xArrGl*param.yArrGl));   
-  for(int i=0; i<ptsN; i++) {
-    cubeArray.place(points[i]);
-  }
   PRINTF("#%d: All points received\n",mpi.rank());
+  CubeArray cubeArray(param,rank%param.xArrGl,rank/param.xArrGl,rank/(param.xArrGl*param.yArrGl));   
+  for(int i=0; i<ptsN; i++)
+    cubeArray.place(points[i]);
+  PRINTF("#%d: Points placed in CubeArray\n",mpi.rank());
 
   //Sync queries
   int qN;
@@ -80,13 +105,21 @@ int main(int argc, char** argv){
 
   //Test
   PRINTF("#%d: Testing\n",mpi.rank());
-  Point3f testQ;
-  if(!mpi.rank()) testQ= {0.2,0.5,0.5};
-  else testQ= {0.8,0.5,0.5};
-  auto qres= search.query(testQ);
-  printf("NN for (%f, %f, %f):\n", testQ.x, testQ.y, testQ.z);
-  for(auto&& elt : qres)
-    printf("\t-> (%f,%f,%f): d= %e\n", elt.x,elt.y,elt.z,sqrt(elt.distStateful(testQ)));
-  printf("\n");
+  Point3f testQ; bool notest=false;
+  switch (mpi.rank()){
+    case 0: testQ= {0.2,0.4999,0.5}; break;
+    case 1: testQ= {0.8,0.4,0.5}; break;
+    case 2: testQ= {0.2,0.5,0.5}; break;
+    case 3: testQ= {0.8,0.8,0.5}; break;
+    default: notest=true;
+  }
+  if(!notest){
+    auto qres= search.query(testQ);
+    string knn;
+    knn+= "NN#"+to_string(mpi.rank())+" for ("+to_string(testQ.x)+","+to_string(testQ.y)+","+to_string(testQ.z)+"):\n";
+    for(auto&& elt : qres)
+      knn+= "\t-> ("+to_string(elt.x)+","+to_string(elt.y)+","+to_string(elt.z)+"): d= "+to_string(sqrt(elt.distStateful(testQ)))+"\n";
+    printf("%s\n", knn.c_str());
+  }
   return 0; 
 }

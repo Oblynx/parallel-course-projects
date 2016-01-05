@@ -18,6 +18,7 @@ struct Element{
     if (!distInit_) dist_= (q.x-x)*(q.x-x) + (q.y-y)*(q.y-y) + (q.z-z)*(q.z-z), distInit_= true;
     return dist_;
   }
+  float dist(const Element& q){ return (q.x-x)*(q.x-x) + (q.y-y)*(q.y-y) + (q.z-z)*(q.z-z); }
   void resetD() { distInit_= false; }
   //! Used in priority queue. Must be called after dist has been initialized!
   bool operator<(const Element& other) const { return dist_ < other.dist_; }
@@ -44,8 +45,11 @@ struct Cube{
 class CubeArray{
 public:
   CubeArray(const Parameters& param, int xGl, int yGl, int zGl): param(param),x(xGl),y(yGl),z(zGl),
-            bndL({xGl*param.xCubeL*param.xCubeArr, yGl*param.yCubeL*param.yCubeArr,zGl*param.zCubeL*param.zCubeArr}),
-            bndH({(xGl+1)*param.xCubeL*param.xCubeArr,(yGl+1)*param.yCubeL*param.yCubeArr,(zGl+1)*param.zCubeL*param.zCubeArr}) {
+            //bndL({xGl*param.xCubeL*param.xCubeArr, yGl*param.yCubeL*param.yCubeArr,zGl*param.zCubeL*param.zCubeArr}),
+            //bndH({(xGl+1)*param.xCubeL*param.xCubeArr,(yGl+1)*param.yCubeL*param.yCubeArr,(zGl+1)*param.zCubeL*param.zCubeArr}),
+            locBndL({0-param.overlapCubes,0-param.overlapCubes,0-param.overlapCubes}),
+            locBndH({param.xCubeArr+param.overlapCubes,param.yCubeArr+param.overlapCubes,param.zCubeArr+param.overlapCubes})
+    {
     data_.reserve((param.yCubeArr+2*param.overlapCubes)*(param.xCubeArr+2*param.overlapCubes)*
                   (param.zCubeArr+2*param.overlapCubes));
     int x,y,z;
@@ -58,8 +62,9 @@ public:
   Cube& locateQ(const Element& q);
   //! Return Cube at given (local) coordinates
   Cube& operator[](Point3 cd){
-    return data_[(cd.x+param.overlapCubes) + (cd.y+param.overlapCubes)*param.xCubeArr +
-                 (cd.z+param.overlapCubes)*param.yCubeArr*param.xCubeArr];
+    const int overlap= param.overlapCubes;
+    return data_[(cd.x+overlap) + (cd.y+overlap)*(param.xCubeArr+2*overlap) +
+                 (cd.z+overlap)*(param.yCubeArr+2*overlap)*(param.xCubeArr+2*overlap)];
   }
   //! Place a new element in its corresponding Cube in CubeArray
   Cube& place(Point3f elt); 
@@ -76,7 +81,9 @@ private:
   std::vector<Cube> data_;
   const Parameters& param;
   const int x,y,z;  //!< CubeArray coordinates in global space
-  Point3f bndL,bndH;  //!< Lower and upper bounds
+  //Point3f bndL,bndH;  //!< Lower and upper bounds
+public:
+  Point3 locBndL,locBndH;
 };
 
 //! Performs operations on the total search space, which is a CubeArray instance. Doesn't hold

@@ -12,6 +12,7 @@
   #define COUT   while(0) std::cout
 #endif
 
+//! Attempt at a random function
 float xor128();
 template<class T> T min(T a, T b) { return (a<b)?a:b; }
 //TODO: don't assume args are float (enable_if)

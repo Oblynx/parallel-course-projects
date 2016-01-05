@@ -3,9 +3,12 @@
 #include <iostream>
 using namespace std;
 
+Point3 cdLocateStore;
+
 Cube& CubeArray::locateQ(const Element& q){
   //Global coords
   auto cd= local({(int)floor(q.x/param.xCubeL),(int)floor(q.y/param.yCubeL),(int)floor(q.z/param.zCubeL)});
+  cdLocateStore= cd;    /*TODO: DEBUG*/
   return operator[](cd);
 }
 Cube& CubeArray::place(Point3f elt) {
@@ -26,23 +29,24 @@ std::deque<Element> Search::query(const Element& q){
   searchLim_.l.x= qloc.x, searchLim_.h.x= qloc.x, searchLim_.l.y= qloc.y;
   searchLim_.h.y= qloc.y, searchLim_.l.z= qloc.z, searchLim_.h.z= qloc.z;
   search(q,nn,searchSpace);
-  nn.top()->resetD();
-  //Element& tmp= *nn.top();
-  //PRINTF("[Query#%d]: Top point (%f,%f,%f), qloc (%d,%d,%d), d=%e, distBoundary=%e\n",mpi.rank(),tmp.x,tmp.y,tmp.z, qloc.x,qloc.y,qloc.z, tmp.distStateful(q), cubeArray_.distFromBoundary(q,qloc));
+  PRINTF("[Query#%d]: q=(%f,%f,%f) qloc=(%d,%d,%d) and its cd=(%d,%d,%d)\n\t  top dist= %f\n\tfrom bound= %f\n",
+        mpi.rank(),q.x,q.y,q.z,qloc.x,qloc.y,qloc.z, cdLocateStore.x,cdLocateStore.y,cdLocateStore.z,
+        nn.top()->dist(q),cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc));
   // If the greatest kNN distance (squared!) found is bigger than the distance from the boundary...
-  if(nn.empty() || nn.top()->distStateful(q) > cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc))
-    while( nn.size() < param.k ){
-      COUT<<"Not found! Expanding\n"; 
+  if(nn.empty() || (nn.top()->dist(q) > cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc)))
+    do{
+      PRINTF("[Query#%d]: Not found! Expanding\n", mpi.rank()); 
       expand(searchSpace);
       COUT<<"In searchSpace:\n";
       for(auto&& cube : searchSpace) PRINTF("%d,%d,%d\n", cube->x,cube->y,cube->z);
       search(q,nn,searchSpace);
-    }
+    }while( nn.size() < param.k );
   deque<Element> results;
   while(!nn.empty()){
     results.push_front(*nn.top());
-    nn.top()->resetD();
+    Element* popped= nn.top();
     nn.pop();
+    popped->resetD();
   } 
   return results;
 }
@@ -55,14 +59,16 @@ void Search::search(const Element& q, EltMaxQ& nn, deque<Cube*>& searchSpace){
       } else if (nn.top()->distStateful(q) > elt.distStateful(q)){  //If better candidate
         //PRINTF("Inserted: (%f,%f,%f)\tDist: %f, max: %f\n",
         //       elt.x,elt.y,elt.z,elt.distStateful(q),nn.top()->distStateful(q));
-        nn.top()->resetD();
+        Element* popped= nn.top();
         nn.pop();
+        popped->resetD();
         nn.push(&elt);
       } else elt.resetD();        //If not a better candidate
 }
 //! Calculate address for each new cube and retrieve its reference
 //! 3 cases: either the cube exists in CubeArray or another processor has it (very unlikely) or out-of-bounds
 void Search::expand(deque<Cube*>& searchSpace){
+  PRINTF("[expand#%d]: search lims: [(%d,%d,%d)-(%d,%d,%d)]\n",mpi.rank(),searchLim_.l.x,searchLim_.l.y,searchLim_.l.z,searchLim_.h.x,searchLim_.h.y,searchLim_.h.z);
   searchSpace.clear();
 	// Produce possible coordinates
 	int x,y,z;
@@ -104,17 +110,19 @@ void Search::expand(deque<Cube*>& searchSpace){
 
 void Search::add(const Point3 cd, deque<Cube*>& searchSpace){
 	char x,y,z;
-	x= (cd.x<0)? 0: (cd.x<static_cast<int>(param.xCubeArr ))?  1:  2;
-	y= (cd.y<0)? 0: (cd.y<static_cast<int>(param.yCubeArr ))?  4:  8;
-	z= (cd.z<0)? 0: (cd.z<static_cast<int>(param.zCubeArr))? 16: 32;
+  Point3 lb= cubeArray_.locBndL, ub= cubeArray_.locBndH;
+	x= (cd.x<lb.x)? 0: (cd.x<ub.x)?  1:  2;
+	y= (cd.y<lb.y)? 0: (cd.y<ub.y)?  4:  8;
+	z= (cd.z<lb.z)? 0: (cd.z<ub.z)? 16: 32;
   if((x|y|z) == 21) searchSpace.push_back(&cubeArray_[cd]);	//local CubeArray
   else{
     auto glob= cubeArray_.global(cd);
     //If ! out-of-bounds, request cube from neighbor
     if (!(glob.x<0 || glob.y<0 || glob.z<0 || glob.x>=param.xArrGl*param.xCubeArr ||
           glob.y>=param.yArrGl*param.yCubeArr || glob.z>=param.zArrGl*param.zCubeArr)){
-      COUT << "[expand]: ERROR! "<<" not in local CubeArray! "<<cd.x<<','<<cd.y<<','<<cd.z<<"\n";
-      COUT << "\tGlobal: "<<glob.x<<','<<glob.y<<','<<glob.z<<'\n';
+      PRINTF("[expand#%d]: ERROR! Not in local CubeArray! (%d,%d,%d)\n",mpi.rank(),cd.x,cd.y,cd.z);
+      PRINTF("\tGlobal cd: (%d,%d,%d)\n",glob.x,glob.y,glob.z);
+      PRINTF("\tlb= (%d,%d,%d)\n",lb.x,lb.y,lb.z);
       //The coordinates of the CubeArray that contains the point 
       Point3 containingCA {glob.x/param.xArrGl, glob.y/param.yArrGl, glob.z/param.zArrGl};
       request(containingCA.x+containingCA.y*param.xArrGl+containingCA.z*param.yArrGl*param.xArrGl, glob);
