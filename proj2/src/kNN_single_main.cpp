@@ -23,7 +23,7 @@ int main(){
   auto qres= search.query(q[Q-1]);
   printf("3NN for Point3(%f, %f, %f):\n", q[Q-1].x, q[Q-1].y, q[Q-1].z);
   for(auto&& elt : qres)
-    printf("\t-> (%f,%f,%f)\n", elt->x,elt->y,elt->z);
+    printf("\t-> (%f,%f,%f)\n", elt.x,elt.y,elt.z);
   printf("\n");
   return 0; 
 }

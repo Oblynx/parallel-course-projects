@@ -8,7 +8,7 @@ Cube& CubeArray::locateQ(const Element& q){
   auto cd= local({(int)floor(q.x/param.xCubeL),(int)floor(q.y/param.yCubeL),(int)floor(q.z/param.zCubeL)});
   return data_[cd.x+cd.y*param.xCubeArr+cd.z*param.pageSize];
 }
-std::deque<Element*> Search::query(const Element& q){
+std::deque<Element> Search::query(const Element& q){
   EltMaxQ nn;
   deque<Cube*> searchSpace;
   Cube& qloc= cubeArray_.locateQ(q);
@@ -16,7 +16,11 @@ std::deque<Element*> Search::query(const Element& q){
   searchLim_.l.x= qloc.x, searchLim_.h.x= qloc.x, searchLim_.l.y= qloc.y;
   searchLim_.h.y= qloc.y, searchLim_.l.z= qloc.z, searchLim_.h.z= qloc.z;
   search(q,nn,searchSpace);
-  if(nn.empty() || nn.top()->d(q) > qloc.distFromBoundary(q))
+  //If the greatest kNN distance (squared!) found is bigger than the distance from the boundary...
+  nn.top()->resetD();
+  Element& tmp= *nn.top();
+  PRINTF("[Query#%d]: Top point (%f,%f,%f), qloc (%d,%d,%d), d=%e, distBoundary=%e\n",mpi.rank(),tmp.x,tmp.y,tmp.z, qloc.x,qloc.y,qloc.z, tmp.distStateful(q), qloc.distFromBoundary(q));
+  if(nn.empty() || nn.top()->distStateful(q) > qloc.distFromBoundary(q)*qloc.distFromBoundary(q))
     while( nn.size() < param.k ){
       COUT<<"Not found! Expanding\n"; 
       expand(searchSpace);
@@ -24,9 +28,10 @@ std::deque<Element*> Search::query(const Element& q){
       for(auto&& cube : searchSpace) PRINTF("%d,%d,%d\n", cube->x,cube->y,cube->z);
       search(q,nn,searchSpace);
     }
-  deque<Element*> results;
+  deque<Element> results;
   while(!nn.empty()){
-    results.push_front(nn.top());
+    results.push_front(*nn.top());
+    nn.top()->resetD();
     nn.pop();
   } 
   return results;
@@ -35,10 +40,11 @@ void Search::search(const Element& q, EltMaxQ& nn, deque<Cube*>& searchSpace){
   for(auto&& cube : searchSpace)
     for(auto&& elt : cube->data_)
       if (nn.size() < param.k) {  //This happens initially
-        elt.d(q);       //Force calculation of distance
+        elt.distStateful(q);       //Force calculation of distance
         nn.push(&elt);
-      } else if (nn.top()->d(q) > elt.d(q)){  //If better candidate
-        //PRINTF("Inserted: (%f,%f,%f)\tDist: %f, max: %f\n", elt.x,elt.y,elt.z,elt.d(q),nn.top()->d(q));
+      } else if (nn.top()->distStateful(q) > elt.distStateful(q)){  //If better candidate
+        //PRINTF("Inserted: (%f,%f,%f)\tDist: %f, max: %f\n",
+        //       elt.x,elt.y,elt.z,elt.distStateful(q),nn.top()->distStateful(q));
         nn.top()->resetD();
         nn.pop();
         nn.push(&elt);
@@ -86,7 +92,7 @@ void Search::expand(deque<Cube*>& searchSpace){
   //TODO: Add new cubes after requests have finished
 }
 
-void Search::add(Point3 cd, deque<Cube*>& searchSpace){
+void Search::add(const Point3 cd, deque<Cube*>& searchSpace){
 	char x,y,z;
 	x= (cd.x<0)? 0: (cd.x<static_cast<int>(param.xCubeArr ))?  1:  2;
 	y= (cd.y<0)? 0: (cd.y<static_cast<int>(param.yCubeArr ))?  4:  8;
@@ -106,7 +112,7 @@ void Search::add(Point3 cd, deque<Cube*>& searchSpace){
   }
 }
 
-void Search::request(Point3 processCd, Point3 globCd){
+void Search::request(const Point3 processCd, const Point3 globCd){
   cubeRequests_.emplace_back(MPIhandler::AsyncRequest(mpi));
   cubeRequests_.back().IsendCoordinates(globCd, 1, param.rank(processCd));
 }

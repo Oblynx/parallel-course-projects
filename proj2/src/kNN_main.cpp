@@ -39,7 +39,7 @@ PointAddress queryGenerator(const Parameters& param){
 
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
-  const int N=1<<22, Q=1<<12, P= mpi.procN(), rank= mpi.rank();
+  const int N=1<<25, Q=1<<12, P= mpi.procN(), rank= mpi.rank();
   PRINTF("#%d: MPI handler constructed, procN=%d\n",mpi.rank(),P);
   mpi.barrier();
   //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
@@ -77,7 +77,7 @@ int main(int argc, char** argv){
   //Start search
   COUT<<"#"<<mpi.rank()<<": Starting search\n";
   Search search(cubeArray, param, mpi);
-  for(int i=0; i<qN; i++) search.query(queries[i]);
+  //for(int i=0; i<qN; i++) search.query(queries[i]);
 
   //Test
   COUT<<"#"<<mpi.rank()<<": Testing\n";
@@ -87,7 +87,7 @@ int main(int argc, char** argv){
   auto qres= search.query(testQ);
   printf("NN for (%f, %f, %f):\n", testQ.x, testQ.y, testQ.z);
   for(auto&& elt : qres)
-    printf("\t-> (%f,%f,%f): d= %e\n", elt->x,elt->y,elt->z,elt->d(testQ));
+    printf("\t-> (%f,%f,%f): d= %e\n", elt.x,elt.y,elt.z,sqrt(elt.distStateful(testQ)));
   printf("\n");
   return 0; 
 }
