@@ -7,7 +7,7 @@ int main(){
   MPIhandler mpi(0);    //MPI turned off
   int N=1<<20, Q=1<<16;
   Point3f q[Q];
-  Parameters param(5,0,1, 0.1,0.1,0.1, 10,10,10);
+  Parameters param(5,0, 10,10,10);
   CubeArray cubeArray(param,0,0,0);
   for(int i=0; i<N; i++) cubeArray.place({xor128(), xor128(), xor128()});
   auto n1= cubeArray.place({0.412, 0.412, 0.413});

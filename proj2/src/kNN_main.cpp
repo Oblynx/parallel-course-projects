@@ -43,7 +43,7 @@ int main(int argc, char** argv){
   PRINTF("#%d: MPI handler constructed, procN=%d\n",mpi.rank(),P);
   mpi.barrier();
   //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
-  Parameters param(5,0,1, 10,10,10, 2,1,1);
+  Parameters param(5,0, 10,10,10, 2,1,1);
   //Different random seed for each process
   std::hash<std::string> hasher;
   int seed= hasher(std::to_string(mpi.rank()))%(1<<20);

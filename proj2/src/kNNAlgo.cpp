@@ -8,6 +8,16 @@ Cube& CubeArray::locateQ(const Element& q){
   auto cd= local({(int)floor(q.x/param.xCubeL),(int)floor(q.y/param.yCubeL),(int)floor(q.z/param.zCubeL)});
   return data_[cd.x+cd.y*param.xCubeArr+cd.z*param.pageSize];
 }
+Cube& CubeArray::place(Point3f elt) {
+  return locateQ(elt).place(elt);
+}
+float CubeArray::distFromBoundary(Element q, Cube& cube){
+  Point3 cubeGl= global({cube.x,cube.y,cube.z});
+  return min(fabs(q.x-(cubeGl.x+1)*param.xCubeL), fabs(q.x-cubeGl.x*param.xCubeL),
+             fabs(q.y-(cubeGl.y+1)*param.xCubeL), fabs(q.y-cubeGl.y*param.xCubeL),
+             fabs(q.z-(cubeGl.z+1)*param.xCubeL), fabs(q.z-cubeGl.z*param.xCubeL));
+}
+
 std::deque<Element> Search::query(const Element& q){
   EltMaxQ nn;
   deque<Cube*> searchSpace;
@@ -19,8 +29,8 @@ std::deque<Element> Search::query(const Element& q){
   //If the greatest kNN distance (squared!) found is bigger than the distance from the boundary...
   nn.top()->resetD();
   Element& tmp= *nn.top();
-  PRINTF("[Query#%d]: Top point (%f,%f,%f), qloc (%d,%d,%d), d=%e, distBoundary=%e\n",mpi.rank(),tmp.x,tmp.y,tmp.z, qloc.x,qloc.y,qloc.z, tmp.distStateful(q), qloc.distFromBoundary(q));
-  if(nn.empty() || nn.top()->distStateful(q) > qloc.distFromBoundary(q)*qloc.distFromBoundary(q))
+  PRINTF("[Query#%d]: Top point (%f,%f,%f), qloc (%d,%d,%d), d=%e, distBoundary=%e\n",mpi.rank(),tmp.x,tmp.y,tmp.z, qloc.x,qloc.y,qloc.z, tmp.distStateful(q), cubeArray_.distFromBoundary(q,qloc));
+  if(nn.empty() || nn.top()->distStateful(q) > cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc))
     while( nn.size() < param.k ){
       COUT<<"Not found! Expanding\n"; 
       expand(searchSpace);
@@ -106,15 +116,15 @@ void Search::add(const Point3 cd, deque<Cube*>& searchSpace){
       COUT << "[expand]: ERROR! "<<" not in local CubeArray! "<<cd.x<<','<<cd.y<<','<<cd.z<<"\n";
       COUT << "\tGlobal: "<<glob.x<<','<<glob.y<<','<<glob.z<<'\n';
       //The coordinates of the CubeArray that contains the point 
-      Point3 containingCubeArrayCd {glob.x/param.xArrGl, glob.y/param.yArrGl, glob.z/param.zArrGl};
-      request(containingCubeArrayCd, glob);
+      Point3 containingCA {glob.x/param.xArrGl, glob.y/param.yArrGl, glob.z/param.zArrGl};
+      request(containingCA.x+containingCA.y*param.xArrGl+containingCA.z*param.yArrGl*param.xArrGl, glob);
     }//else PRINTF("[expand]: Out-of-bounds cube: %d,%d,%d\n", cd.x,cd.y,cd.z);
   }
 }
 
-void Search::request(const Point3 processCd, const Point3 globCd){
+void Search::request(const int rank, const Point3 globCd){
   cubeRequests_.emplace_back(MPIhandler::AsyncRequest(mpi));
-  cubeRequests_.back().IsendCoordinates(globCd, 1, param.rank(processCd));
+  cubeRequests_.back().IsendCoordinates(globCd, 1, rank);
 }
 void Search::waitRequestsFinish(){
 }

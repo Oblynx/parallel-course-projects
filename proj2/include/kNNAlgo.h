@@ -33,13 +33,8 @@ struct Cube{
   Cube(const Parameters& param, int x, int y, int z): x(x), y(y), z(z), param(param) {/*TODO: reserve!*/}
   Cube& place(Point3f elt) { 
     //PRINTF("%f,%f,%f <- %d,%d,%d\n", elt.x,elt.y,elt.z, x,y,z);
-    data_.push_back(elt); return *this;/*data_.back();*/ }
-  float distFromBoundary(Element q){
-    return min(fabs(q.x-(x+1)*param.xCubeL), fabs(q.x-x*param.xCubeL),
-               fabs(q.y-(y+1)*param.xCubeL), fabs(q.y-y*param.xCubeL),
-               fabs(q.z-(z+1)*param.xCubeL), fabs(q.z-z*param.xCubeL));
-  }
-  const int x,y,z;            //!< Its coordinates in the array it belongs to (address= x+y*xCubeArr+z*pageSize)
+    data_.push_back(elt); return *this; }
+  const int x,y,z;    //!< Its coordinates in the array it belongs to (address= (x+overlap)+(y+overlap)*xCubeArr+(z+overlap)*yCubeArr*xCubeArr)
   const Parameters& param;
   std::vector<Element> data_;
 };
@@ -48,21 +43,26 @@ struct Cube{
 //! Indexed in row-col-page order (x+xCubeArr*y+pageSize*z)
 class CubeArray{
 public:
-  CubeArray(const Parameters& param, int xGl, int yGl, int zGl): param(param),x(xGl),
-      y(yGl),z(zGl) {
+  CubeArray(const Parameters& param, int xGl, int yGl, int zGl): param(param),x(xGl),y(yGl),z(zGl),
+            bndL({xGl*param.xCubeL*param.xCubeArr, yGl*param.yCubeL*param.yCubeArr,zGl*param.zCubeL*param.zCubeArr}),
+            bndH({(xGl+1)*param.xCubeL*param.xCubeArr,(yGl+1)*param.yCubeL*param.yCubeArr,(zGl+1)*param.zCubeL*param.zCubeArr}) {
     data_.reserve(param.yCubeArr*param.xCubeArr*param.zCubeArr);
     int x,y,z;
-    for(z=0; z<param.zCubeArr; z++) for(y=0; y<param.yCubeArr; y++) for(x=0; x<param.xCubeArr; x++)
-      data_.emplace_back(param,x,y,z);
-  }
+    for(z=0-param.overlapCubes; z<param.zCubeArr+param.overlapCubes; z++)
+      for(y=0-param.overlapCubes; y<param.yCubeArr+param.overlapCubes; y++)
+        for(x=0-param.overlapCubes; x<param.xCubeArr+param.overlapCubes; x++)
+          data_.emplace_back(param,x,y,z);
+    }
   //! Which box does Q belong to?
   Cube& locateQ(const Element& q);
   //! Return element at given coordinates
   Cube& operator[](Point3 coord){
     return data_[coord.x+ coord.y*param.xCubeArr+ coord.z*param.pageSize];
   }
-  Cube& place(Point3f elt) {
-    return locateQ(elt).place(elt); }
+  //! Place a new element in its corresponding Cube in CubeArray
+  Cube& place(Point3f elt); 
+  //! Calculate the distance of q from the boundary of given cube
+  float distFromBoundary(Element q, Cube& cube);
   //! Global coordinates of point cd
   Point3 global(Point3 cd) {
     return {cd.x+param.xCubeArr*x, cd.y+param.yCubeArr*y, cd.z+param.zCubeArr*z};
@@ -73,7 +73,8 @@ public:
 private:
   std::vector<Cube> data_;
   const Parameters& param;
-  int x,y,z;  //!< CubeArray coordinates in global space
+  const int x,y,z;  //!< CubeArray coordinates in global space
+  Point3f bndL,bndH;  //!< Lower and upper bounds
 };
 
 //! Performs operations on the total search space, which is a CubeArray instance. Doesn't hold
@@ -94,7 +95,7 @@ private:
   //! 3 cases: 1. Cube exists in this process's CubeArray  2. Owned by another process  3. out-of-bounds
   void add(const Point3 coord, std::deque<Cube*>& searchSpace);
   //! Request Cube globCd from remote process processCd [MPI]
-  void request(const Point3 processCd, const Point3 globCd);
+  void request(const int rank, const Point3 globCd);
   //! Wait for any MPI request that might have been initiated from expand to finish [future]
   void waitRequestsFinish();
   

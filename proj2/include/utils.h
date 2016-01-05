@@ -20,14 +20,6 @@ T min(T a, T b, Tail... tail){
   T tmp= min(a,b);
   return min(tmp, tail...);
 }
-//! Allows access to the underlying container in STL adapters like priority_queue
-template <class Container>
-class ContainerAccessor : public Container {
-public:
-    typedef typename Container::container_type container_type;
-    container_type get_container() { return this->c; }
-};
-
 template<class T> struct lessPtr{
   constexpr bool operator()(const T a, const T b) const { return *a < *b; }
 };
@@ -47,7 +39,7 @@ struct Point3{
 
 //! Total number of Cubes per dim must be divisible by number of CubeArrays on same dim
 struct Parameters{
-  Parameters(unsigned k, int overlapCubes, int procNum,
+  Parameters(unsigned k, int overlapCubes,
              int xCubeTot, int yCubeTot, int zCubeTot,
              int xArrGl=1, int yArrGl=1, int zArrGl=1):
     k(k),
@@ -56,7 +48,7 @@ struct Parameters{
     xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl),
     pageSize(yCubeArr*xCubeArr),
     xOverlap(overlapCubes*xCubeL/xCubeArr), yOverlap(overlapCubes*yCubeL/yCubeArr),
-    zOverlap(overlapCubes*zCubeL/zCubeArr), ranks(new int[procNum]) {}
+    zOverlap(overlapCubes*zCubeL/zCubeArr), overlapCubes(overlapCubes) {}
 
   Parameters(const Parameters&) =delete;
   const unsigned k;                           //!< Number of neighbors to return
@@ -65,10 +57,6 @@ struct Parameters{
   const int xArrGl,yArrGl,zArrGl;             //!< Number of CubeArrays in entire space
   const int pageSize;                         //!< Size of an "page" of all the columns and rows in CubeArray
   const float xOverlap, yOverlap, zOverlap;   //!< Percentage of overlap between CubeArrays
-  
-  const std::unique_ptr<int[]> ranks;
-  int rank(Point3 pCd) const{
-    return ranks[pCd.x+pCd.y*xArrGl+pCd.z*yArrGl*xArrGl];
-  }
+  const int overlapCubes;
 };
 
