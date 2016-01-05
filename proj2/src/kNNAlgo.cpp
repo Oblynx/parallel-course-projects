@@ -3,12 +3,15 @@
 #include <iostream>
 using namespace std;
 
-Point3 cdLocateStore;
+//Point3 cdLocateStore;
 
 Cube& CubeArray::locateQ(const Element& q){
   //Global coords
   auto cd= local({(int)floor(q.x/param.xCubeL),(int)floor(q.y/param.yCubeL),(int)floor(q.z/param.zCubeL)});
-  cdLocateStore= cd;    /*TODO: DEBUG*/
+  //cdLocateStore= cd;    /*TODO: DEBUG*/
+  Point3f error {0.105113,0.462703,0.422777};
+  if(fabs(q.x-error.x) < 0.000001 && fabs(q.y-error.y) < 0.000001 && fabs(q.z-error.z) < 0.000001)
+    PRINTF("[locateQ]: cd=(%d,%d,%d)\n",cd.x,cd.y,cd.z);
   return operator[](cd);
 }
 Cube& CubeArray::place(Point3f elt) {
@@ -29,16 +32,16 @@ std::deque<Element> Search::query(const Element& q){
   searchLim_.l.x= qloc.x, searchLim_.h.x= qloc.x, searchLim_.l.y= qloc.y;
   searchLim_.h.y= qloc.y, searchLim_.l.z= qloc.z, searchLim_.h.z= qloc.z;
   search(q,nn,searchSpace);
-  PRINTF("[Query#%d]: q=(%f,%f,%f) qloc=(%d,%d,%d) and its cd=(%d,%d,%d)\n\t  top dist= %f\n\tfrom bound= %f\n",
-        mpi.rank(),q.x,q.y,q.z,qloc.x,qloc.y,qloc.z, cdLocateStore.x,cdLocateStore.y,cdLocateStore.z,
-        nn.top()->dist(q),cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc));
+  //PRINTF("[Query#%d]: q=(%f,%f,%f) qloc=(%d,%d,%d) and its cd=(%d,%d,%d)\n\t  top dist= %f\n\tfrom bound= %f\n",
+  //      mpi.rank(),q.x,q.y,q.z,qloc.x,qloc.y,qloc.z, cdLocateStore.x,cdLocateStore.y,cdLocateStore.z,
+  //      nn.top()->dist(q),cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc));
   // If the greatest kNN distance (squared!) found is bigger than the distance from the boundary...
   if(nn.empty() || (nn.top()->dist(q) > cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc)))
     do{
-      PRINTF("[Query#%d]: Not found! Expanding\n", mpi.rank()); 
+      //PRINTF("[Query#%d]: Not found! Expanding\n", mpi.rank()); 
       expand(searchSpace);
-      COUT<<"In searchSpace:\n";
-      for(auto&& cube : searchSpace) PRINTF("%d,%d,%d\n", cube->x,cube->y,cube->z);
+      //COUT<<"In searchSpace:\n";
+      //for(auto&& cube : searchSpace) PRINTF("%d,%d,%d\n", cube->x,cube->y,cube->z);
       search(q,nn,searchSpace);
     }while( nn.size() < param.k );
   deque<Element> results;
@@ -68,7 +71,7 @@ void Search::search(const Element& q, EltMaxQ& nn, deque<Cube*>& searchSpace){
 //! Calculate address for each new cube and retrieve its reference
 //! 3 cases: either the cube exists in CubeArray or another processor has it (very unlikely) or out-of-bounds
 void Search::expand(deque<Cube*>& searchSpace){
-  PRINTF("[expand#%d]: search lims: [(%d,%d,%d)-(%d,%d,%d)]\n",mpi.rank(),searchLim_.l.x,searchLim_.l.y,searchLim_.l.z,searchLim_.h.x,searchLim_.h.y,searchLim_.h.z);
+  //PRINTF("[expand#%d]: search lims: [(%d,%d,%d)-(%d,%d,%d)]\n",mpi.rank(),searchLim_.l.x,searchLim_.l.y,searchLim_.l.z,searchLim_.h.x,searchLim_.h.y,searchLim_.h.z);
   searchSpace.clear();
 	// Produce possible coordinates
 	int x,y,z;

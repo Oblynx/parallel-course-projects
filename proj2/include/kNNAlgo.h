@@ -50,7 +50,7 @@ public:
             locBndL({0-param.overlapCubes,0-param.overlapCubes,0-param.overlapCubes}),
             locBndH({param.xCubeArr+param.overlapCubes,param.yCubeArr+param.overlapCubes,param.zCubeArr+param.overlapCubes})
     {
-    data_.reserve((param.yCubeArr+2*param.overlapCubes)*(param.xCubeArr+2*param.overlapCubes)*
+    data_.reserve((param.xCubeArr+2*param.overlapCubes)*(param.yCubeArr+2*param.overlapCubes)*
                   (param.zCubeArr+2*param.overlapCubes));
     int x,y,z;
     for(z=0-param.overlapCubes; z<param.zCubeArr+param.overlapCubes; z++)
