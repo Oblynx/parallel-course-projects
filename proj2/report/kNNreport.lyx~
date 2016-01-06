@@ -1,0 +1,942 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass scrartcl
+\use_default_options true
+\begin_modules
+fixltx2e
+fix-cm
+\end_modules
+\maintain_unincluded_children false
+\language greek
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2.5cm
+\rightmargin 2cm
+\bottommargin 2.5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language french
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Εργασία 2: 
+\lang english
+MPI
+\lang greek
+ 
+\end_layout
+
+\begin_layout Subtitle
+Έκδοση 1
+\end_layout
+
+\begin_layout Author
+Κωνσταντίνος Σαμαράς-Τσακίρης
+\end_layout
+
+\begin_layout Date
+6/1/2015
+\end_layout
+
+\begin_layout Subsection*
+Στόχος
+\end_layout
+
+\begin_layout Standard
+Η υλοποίηση ενός διανεμημένου αλγορίθμου 
+\lang english
+kNN
+\lang greek
+ με χρήση 
+\lang english
+MPI
+\lang greek
+.
+\end_layout
+
+\begin_layout Subsection*
+Σχόλια
+\end_layout
+
+\begin_layout Itemize
+Εκτός από την παρεχόμενη έκδοση, ο κώδικας είναι διαθέσιμος στο Github:
+ 
+\lang english
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://github.com/Oblynx/parallel-course-projects/tree/61e8e2609b0b78e9adfc2d7f44e34cddb49ae1d1/proj2"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+Χρησιμοποιείται 
+\lang english
+C++11
+\lang greek
+ και 
+\lang english
+MPI-3
+\end_layout
+
+\begin_layout Itemize
+Εκ των υστέρων διαπιστώνω ότι το 
+\lang english
+Hellasgrid
+\lang greek
+ δεν υποστηρίζει 
+\lang english
+MPI-3
+\lang greek
+, οπότε θα χρειαστεί μια μικρή αλλαγή για να τρέξει εκεί
+\end_layout
+
+\begin_layout Section
+Ανάλυση του αλγορίθμου
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename cube_structure.svg
+	scale 70
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Οργάνωση-καταμερισμού-του"
+
+\end_inset
+
+Οργάνωση καταμερισμού του χώρου -- Element είναι ένα στοιχείο του συνόλου
+ 
+\begin_inset Formula $C$
+\end_inset
+
+ και CubeArray είναι η περιοχή του χώρου που αντιστοιχεί σε κάθε διεργασία
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Ο αλγόριθμος χωρίζει το χώρο σε κύβους (βλ.
+ διάγραμμα 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Οργάνωση-καταμερισμού-του"
+
+\end_inset
+
+).
+ Αν δεχθούμε ότι δεν υπάρχουν κενοί κύβοι, οι βασικοί υποψήφιοι 
+\begin_inset Formula $S$
+\end_inset
+
+ κάθε ερωτήματος 
+\begin_inset Formula $Q$
+\end_inset
+
+ είναι το σύνολο 
+\begin_inset Formula $C_{Q1}$
+\end_inset
+
+ των σημείων που περιλαμβάνει ο κύβος που περιέχει το 
+\begin_inset Formula $Q$
+\end_inset
+
+ και όλοι οι γείτονές του.
+ Αν δεχθούμε ότι ενδεχομένως υπάρχουν κενοί κύβοι, τότε με δεδομένη τη χωρική
+ κατανομή των 
+\begin_inset Formula $C$
+\end_inset
+
+ υπάρχει συγκεκριμένη πιθανότητα το 
+\begin_inset Formula $C_{Q1}$
+\end_inset
+
+ να είναι το σύνολο των βασικών υποψηφίων και η πιθανότητα αυτή αυξάνεται
+ ραγδαία κάθε φορά που επεκτείνεται το 
+\begin_inset Formula $C_{Q\,i}\longrightarrow C_{Q\,(i+1)}$
+\end_inset
+
+, προσθέτοντας όλους τους γειτονικούς του κύβους.
+ Αυτή η σκέψη επιτρέπει ακόμη λεπτότερο καταμερισμό του χώρου.
+\end_layout
+
+\begin_layout Standard
+Το μέγεθος του προβλήματος μπορεί να επιβάλλει το χωρισμό σε πολλές διεργασίες.
+ Για να επιτευχθεί αυτό, κάθε διεργασία είναι υπεύθυνη για ένα κυβικό τμήμα
+ του χώρου (που αποτελείται από πολλούς από τους προηγούμενους κύβους) και
+ γνωρίζει μόνο τα σημεία 
+\begin_inset Formula $C,\,Q$
+\end_inset
+
+ που ανήκουν σε αυτό.
+ Με αυτό το χωρισμό του προβλήματος όμως, αν ζητηθεί 
+\begin_inset Formula $Q$
+\end_inset
+
+ στα όρια του χώρου ευθύνης μιας διεργασίας θα απαιτηθεί γνώση των στοιχείων
+ 
+\begin_inset Formula $C$
+\end_inset
+
+ που βρίσκονται στους γειτονικούς κύβους άλλων διεργασιών.
+\end_layout
+
+\begin_layout Standard
+Πρώτη σκέψη για την επίλυση αυτού του προβλήματος είναι η ανταλλαγή των
+ απαραίτητων πληροφοριών μεταξύ των διεργασιών, όταν παρίσταται τέτοια ανάγκη.
+ Το κόστος των επικοινωνιών όμως είναι μεγάλο.
+ Σε δεύτερη σκέψη οι επικοινωνίες μπορούν να αποφευχθούν, αν θεωρήσουμε
+ αμελητέα την πιθανότητα το 
+\begin_inset Formula $S$
+\end_inset
+
+ να εκτείνεται σε χώρο μεγαλύτερο από 
+\begin_inset Formula $C_{Q\,m}$
+\end_inset
+
+ -- αν μάλιστα υποθέσουμε ότι δεν υπάρχουν κενοί κύβοι, τότε 
+\begin_inset Formula $m=1$
+\end_inset
+
+.
+ Σε αυτήν την περίπτωση, σε στάδιο των αρχικών επικοινωνιών για το διαμοιρασμό
+ των σημείων μπορούμε να στείλουμε τα σημεία που βρίσκονται στο σύνορο του
+ χώρου 2 διεργασιών και στις 2 συνορεύουσες διεργασίες, όχι μόνο σε αυτήν
+ που πραγματικά της ανήκουν
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Αν το σημείο βρίσκεται σε γωνία συνόρου μπορεί να μην ανήκει μόνο σε 2,
+ αλλά σε 3 ή και 8 διεργασίες.
+\end_layout
+
+\end_inset
+
+.
+ Η διαδικασία αυτή ονομάζεται 
+\lang english
+overlap
+\lang greek
+ και γίνεται σε βάθος 
+\begin_inset Formula $m$
+\end_inset
+
+ κύβων από το σύνορο.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Wrap figure
+lines 0
+placement o
+overhang 0in
+width "40col%"
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename progFlow.svg
+	scale 60
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Ροή-προγράμματος"
+
+\end_inset
+
+Ροή προγράμματος
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+Η πορεία του προγράμματος παρουσιάζεται στο διάγραμμα 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Ροή-προγράμματος"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection*
+Επικοινωνία μεταξύ διεργασιών
+\end_layout
+
+\begin_layout Standard
+Τόσο για τα σημεία 
+\begin_inset Formula $C$
+\end_inset
+
+ όσο και για τα 
+\begin_inset Formula $Q$
+\end_inset
+
+ η διαδικασία της επικοινωνίας είναι ακριβώς η ίδια:
+\end_layout
+
+\begin_layout Enumerate
+Κάθε διεργασία δημιουργεί 
+\begin_inset Formula $N/P$
+\end_inset
+
+ τυχαία σημεία σε όλο το χώρο και υπολογίζει τις διεργασίες στις οποίες
+ πρέπει να σταλούν.
+\end_layout
+
+\begin_layout Enumerate
+
+\lang english
+Alltoall
+\lang greek
+ επικοινωνία του πλήθους των σημείων που θα αποσταλούν από κάθε διεργασία
+ σε κάθε άλλη
+\end_layout
+
+\begin_layout Enumerate
+
+\lang english
+Alltoallv
+\lang greek
+ επικοινωνία για την αποστολή των σημείων
+\end_layout
+
+\begin_layout Standard
+Επειδή κάποιοι υπολογισμοί στα πλαίσια αυτής της διαδικασίας μπορούν να
+ επικαλυφθούν με μεταφορές χρησιμοποιούνται 
+\lang english
+nonblocking collective communications
+\lang greek
+ με τις συναρτήσεις 
+\lang english
+MPI_Ialltoall
+\lang greek
+ και 
+\lang english
+MPI_Ialltoallv
+\lang greek
+ που ορίζονται στο πρότυπο 
+\lang english
+MPI-3
+\lang greek
+.
+ Για τη συλλογή μετρήσεων από το 
+\lang english
+Hellasgrid
+\lang greek
+, επειδή δεν υπάρχει 
+\lang english
+MPI-3
+\lang greek
+, αυτές θα αντικατασταθούν με τις αντίστοιχες 
+\lang english
+blocking
+\lang greek
+.
+\end_layout
+
+\begin_layout Subsection*
+Επίλυση 
+\lang english
+kNN
+\end_layout
+
+\begin_layout Standard
+Ο αλγόριθμος για την επίλυση του προβλήματος 
+\lang english
+kNN
+\lang greek
+, με την τεχνική που περιγράφηκε παραπάνω, δε χρειάζεται επικοινωνία με
+ άλλες διαδικασίες.
+ Για κάθε ερώτημα 
+\begin_inset Formula $Q$
+\end_inset
+
+ εκτελεί την ακόλουθη απλή διαδικασία:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float algorithm
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $query()$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Εύρεση κύβου 
+\begin_inset Formula $qloc$
+\end_inset
+
+ μέσα στα όρια του οποίου βρίσκεται το 
+\begin_inset Formula $Q$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Όρια αναζήτησης 
+\begin_inset Formula $searchLim=qloc$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+\begin_inset Formula $search(kNN)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Αν δε βρέθηκαν σημεία ή η απόσταση του 
+\begin_inset Formula $Q$
+\end_inset
+
+ από το σύνορο του 
+\begin_inset Formula $qloc$
+\end_inset
+
+ είναι μικρότερη από την απόσταση του πιο απομακρυσμένου 
+\begin_inset Formula $kNN$
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Διεύρυνση χώρου αναζήτησης (συμπερίληψη όλων των κύβων που συνορεύουν με
+ τον τωρινό χώρο αναζήτησης)
+\end_layout
+
+\begin_layout Enumerate
+\begin_inset Formula $search(kNN)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Επανάλαβε όσο δεν έχουν βρεθεί 
+\begin_inset Formula $k$
+\end_inset
+
+ γείτονες
+\end_layout
+
+\end_deeper
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float algorithm
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset Formula $search(kNN)$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Για κάθε κύβο 
+\begin_inset Formula $cube$
+\end_inset
+
+ στο χώρο αναζήτησης
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Για κάθε στοιχείο 
+\begin_inset Formula $elt$
+\end_inset
+
+ στο 
+\begin_inset Formula $cube$
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+Αν η απόσταση του 
+\begin_inset Formula $elt$
+\end_inset
+
+ από το 
+\begin_inset Formula $Q$
+\end_inset
+
+ είναι μικρότερη από την απόσταση του 
+\begin_inset Formula $top$
+\end_inset
+
+, που είναι το πιο απομακρυσμένο 
+\begin_inset Formula $kNN$
+\end_inset
+
+ από το 
+\begin_inset Formula $Q$
+\end_inset
+
+
+\end_layout
+
+\begin_deeper
+\begin_layout Enumerate
+\begin_inset Formula $kNN-=top$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+\begin_inset Formula $kNN+=elt$
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\end_deeper
+\end_deeper
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Αν και η πιθανότητα να χρειαστεί επικοινωνία με άλλες διαδικασίες θεωρήθηκε
+ μηδενική, σε περίπτωση που κάτι τέτοιο απαιτούνταν ο αλγόριθμος θα το αντιλαμβα
+νόταν και θα αιτούνταν επικοινωνία.
+ Σε αυτή την έκδοση όμως η αίτηση επικοινωνίας δεν έχει υλοποιηθεί και προκαλεί
+ 
+\lang english
+exception
+\lang greek
+.
+\end_layout
+
+\begin_layout Section
+Έλεγχος ορθότητας
+\end_layout
+
+\begin_layout Standard
+Σε αυτό το πρόβλημα δεν υπάρχει γρήγορος τρόπος ελέγχου ορθότητας της λύσης,
+ σε αντίθεση με την προηγούμενη εργασία.
+ Οπότε η ορθότητα του κώδικα τεκμηριώνεται από τη σωστή συμπεριφορά σε 
+\lang english
+testcases
+\lang greek
+ με γνωστή λύση.
+ Επειδή τα στάδια της επικοινωνίας και της επίλυσης 
+\lang english
+kNN
+\lang greek
+ είναι ανεξάρτητα, ελέγχονται χωριστά.
+ Ο έλεγχος της επικοινωνίας γίνεται στο αρχείο 
+\lang english
+test_mpi_transfers.cpp
+\lang greek
+, ενώ ο έλεγχος του αλγορίθμου γίνεται κυρίως σε σειριακή εκτέλεση στο αρχείο
+ 
+\lang english
+test_kNNsingle.cpp
+\lang greek
+.
+ Στην παράλληλη εκδοχή εξετάζεται αν λειτουργεί σωστά και το 
+\lang english
+overlap
+\lang greek
+.
+ Για τον έλεγχο του 
+\lang english
+kNN
+\lang greek
+ χρησιμοποιούνται 2 
+\lang english
+testcases
+\lang greek
+:
+\end_layout
+
+\begin_layout Itemize
+Εισαγωγή πολλών τυχαίων και λίγων επιλεγμένων σημείων 
+\begin_inset Formula $C$
+\end_inset
+
+ στο χώρο.
+ Επιλογή 
+\begin_inset Formula $Q$
+\end_inset
+
+ κοντά στα επιλεγμένα 
+\begin_inset Formula $C$
+\end_inset
+
+.
+ Μεγάλο 
+\lang english
+k
+\lang greek
+.
+ Αναμενόμενο αποτέλεσμα: Στους 
+\lang english
+kNN
+\lang greek
+ συμπεριλαμβάνονται τα επιλεγμένα σημεία, μαζί με κάποια από τα τυχαία που
+ γειτονεύουν.
+ Στοχευμένος έλεγχος και της συμπεριφοράς στα όρια του χώρου (
+\lang english
+overlap
+\lang greek
+).
+\end_layout
+
+\begin_layout Itemize
+Εισαγωγή 
+\begin_inset Formula $C$
+\end_inset
+
+ σε καθορισμένες θέσεις πλέγματος.
+ Επιλογή 
+\begin_inset Formula $Q$
+\end_inset
+
+.
+ Αναμενόμενο αποτέλεσμα: Τα γειτονικά με το 
+\begin_inset Formula $Q$
+\end_inset
+
+ σημεία του πλέγματος, που είναι γνωστά.
+\end_layout
+
+\begin_layout Standard
+Για τον έλεγχο των επικοινωνιών επιβεβαιώνεται ότι τα σημεία που δημιουργήθηκαν
+ από κάθε διαδικασία έφθασαν σε όλους τους αναμενόμενους προορισμούς τους.
+\end_layout
+
+\begin_layout Section
+Αποτελέσματα
+\end_layout
+
+\begin_layout Standard
+Λόγω αδυναμίας σύνδεσης με το 
+\lang english
+Hellasgrid
+\lang greek
+ δεν έχουν ακόμη ληφθεί αποτελέσματα από εκεί.
+ Θα παραδοθούν σε επόμενη έκδοση αυτής της εργασίας.
+ Τώρα παρατίθενται μερικά αποτελέσματα από μελέτη σε έναν υπολογιστή με
+ 4 διεργασίες.
+ Όπως φαίνεται από τα 
+\begin_inset Formula $t-N$
+\end_inset
+
+ γραφήματα παράλληλου και σειριακού χρόνου αναζήτησης, η μέγιστη επιτάχυνση
+ των υπολογισμών με 4 διεργασίες σε σχέση με τη σειριακή περίπτωση είναι
+ 
+\begin_inset Formula $<\times2$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/ptComm_t-m_parallelShared.eps
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-m_parallelShared.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-m_serial.eps
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/ptComm_t-N_parallelShared.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-N_parallelShared.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-N_serial.eps
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
