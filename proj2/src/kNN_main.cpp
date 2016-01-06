@@ -139,41 +139,49 @@ PointAddress queryGenerator(const Parameters& param){
   return p;
 }
 
+unsigned log2floor(unsigned a){
+  unsigned b=0;
+  if(a!=0) while(a!=1) a>>=1, b++;
+  return b;
+}
+
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
-   int N=sN*sN*sN-1, Q=1<<10, P= mpi.procN(), rank= mpi.rank();
-  N=1<<25;
-  mpiGlob= &mpi;
   mpi.barrier();
-  //TODO: {x,y,z}ArrGl as function of P? (or simply input?)
-  Parameters param(5,2, 20,20,20, 2,2,2);
+  unsigned k=3, N=1<<24, Q=1<<24, nmk=1<<12, P= mpi.procN(), rank= mpi.rank();
+  if(argc>1){
+    k=   atoi(argv[1]);
+    N=   1<<atoi(argv[2]), Q=N;
+    nmk= 1<<atoi(argv[3]);
+  }
+  const unsigned lognmk= log2floor(nmk), cx= lognmk/3, cy= (lognmk%3!=2)? lognmk/3: lognmk/3+1,
+        cz= (lognmk%3==0)? lognmk/3: lognmk/3+1;
+  const unsigned logP= log2floor(P), px= logP/3, py= (logP%3!=2)? logP/3: logP/3+1,
+        pz= (logP%3==0)? logP/3: logP/3+1;
+  if(!rank) PRINTF("*LOGARITHMIC* Cubes: (%d,%d,%d)\tProcs: (%d,%d,%d)\tEst points/cube=%d\n\n",cx,cy,cz, px,py,pz, N/nmk+1);
+  Parameters param(k,2, 1<<cx,1<<cy,1<<cz, 1<<px,1<<py,1<<pz, N/nmk);
   //Different random seed for each process
   std::hash<std::string> hasher;
-  int seed= hasher(std::to_string(mpi.rank()))%(1<<20);
+  int seed= 1+hasher(std::to_string(mpi.rank()))%(1<<20);
   seed= (seed<0)? -seed: seed;
   srand(seed);
 
-  
-  //Generate N/P points
+  //Generate N/P points (request only)
   All2allTransfer pointTransfer(pointGenerator,param,mpi,N/P,P);
   PRINTF("#%d: Points comm started\n",mpi.rank());
+  //Everyone must have reached the last nonblocking collective communication before going to the next
   mpi.barrier();
-  //Generate Q/P queries
+  //Generate Q/P queries (request only)
   All2allTransfer queryTransfer(queryGenerator,param,mpi,Q/P,P);
   PRINTF("#%d: Queries comm started\n",mpi.rank());
   
-  //Sync points
+  //Sync -- Actually get the points from nonblocking communications
   int ptsN;
   auto points= pointTransfer.get(ptsN);
   PRINTF("#%d: All points received\n",mpi.rank());
-  CubeArray cubeArray(param,rank%param.xArrGl,rank/param.xArrGl,rank/(param.xArrGl*param.yArrGl));   
-  mpi.barrier();
-  if(mpi.rank()>3) this_thread::sleep_for(chrono::seconds(2*mpi.rank()-2));
-  PRINTF("#%d: Continuing...\n",mpi.rank());
-  for(int i=0; i<ptsN; i++){
-    if(mpi.rank()==4) PRINTF("#%d -- %d/%d, (%f,%f,%f)\n",mpi.rank(),i,ptsN,points[i].x,points[i].y,points[i].z);
-    cubeArray.place(points[i]);
-  }
+  CubeArray cubeArray(param,rank%param.xArrGl, (rank/param.xArrGl)%param.yArrGl, rank/(param.xArrGl*param.yArrGl));
+
+  for(int i=0; i<ptsN; i++) cubeArray.place(points[i]);
   PRINTF("#%d: Points placed in CubeArray\n",mpi.rank());
 
   //Sync queries
@@ -189,7 +197,7 @@ int main(int argc, char** argv){
 
   //Test
   PRINTF("#%d: Testing\n",mpi.rank());
-  Point3f testQ; bool notest=true;
+  Point3f testQ; bool notest=false;
   switch (mpi.rank()){
     case 0: testQ= {0.2,0.4999,0.49999}; break;
     case 1: testQ= {0.8,0.4,0.49999}; break;

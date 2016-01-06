@@ -31,22 +31,20 @@ private:
 //! The smallest indivisible part of the search space. Collection of all the Elements that occupy
 //! a rectangular portion of the total space
 struct Cube{
-  Cube(const Parameters& param, int x, int y, int z): x(x), y(y), z(z), param(param) {/*TODO: reserve!*/}
-  Cube& place(Point3f elt) { 
-    //PRINTF("%f,%f,%f <- %d,%d,%d\n", elt.x,elt.y,elt.z, x,y,z);
-    data_.push_back(elt); return *this; }
-  const int x,y,z;    //!< Its coordinates in the array it belongs to (address= (x+overlap)+(y+overlap)*xCubeArr+(z+overlap)*yCubeArr*xCubeArr)
+  Cube(const Parameters& param, int x, int y, int z): x(x), y(y), z(z), param(param){
+    data_.reserve(param.estCubeSize);
+  }
+  Cube& place(Point3f elt) { data_.push_back(elt); return *this; }
+  const int x,y,z;    //!< Its coordinates in the array it belongs to
   const Parameters& param;
   std::vector<Element> data_;
 };
 
-//! Collection of all the boxes that a process accesses directly. (each process constructs 1)
-//! Indexed in row-col-page order (x+xCubeArr*y+pageSize*z)
+//! Collection of all the Cubes that a process accesses directly. (each process constructs exactly 1)
+//! Indexed in x-y-z order (x+xCubeArr*y+pageSize*z)
 class CubeArray{
 public:
   CubeArray(const Parameters& param, int xGl, int yGl, int zGl): param(param),x(xGl),y(yGl),z(zGl),
-            //bndL({xGl*param.xCubeL*param.xCubeArr, yGl*param.yCubeL*param.yCubeArr,zGl*param.zCubeL*param.zCubeArr}),
-            //bndH({(xGl+1)*param.xCubeL*param.xCubeArr,(yGl+1)*param.yCubeL*param.yCubeArr,(zGl+1)*param.zCubeL*param.zCubeArr}),
             locBndL({0-param.overlapCubes,0-param.overlapCubes,0-param.overlapCubes}),
             locBndH({param.xCubeArr+param.overlapCubes,param.yCubeArr+param.overlapCubes,param.zCubeArr+param.overlapCubes})
     {
@@ -67,8 +65,8 @@ public:
                  (cd.z+overlap)*(param.yCubeArr+2*overlap)*(param.xCubeArr+2*overlap)];
   }
   //! Place a new element in its corresponding Cube in CubeArray
-  Cube& place(Point3f elt); 
-  //! Calculate the distance of q from the boundary of given cube
+  Cube& place(Point3f elt) { return locateQ(elt).place(elt); }
+  //! Calculate the distance of q from the boundary of given Cube
   float distFromBoundary(Element q, Cube& cube);
   //! Global coordinates of point cd
   Point3 global(Point3 cd) {
@@ -81,7 +79,6 @@ private:
   std::vector<Cube> data_;
   const Parameters& param;
   const int x,y,z;  //!< CubeArray coordinates in global space
-  //Point3f bndL,bndH;  //!< Lower and upper bounds
 public:
   Point3 locBndL,locBndH;
 };

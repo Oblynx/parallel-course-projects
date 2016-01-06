@@ -25,13 +25,13 @@ template<class T> struct lessPtr{
   constexpr bool operator()(const T a, const T b) const { return *a < *b; }
 };
 
-//! C compatible struct of 3 floats
+//! C-compatible struct of 3 floats
 struct Point3f{
   //Point3f(float x, float y, float z): x(x), y(y), z(z) {}
 	//Point3f() =default;
   float x,y,z;
 };
-//! C compatible struct of 3 ints
+//! C-compatible struct of 3 ints
 struct Point3{
   //Point3(int x, int y, int z): x(x), y(y), z(z) {}
 	//Point3() =default;
@@ -40,10 +40,10 @@ struct Point3{
 
 //! Total number of Cubes per dim must be divisible by number of CubeArrays on same dim
 struct Parameters{
-  Parameters(unsigned k, int overlapCubes,
+  Parameters(unsigned k, int overlapCubes, 
              int xCubeTot, int yCubeTot, int zCubeTot,
-             int xArrGl=1, int yArrGl=1, int zArrGl=1):
-    k(k),
+             int xArrGl=1, int yArrGl=1, int zArrGl=1, unsigned estCubeSize=1<<6):
+    k(k), estCubeSize(estCubeSize),
     xCubeL(1.0/xCubeTot), yCubeL(1.0/yCubeTot), zCubeL(1.0/zCubeTot),
     xCubeArr(xCubeTot/xArrGl), yCubeArr(yCubeTot/yArrGl), zCubeArr(zCubeTot/zArrGl),
     xArrGl(xArrGl),yArrGl(yArrGl),zArrGl(zArrGl),
@@ -53,6 +53,7 @@ struct Parameters{
 
   Parameters(const Parameters&) =delete;
   const unsigned k;                           //!< Number of neighbors to return
+  const unsigned estCubeSize;
   const float xCubeL, yCubeL, zCubeL;         //!< Cube length in each dimension
   const int xCubeArr, yCubeArr, zCubeArr;     //!< Number of Cubes in CubeArray in each dimension
   const int xArrGl,yArrGl,zArrGl;             //!< Number of CubeArrays in entire space
