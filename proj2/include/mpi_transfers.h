@@ -13,8 +13,8 @@ class All2allTransfer{
  public:
   template<typename F>
   All2allTransfer(F generator, const Parameters& param, MPIhandler& mpi, const int pointN,
-                  const int procN): sSizeBuf(new int[procN]), rSizeBuf(new int[procN]), mpi(mpi),asyncRequest(mpi) {
-    std::unique_ptr<PointAddress[]> buf(new PointAddress[pointN]);
+                  const int procN): sSizeBuf(new int[procN]), rSizeBuf(new int[procN]), pointN(pointN),
+                  procN(procN), buf(new PointAddress[pointN]), mpi(mpi),asyncRequest(mpi) {
     for(int i=0;i<procN;i++) sSizeBuf[i]=0, rSizeBuf[i]=0;
     //Generate the points in buffer
     for(int i=0;i<pointN;i++){
@@ -24,6 +24,8 @@ class All2allTransfer{
         sSizeBuf[buf[i].address[j]]++;
       }
     }
+  }
+  void transfer(){
     /*{std::string showSizes;
       for(int i=0; i<procN; i++) showSizes+= std::to_string(sSizeBuf[i]), showSizes+= ';';
     PRINTF("[transfer#%d]: Send sizes = %s -|\n",mpi.rank(),showSizes.c_str());}*/
@@ -39,7 +41,6 @@ class All2allTransfer{
     sendBuf.reset(new Point3f[sdispl[procN-1]+sSizeBuf[procN-1]]);
     for(int i=0;i<pointN;i++) for(int j=0; j<buf[i].addrUsed; j++)
         sendBuf[sdispl[buf[i].address[j]]++]= buf[i].p;
-    
     //Wait for size comms to complete
     asyncRequest.wait();
     mpi.barrier();
@@ -62,6 +63,7 @@ class All2allTransfer{
     PRINTF("[transfer#%d]: Requesting point transfer comms\n",mpi.rank());
     asyncRequest.Ialltoallv(sendBuf.get(),sSizeBuf.get(),sdispl.get(),mpi.typePoint3f(),
                             rcvBuf.get(),rSizeBuf.get(),rdispl.get());
+    buf.reset(nullptr);
   }
   std::unique_ptr<Point3f[]> get(int& rcvN) {
     asyncRequest.wait();
@@ -73,6 +75,8 @@ class All2allTransfer{
  private:
   std::unique_ptr<int[]> sSizeBuf,rSizeBuf, sdispl,rdispl; //!<Size and displacement
   std::unique_ptr<Point3f[]> sendBuf,rcvBuf;
+  const int pointN, procN;
+  std::unique_ptr<PointAddress[]> buf;
   int rcvSize_;
   MPIhandler& mpi;
   MPIhandler::AsyncRequest asyncRequest;

@@ -15,6 +15,7 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
   set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -g -Og -fno-omit-frame-pointer -march=native -fPIC")
   add_definitions(-D__DEBUG__)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
+add_definitions(-DBATCH)
 
 #######################   Project2   ###############################
 add_library(kNNAlgo src/kNNAlgo.cpp)

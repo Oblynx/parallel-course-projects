@@ -1,6 +1,8 @@
+#include <cstdio>
 #include <math.h>
 #include <iostream>
 #include <cfloat>
+#include <chrono>
 #include "kNNAlgo.h"
 #include "mpi_transfers.h"
 using namespace std;
@@ -148,7 +150,7 @@ unsigned log2floor(unsigned a){
 int main(int argc, char** argv){
   MPIhandler mpi(&argc, &argv);
   mpi.barrier();
-  unsigned k=3, N=1<<24, Q=1<<24, nmk=1<<12, P= mpi.procN(), rank= mpi.rank();
+  unsigned k=3, N=1<<24, Q=1<<18, nmk=1<<12, P= mpi.procN(), rank= mpi.rank();
   if(argc>1){
     k=   atoi(argv[1]);
     N=   1<<atoi(argv[2]), Q=N;
@@ -158,6 +160,13 @@ int main(int argc, char** argv){
         cz= (lognmk%3==0)? lognmk/3: lognmk/3+1;
   const unsigned logP= log2floor(P), px= logP/3, py= (logP%3!=2)? logP/3: logP/3+1,
         pz= (logP%3==0)? logP/3: logP/3+1;
+#ifdef BATCH
+  int serial= atoi(argv[4]);
+  string logname= "../logs/log"+to_string(serial);
+  auto logfile= fopen(logname.c_str(), "a");
+  string resultname= "../logs/results"+to_string(serial);
+  auto resultfile= fopen(resultname.c_str(), "a");
+#endif
   if(!rank) PRINTF("*LOGARITHMIC* Cubes: (%d,%d,%d)\tProcs: (%d,%d,%d)\tEst points/cube=%d\n\n",cx,cy,cz, px,py,pz, N/nmk+1);
   Parameters param(k,2, 1<<cx,1<<cy,1<<cz, 1<<px,1<<py,1<<pz, N/nmk);
   //Different random seed for each process
@@ -166,18 +175,21 @@ int main(int argc, char** argv){
   seed= (seed<0)? -seed: seed;
   srand(seed);
 
-  //Generate N/P points (request only)
+  //Generate N/P points & Q/P queries
   All2allTransfer pointTransfer(pointGenerator,param,mpi,N/P,P);
+  All2allTransfer queryTransfer(queryGenerator,param,mpi,Q/P,P);
+  auto startTime= chrono::system_clock::now();
+  pointTransfer.transfer();   // Request points transfer
   PRINTF("#%d: Points comm started\n",mpi.rank());
   //Everyone must have reached the last nonblocking collective communication before going to the next
   mpi.barrier();
-  //Generate Q/P queries (request only)
-  All2allTransfer queryTransfer(queryGenerator,param,mpi,Q/P,P);
+  queryTransfer.transfer();   // Request queries transfer
   PRINTF("#%d: Queries comm started\n",mpi.rank());
   
   //Sync -- Actually get the points from nonblocking communications
   int ptsN;
   auto points= pointTransfer.get(ptsN);
+  auto gotPointsTime= chrono::system_clock::now();
   PRINTF("#%d: All points received\n",mpi.rank());
   CubeArray cubeArray(param,rank%param.xArrGl, (rank/param.xArrGl)%param.yArrGl, rank/(param.xArrGl*param.yArrGl));
 
@@ -187,22 +199,59 @@ int main(int argc, char** argv){
   //Sync queries
   int qN;
   auto queries= queryTransfer.get(qN);
+  auto commsCompleteTime= chrono::system_clock::now();
   PRINTF("#%d: All queries received\n",mpi.rank());
   //mpi.barrier();
 
+  unique_ptr<std::chrono::duration<double>[]> queryTimes(new std::chrono::duration<double>[qN]);
   //Start search
   PRINTF("#%d: Starting search\n",mpi.rank());
   Search search(cubeArray, param, mpi);
-  for(int i=0; i<qN; i++) search.query(queries[i]);
+  for(int i=0; i<qN; i++){
+    auto qstart= chrono::system_clock::now();
+    auto resultQuery= search.query(queries[i]);
+    queryTimes[i]= chrono::system_clock::now()-qstart;
+    string knn;
+#ifdef BATCH_RESULTS
+    knn+= to_string(mpi.rank())+";"+to_string(queries[i].x)+","+to_string(queries[i].y)+","+to_string(queries[i].z)+";";
+    for(auto&& elt : resultQuery)
+      knn+= to_string(elt.x)+","+to_string(elt.y)+","+to_string(elt.z)+";"+to_string(sqrt(elt.dist(queries[i])))+";;";
+    fprintf(resultfile,"%s\n",knn.c_str());
+#else
+    /*knn+= "NN#"+to_string(mpi.rank())+" for ("+to_string(queries[i].x)+","+to_string(queries[i].y)+","+to_string(queries[i].z)+"):\n";
+    for(auto&& elt : resultQuery)
+      knn+= "\t-> ("+to_string(elt.x)+","+to_string(elt.y)+","+to_string(elt.z)+"): d= "+to_string(sqrt(elt.dist(queries[i])))+"\n";
+    printf("%s\n", knn.c_str());*/
+#endif
+  }
+  PRINTF("#%d: Search complete!\n",rank);
+  auto searchComplete= chrono::system_clock::now();
 
+  chrono::duration<double> ptransferT= gotPointsTime-startTime, ccommsT= commsCompleteTime-startTime,
+      searchT= searchComplete-commsCompleteTime;
+
+#ifdef BATCH
+  fprintf(logfile,"%d;%d,%d,%d;%f,%f,%f\n",rank, atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),
+                  ptransferT.count(), ccommsT.count(), searchT.count());
+  fclose(logfile);
+  fprintf(resultfile,"-1;-1,-1,-1;-1,-1,-1;-1;-1;-1,-1,-1;-1;-1;-1,-1,-1;-1;-1;\n\n");
+  fclose(resultfile);
+#else
+  printf("#%d: Point transfer time (s): %f\nComplete comms time (s): %f\nSearch time (s): %f\n",
+         rank, ptransferT.count(), ccommsT.count(), searchT.count());
+#endif
+  //for(int i=0; i<qN; i++){/*TODO: Print individual searches time for histogram*/}
+        
+#ifdef __DEBUG__
   //Test
   PRINTF("#%d: Testing\n",mpi.rank());
-  Point3f testQ; bool notest=false;
+  Point3f testQ;
+  bool notest=false;
   switch (mpi.rank()){
-    case 0: testQ= {0.2,0.4999,0.49999}; break;
-    case 1: testQ= {0.8,0.4,0.49999}; break;
-    case 2: testQ= {0.2,0.5,0.49999}; break;
-    case 3: testQ= {0.8,0.8,0.49999}; break;
+    case 0: testQ= {0.2,0.499,0.3}; break;
+    case 1: testQ= {0.8,0.5,0.49999}; break;
+    case 2: testQ= {0.2,0.5,0.5}; break;
+    case 3: testQ= {0.8,0.8,0.8}; break;
     default: notest=true;
   }
   if(!notest){
@@ -210,8 +259,9 @@ int main(int argc, char** argv){
     string knn;
     knn+= "NN#"+to_string(mpi.rank())+" for ("+to_string(testQ.x)+","+to_string(testQ.y)+","+to_string(testQ.z)+"):\n";
     for(auto&& elt : qres)
-      knn+= "\t-> ("+to_string(elt.x)+","+to_string(elt.y)+","+to_string(elt.z)+"): d= "+to_string(sqrt(elt.distStateful(testQ)))+"\n";
+      knn+= "\t-> ("+to_string(elt.x)+","+to_string(elt.y)+","+to_string(elt.z)+"): d= "+to_string(sqrt(elt.dist(testQ)))+"\n";
     printf("%s\n", knn.c_str());
   }
+#endif
   return 0; 
 }
