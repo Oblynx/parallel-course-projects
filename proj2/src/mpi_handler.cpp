@@ -22,6 +22,10 @@ void MPIhandler::AsyncRequest::IsendCoordinates(Point3 cd, int n, int dest){
 }
 //! MPI_Ialltoall wrapper
 void MPIhandler::AsyncRequest::Ialltoall(const void* sendBuf, const int sendCnt, MPI_Datatype type, void* rcvBuf, const int rcvCnt){
+  if(mpi.disabled){
+    rcvBuf= (void*)sendBuf;
+    return;
+  }
   if(requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Attempted to start transit\
                                                 while another is pending.\n");
   requestInTransit=true;
@@ -31,6 +35,10 @@ void MPIhandler::AsyncRequest::Ialltoall(const void* sendBuf, const int sendCnt,
 //! MPI Ialltoallv wrapper
 void MPIhandler::AsyncRequest::Ialltoallv(const void* sendBuf, const int sendCnt[], const int sdispl[],
                                           MPI_Datatype type,void* rcvBuf, const int rcvCnt[], const int rdispl[]){
+  if(mpi.disabled){
+    rcvBuf= (void*)sendBuf;
+    return;
+  }
   if(requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Attempted to start transit\
                                                 while another is pending.\n");
   requestInTransit=true;
@@ -38,6 +46,7 @@ void MPIhandler::AsyncRequest::Ialltoallv(const void* sendBuf, const int sendCnt
                             type,MPI_COMM_WORLD,&pendingRequest);
 }
 void MPIhandler::AsyncRequest::wait(){
+  if(mpi.disabled) return;
   if(!requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Called wait while no request pending!\n");
   MPI_Wait(&pendingRequest, MPI_STATUS_IGNORE);
   requestInTransit=false;

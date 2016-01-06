@@ -16,6 +16,7 @@ class All2allTransfer{
                   const int procN): sSizeBuf(new int[procN]), rSizeBuf(new int[procN]), pointN(pointN),
                   procN(procN), buf(new PointAddress[pointN]), mpi(mpi),asyncRequest(mpi) {
     for(int i=0;i<procN;i++) sSizeBuf[i]=0, rSizeBuf[i]=0;
+    if(mpi.disabled) rcvSize_= pointN, rcvBuf.reset(new Point3f[pointN]);
     //Generate the points in buffer
     for(int i=0;i<pointN;i++){
       buf[i]= generator(param);
@@ -23,9 +24,11 @@ class All2allTransfer{
       for(int j=0; j<buf[i].addrUsed;j++){
         sSizeBuf[buf[i].address[j]]++;
       }
+      if(mpi.disabled) rcvBuf[i]= buf[i].p;
     }
   }
   void transfer(){
+    if(mpi.disabled) return;
     /*{std::string showSizes;
       for(int i=0; i<procN; i++) showSizes+= std::to_string(sSizeBuf[i]), showSizes+= ';';
     PRINTF("[transfer#%d]: Send sizes = %s -|\n",mpi.rank(),showSizes.c_str());}*/

@@ -134,7 +134,8 @@ unsigned log2floor(unsigned a){
 }
 
 int main(int argc, char** argv){
-  MPIhandler mpi(&argc, &argv);
+  //MPIhandler mpi(&argc, &argv);
+  MPIhandler mpi(0);
   mpi.barrier();
   unsigned k=3, N=1<<24, Q=1<<18, nmk=1<<12, P= mpi.procN(), rank= mpi.rank();
   if(argc>1){

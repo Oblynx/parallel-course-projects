@@ -9,11 +9,11 @@ public:
 	MPIhandler(int* argc, char*** argv);
   MPIhandler(char): disabled(true) {}
 	~MPIhandler();
-  void barrier() { MPI_Barrier(MPI_COMM_WORLD); }
+  void barrier() { if(!disabled) MPI_Barrier(MPI_COMM_WORLD); }
   MPI_Datatype typePoint3f(){ return pfT; }
   MPI_Datatype typePoint3() { return pT;  }
-  int procN() { return procN_; }
-  int rank() { return rank_; }
+  int procN() { return (disabled)? 1: procN_; }
+  int rank() { return (disabled)? 0: rank_; }
   class AsyncRequest{
    public:
     AsyncRequest(MPIhandler& mpi): mpi(mpi) {}
@@ -28,10 +28,10 @@ public:
     MPI_Request pendingRequest;
     MPIhandler& mpi;
   };
+  const char disabled=false;
 private:
   MPI_Datatype pT, pfT;
 	int error, rank_, procN_;
-  const char disabled=false;
 };
 
 
