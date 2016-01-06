@@ -18,22 +18,8 @@ PointAddress createRand(){
   return p;
 }
 
-const int sN=100;
-float sx=0,sy=0,sz=0;
-MPIhandler* mpiGlob;
-
 //! Generates random points + corresponding *CubeArray* (aka proc) address
 PointAddress pointGenerator(const Parameters& param){
-  /*sx+= 1.0/sN;
-  if(sx-1<= FLT_EPSILON) sx=0, sy+= 1.0/sN;
-  if(sy-1<= FLT_EPSILON) sy=0, sz+= 1.0/sN;
-  PointAddress p{{sx,sy,sz},{0},0};
-  if(1.0-p.p.x <= FLT_EPSILON) p.p.x-= FLT_EPSILON;
-  if(1.0-p.p.y <= FLT_EPSILON) p.p.y-= FLT_EPSILON;
-  if(1.0-p.p.z <= FLT_EPSILON) p.p.z-= FLT_EPSILON;
-  if(p.p.x <= FLT_EPSILON) p.p.x+= FLT_EPSILON;
-  if(p.p.y <= FLT_EPSILON) p.p.y+= FLT_EPSILON;
-  if(p.p.z <= FLT_EPSILON) p.p.z+= FLT_EPSILON;*/
   auto p= createRand();
   float cdxf,cdyf,cdzf; 
   //Divide coord by CubeArray length (=_CubeL*_CubeArr)
