@@ -6,8 +6,7 @@
 class MPIhandler{
 public:
 	//! Takes &argc, &argv
-	MPIhandler(int* argc, char*** argv);
-  MPIhandler(char): disabled(true) {}
+	MPIhandler(bool enable, int* argc=NULL, char*** argv=NULL);
 	~MPIhandler();
   void barrier() { if(!disabled) MPI_Barrier(MPI_COMM_WORLD); }
   MPI_Datatype typePoint3f(){ return pfT; }
@@ -33,6 +32,5 @@ private:
   MPI_Datatype pT, pfT;
 	int error, rank_, procN_;
 };
-
 
 

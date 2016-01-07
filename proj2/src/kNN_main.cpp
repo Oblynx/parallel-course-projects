@@ -134,8 +134,7 @@ unsigned log2floor(unsigned a){
 }
 
 int main(int argc, char** argv){
-  //MPIhandler mpi(&argc, &argv);
-  MPIhandler mpi(0);
+  MPIhandler mpi(true, &argc, &argv);
   mpi.barrier();
   unsigned k=3, N=1<<24, Q=1<<18, nmk=1<<12, P= mpi.procN(), rank= mpi.rank();
   if(argc>1){
@@ -148,11 +147,16 @@ int main(int argc, char** argv){
   const unsigned logP= log2floor(P), px= logP/3, py= (logP%3!=2)? logP/3: logP/3+1,
         pz= (logP%3==0)? logP/3: logP/3+1;
 #ifdef BATCH
-  int serial= atoi(argv[4]);
-  string logname= "../logs/log"+to_string(serial);
-  auto logfile= fopen(logname.c_str(), "a");
-  string resultname= "../logs/results"+to_string(serial);
-  auto resultfile= fopen(resultname.c_str(), "a");
+  FILE* logfile, resultfile;
+  if(!rank){
+    int serial= atoi(argv[4]);
+    string logname= "../logs/log"+to_string(serial);
+    logfile= fopen(logname.c_str(), "a");
+  #ifdef BATCH_RESULTS
+    string resultname= "../logs/results"+to_string(serial);
+    resultfile= fopen(resultname.c_str(), "a");
+  #endif
+  }
 #endif
   if(!rank) PRINTF("*LOGARITHMIC* Cubes: (%d,%d,%d)\tProcs: (%d,%d,%d)\tEst points/cube=%d\n\n",cx,cy,cz, px,py,pz, N/nmk+1);
   Parameters param(k,2, 1<<cx,1<<cy,1<<cz, 1<<px,1<<py,1<<pz, N/nmk);
@@ -190,22 +194,23 @@ int main(int argc, char** argv){
   PRINTF("#%d: All queries received\n",mpi.rank());
   //mpi.barrier();
 
-  unique_ptr<std::chrono::duration<double>[]> queryTimes(new std::chrono::duration<double>[qN]);
+  //unique_ptr<std::chrono::duration<double>[]> queryTimes(new std::chrono::duration<double>[qN]);
   //Start search
   PRINTF("#%d: Starting search\n",mpi.rank());
   Search search(cubeArray, param, mpi);
   for(int i=0; i<qN; i++){
-    auto qstart= chrono::system_clock::now();
+    //auto qstart= chrono::system_clock::now();
     auto resultQuery= search.query(queries[i]);
-    queryTimes[i]= chrono::system_clock::now()-qstart;
-    string knn;
+    //queryTimes[i]= chrono::system_clock::now()-qstart;
 #ifdef BATCH_RESULTS
+    string knn;
     knn+= to_string(mpi.rank())+";"+to_string(queries[i].x)+","+to_string(queries[i].y)+","+to_string(queries[i].z)+";";
     for(auto&& elt : resultQuery)
       knn+= to_string(elt.x)+","+to_string(elt.y)+","+to_string(elt.z)+";"+to_string(sqrt(elt.dist(queries[i])))+";;";
     fprintf(resultfile,"%s\n",knn.c_str());
 #else
-    /*knn+= "NN#"+to_string(mpi.rank())+" for ("+to_string(queries[i].x)+","+to_string(queries[i].y)+","+to_string(queries[i].z)+"):\n";
+    /*string knn;
+    knn+= "NN#"+to_string(mpi.rank())+" for ("+to_string(queries[i].x)+","+to_string(queries[i].y)+","+to_string(queries[i].z)+"):\n";
     for(auto&& elt : resultQuery)
       knn+= "\t-> ("+to_string(elt.x)+","+to_string(elt.y)+","+to_string(elt.z)+"): d= "+to_string(sqrt(elt.dist(queries[i])))+"\n";
     printf("%s\n", knn.c_str());*/
@@ -218,11 +223,15 @@ int main(int argc, char** argv){
       searchT= searchComplete-commsCompleteTime;
 
 #ifdef BATCH
-  fprintf(logfile,"%d;%d,%d,%d;%f,%f,%f\n",rank, atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),
-                  ptransferT.count(), ccommsT.count(), searchT.count());
-  fclose(logfile);
-  fprintf(resultfile,"-1;-1,-1,-1;-1,-1,-1;-1;-1;-1,-1,-1;-1;-1;-1,-1,-1;-1;-1;\n\n");
-  fclose(resultfile);
+  if(!rank){
+    fprintf(logfile,"%d;%d,%d,%d;%f,%f,%f\n",rank, atoi(argv[1]),atoi(argv[2]),atoi(argv[3]),
+                    ptransferT.count(), ccommsT.count(), searchT.count());
+  #if defined(BATCH_RESULTS)
+    fprintf(resultfile,"-1;-1,-1,-1;-1,-1,-1;-1;-1;-1,-1,-1;-1;-1;-1,-1,-1;-1;-1;\n\n");
+    fclose(resultfile);
+  #endif
+    fclose(logfile);
+  }
 #else
   printf("#%d: Point transfer time (s): %f\nComplete comms time (s): %f\nSearch time (s): %f\n",
          rank, ptransferT.count(), ccommsT.count(), searchT.count());

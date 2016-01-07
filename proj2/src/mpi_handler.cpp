@@ -4,16 +4,18 @@
 #include "mpi_handler.h"
 using namespace std;
 
-MPIhandler::MPIhandler(int* argc, char*** argv) {
-  error= MPI_Init(argc, argv);
-  if (error) printf("[MPI]: MPI_init ERROR=%d\n", error);
-  MPI_Comm_size(MPI_COMM_WORLD, &procN_);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
-  // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
-  MPI_Type_contiguous(3, MPI_INT, &pT);
-  MPI_Type_commit(&pT);
-  MPI_Type_contiguous(3, MPI_FLOAT, &pfT);
-  MPI_Type_commit(&pfT);
+MPIhandler::MPIhandler(bool enable, int* argc, char*** argv): disabled(!enable) {
+  if(enable){
+    error= MPI_Init(argc, argv);
+    if (error) printf("[MPI]: MPI_init ERROR=%d\n", error);
+    MPI_Comm_size(MPI_COMM_WORLD, &procN_);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+    // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
+    MPI_Type_contiguous(3, MPI_INT, &pT);
+    MPI_Type_commit(&pT);
+    MPI_Type_contiguous(3, MPI_FLOAT, &pfT);
+    MPI_Type_commit(&pfT);
+  }
 }
 MPIhandler::~MPIhandler() { if(!disabled) MPI_Finalize(); }
 void MPIhandler::AsyncRequest::IsendCoordinates(Point3 cd, int n, int dest){

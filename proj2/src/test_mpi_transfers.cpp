@@ -49,7 +49,7 @@ PointAddress queryGenerator(const Parameters& param){
 }
 
 int main(int argc, char** argv){
-  MPIhandler mpi(&argc, &argv);
+  MPIhandler mpi(true, &argc, &argv);
   mpiGl= &mpi;
   const int N=1<<5, P= mpi.procN();
   PRINTF("#%d: MPI handler constructed, procN=%d\n",mpi.rank(),P);

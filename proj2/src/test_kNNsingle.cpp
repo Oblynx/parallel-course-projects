@@ -7,7 +7,7 @@
 using namespace std;
 
 int main(){
-  MPIhandler mpi(0);    //MPI turned off
+  MPIhandler mpi(false);    //MPI turned off
   int N=1<<20, Q=1<<16;
   Point3f q[Q];
   Parameters param(5,0, 10,10,10);
