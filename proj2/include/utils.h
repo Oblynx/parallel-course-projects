@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdio>
-#include <future>
 #include <iostream>
 #include <cmath>
 
@@ -22,7 +21,7 @@ T min(T a, T b, Tail... tail){
   return min(tmp, tail...);
 }
 template<class T> struct lessPtr{
-  constexpr bool operator()(const T a, const T b) const { return *a < *b; }
+  bool operator()(const T a, const T b) const { return *a < *b; }
 };
 
 //! C-compatible struct of 3 floats

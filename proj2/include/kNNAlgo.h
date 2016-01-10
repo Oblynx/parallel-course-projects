@@ -4,14 +4,15 @@
 #include <vector>
 #include <queue>
 #include <deque>
-#include <future>
 #include <cmath>
 #include "utils.h"
 #include "mpi_handler.h"
 
 struct Element{
-  Element(Point3f cd): x(cd.x), y(cd.y), z(cd.z) {}
-  Element(float x, float y, float z): x(x), y(y), z(z) {}
+  Element(Point3f cd): x(cd.x), y(cd.y), z(cd.z), distInit_(false) {}
+  Element(float x, float y, float z): x(x), y(y), z(z), distInit_(false) {}
+  Element(const Element& e): x(e.x), y(e.y), z(e.z), dist_(e.dist_), distInit_(false) {}
+  Element& operator=(Element& e) { return e; }
   //! Calculate dist or return it, if it was previously calculated. The distance is memorized to allow for
   //  ordering the Elements in the priority queue 
   float distStateful(const Element& q){
@@ -25,7 +26,7 @@ struct Element{
   const float x,y,z;    //!< Position vector
 private:
   float dist_;   //!< Memorize distance from current query
-  bool distInit_= false;
+  bool distInit_;
 };
 
 //! The smallest indivisible part of the search space. Collection of all the Elements that occupy
@@ -34,6 +35,7 @@ struct Cube{
   Cube(const Parameters& param, int x, int y, int z): x(x), y(y), z(z), param(param){
     data_.reserve(param.estCubeSize);
   }
+  Cube(const Cube& c): x(c.x),y(c.y),z(c.z), param(c.param), data_(c.data_) {}
   Cube& place(Point3f elt) { data_.push_back(elt); return *this; }
   const int x,y,z;    //!< Its coordinates in the array it belongs to
   const Parameters& param;

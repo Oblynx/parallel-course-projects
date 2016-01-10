@@ -8,7 +8,12 @@ public:
 	//! Takes &argc, &argv
 	MPIhandler(bool enable, int* argc=NULL, char*** argv=NULL);
 	~MPIhandler();
-  void barrier() { if(!disabled) MPI_Barrier(MPI_COMM_WORLD); }
+  void errorHandler();
+  void barrier() {
+    if(!disabled){
+      error= MPI_Barrier(MPI_COMM_WORLD); errorHandler();
+    }
+  }
   MPI_Datatype typePoint3f(){ return pfT; }
   MPI_Datatype typePoint3() { return pT;  }
   int procN() { return (disabled)? 1: procN_; }
@@ -27,7 +32,7 @@ public:
     MPI_Request pendingRequest;
     MPIhandler& mpi;
   };
-  const char disabled=false;
+  const char disabled;
 private:
   MPI_Datatype pT, pfT;
 	int error, rank_, procN_;

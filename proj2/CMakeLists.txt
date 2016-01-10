@@ -1,21 +1,20 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 2.6.4)
 set(CMAKE_CXX_COMPILER mpic++.mpich)
 # Run execs with mpirun.mpich?
 project(parallel-course-projects)
 
 include_directories(
   include
-  #"/usr/lib/openmpi/include"
 )
-#set(MPI_libs "/usr/lib/openmpi/lib")
-set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -O2 -march=native")
-#set(CMAKE_C_FLAGS "-Wall -O2 -march=native")
+set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2 -march=native")
 ### Debugging options
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-  set(CMAKE_CXX_FLAGS "-std=c++14 -Wall -g -Og -fno-omit-frame-pointer -march=native -fPIC")
+  set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -Og -fno-omit-frame-pointer -march=native -fPIC")
   add_definitions(-D__DEBUG__)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 add_definitions(-DBATCH)
+add_definitions(-DNDEBUG)
+add_definitions(-D__GXX_EXPERIMENTAL_CXX0X__)
 
 #######################   Project2   ###############################
 add_library(kNNAlgo src/kNNAlgo.cpp)

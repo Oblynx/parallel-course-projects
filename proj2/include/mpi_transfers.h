@@ -1,5 +1,7 @@
 #pragma once
+#include <memory>
 #include "mpi_handler.h" 
+#include <cassert>
 
 //! C-compatible struct with point and address of containing CubeArray(s)
 struct PointAddress{
@@ -22,6 +24,7 @@ class All2allTransfer{
       buf[i]= generator(param);
       //Increase the size of every destination address
       for(int j=0; j<buf[i].addrUsed;j++){
+        assert(buf[i].address[j] < procN);
         sSizeBuf[buf[i].address[j]]++;
       }
       if(mpi.disabled) rcvBuf[i]= buf[i].p;
@@ -32,6 +35,8 @@ class All2allTransfer{
     /*{std::string showSizes;
       for(int i=0; i<procN; i++) showSizes+= std::to_string(sSizeBuf[i]), showSizes+= ';';
     PRINTF("[transfer#%d]: Send sizes = %s -|\n",mpi.rank(),showSizes.c_str());}*/
+    //Everyone must have reached the last nonblocking collective communication before going to the next
+    mpi.barrier();
     PRINTF("[transfer#%d]: Requesting Size comms\n",mpi.rank());
     //All2all comms for size -- CAUTION! count is per process!!!
     asyncRequest.Ialltoall(sSizeBuf.get(),1,MPI_INT,rSizeBuf.get(),1);
@@ -41,9 +46,13 @@ class All2allTransfer{
     for(int i=1; i<procN; i++) sdispl[i]= sdispl[i-1]+sSizeBuf[i-1];
     
     //Create send buffer
-    sendBuf.reset(new Point3f[sdispl[procN-1]+sSizeBuf[procN-1]]);
-    for(int i=0;i<pointN;i++) for(int j=0; j<buf[i].addrUsed; j++)
+    int totalSendP= sdispl[procN-1]+sSizeBuf[procN-1];
+    sendBuf.reset(new Point3f[totalSendP]);
+    for(int i=0;i<pointN;i++) for(int j=0; j<buf[i].addrUsed; j++){
+        assert(sdispl[buf[i].address[j]] < totalSendP);
         sendBuf[sdispl[buf[i].address[j]]++]= buf[i].p;
+    }
+    PRINTF("[transfer#%d]: Waiting for size comms\n",mpi.rank());
     //Wait for size comms to complete
     asyncRequest.wait();
     mpi.barrier();

@@ -6,18 +6,29 @@ using namespace std;
 
 MPIhandler::MPIhandler(bool enable, int* argc, char*** argv): disabled(!enable) {
   if(enable){
-    error= MPI_Init(argc, argv);
-    if (error) printf("[MPI]: MPI_init ERROR=%d\n", error);
-    MPI_Comm_size(MPI_COMM_WORLD, &procN_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+    error= MPI_Init(argc, argv);  errorHandler();
+    error= MPI_Comm_size(MPI_COMM_WORLD, &procN_);  errorHandler();
+    error= MPI_Comm_rank(MPI_COMM_WORLD, &rank_);   errorHandler();
     // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
-    MPI_Type_contiguous(3, MPI_INT, &pT);
-    MPI_Type_commit(&pT);
-    MPI_Type_contiguous(3, MPI_FLOAT, &pfT);
-    MPI_Type_commit(&pfT);
+    error= MPI_Type_contiguous(3, MPI_INT, &pT);    errorHandler();
+    error= MPI_Type_commit(&pT);  errorHandler();
+    error= MPI_Type_contiguous(3, MPI_FLOAT, &pfT);  errorHandler();
+    error= MPI_Type_commit(&pfT);   errorHandler();
   }
 }
 MPIhandler::~MPIhandler() { if(!disabled) MPI_Finalize(); }
+void MPIhandler::errorHandler() {
+  if(error != MPI_SUCCESS){
+    char error_string[BUFSIZ];
+    int errStrL, error_class;
+
+    MPI_Error_class(error, &error_class);
+    MPI_Error_string(error_class, error_string, &errStrL);
+    fprintf(stderr, "\t!!! ERROR #%3d: %s !!!\n", rank_, error_string);
+    MPI_Error_string(error, error_string, &errStrL);
+    fprintf(stderr, "\t!!! ERROR #%3d: %s !!!\n", rank_, error_string);
+  }
+}
 void MPIhandler::AsyncRequest::IsendCoordinates(Point3 cd, int n, int dest){
   //TODO
   throw new runtime_error("### Called AsyncRequest::IsendCoordinates!!! ###\n");
@@ -33,6 +44,7 @@ void MPIhandler::AsyncRequest::Ialltoall(const void* sendBuf, const int sendCnt,
   requestInTransit=true;
   mpi.error= MPI_Ialltoall(sendBuf,sendCnt,type,rcvBuf,rcvCnt,type,MPI_COMM_WORLD,&pendingRequest);
   if(mpi.error) PRINTF("--> [MPI]: Error in Ialltoall comm!!! errcode=%d",mpi.error);
+  mpi.errorHandler();
 }
 //! MPI Ialltoallv wrapper
 void MPIhandler::AsyncRequest::Ialltoallv(const void* sendBuf, const int sendCnt[], const int sdispl[],
@@ -46,10 +58,11 @@ void MPIhandler::AsyncRequest::Ialltoallv(const void* sendBuf, const int sendCnt
   requestInTransit=true;
   mpi.error= MPI_Ialltoallv(sendBuf,sendCnt,sdispl,type,rcvBuf,rcvCnt,rdispl,
                             type,MPI_COMM_WORLD,&pendingRequest);
+  mpi.errorHandler();
 }
 void MPIhandler::AsyncRequest::wait(){
   if(mpi.disabled) return;
   if(!requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Called wait while no request pending!\n");
-  MPI_Wait(&pendingRequest, MPI_STATUS_IGNORE);
+  mpi.error= MPI_Wait(&pendingRequest, MPI_STATUS_IGNORE);  mpi.errorHandler();
   requestInTransit=false;
 }

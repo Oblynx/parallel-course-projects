@@ -18,6 +18,8 @@ PointAddress createRand(){
   return p;
 }
 
+int PGlob;
+
 //! Generates random points + corresponding *CubeArray* (aka proc) address
 PointAddress pointGenerator(const Parameters& param){
   auto p= createRand();
@@ -33,6 +35,7 @@ PointAddress pointGenerator(const Parameters& param){
   int nbor=0, yoffset= param.xArrGl, zoffset= param.xArrGl*param.yArrGl;
   //Address of containing CubeArray
   p.address[p.addrUsed++]= cdx+ cdy*param.xArrGl+ cdz*param.yArrGl*param.xArrGl;
+
   //Addresses of neighboring CubeArrays where the point belongs due to overlap
   //Add sides
   if(frx > 1-param.xOverlap && cdx+1 < param.xArrGl) nbor|=1, p.address[p.addrUsed++]= p.address[0]+1;
@@ -106,16 +109,9 @@ PointAddress pointGenerator(const Parameters& param){
              p.address[p.addrUsed++]= p.address[0]-1-yoffset;
              p.address[p.addrUsed++]= p.address[0]-yoffset-zoffset;
              p.address[p.addrUsed++]= p.address[0]-zoffset-1;
-             p.address[p.addrUsed++]= p.address[0]-1-yoffset+zoffset;
+             p.address[p.addrUsed++]= p.address[0]-1-yoffset-zoffset;
              break;    //-x-y-z
   }
-
-  /*Point3f error {0.105113,0.462703,0.422777};
-  if(fabs(p.p.x-error.x) < 0.000001 && fabs(p.p.y-error.y) < 0.000001 && fabs(p.p.z-error.z) < 0.000001){
-    string addr;
-    for(int i=0; i<p.addrUsed; i++) addr+= to_string(p.address[i])+";";
-    PRINTF("zOverlap=%f\t--> cdz=%d\tfrz=%f\n\t    addresses= %s\n", param.zOverlap,cdz,frz,addr.c_str());
-  }*/
   return p;
 }
 //! Generates random points and assigns them only to the CubeArray that contains them
@@ -135,9 +131,9 @@ unsigned log2floor(unsigned a){
 
 int main(int argc, char** argv){
   MPIhandler mpi(true, &argc, &argv);
-  mpi.barrier();
   unsigned k=3, N=1<<24, Q=1<<18, nmk=1<<12, P= mpi.procN(), rank= mpi.rank();
-  if(argc>1){
+PGlob= P;
+  if(argc>=3){
     k=   atoi(argv[1]);
     N=   1<<atoi(argv[2]), Q=N;
     nmk= 1<<atoi(argv[3]);
@@ -147,9 +143,9 @@ int main(int argc, char** argv){
   const unsigned logP= log2floor(P), px= logP/3, py= (logP%3!=2)? logP/3: logP/3+1,
         pz= (logP%3==0)? logP/3: logP/3+1;
 #ifdef BATCH
-  FILE* logfile, resultfile;
+  FILE *logfile, *resultfile;
   if(!rank){
-    int serial= atoi(argv[4]);
+    int serial= (argc==4)? atoi(argv[4]): 0;
     string logname= "../logs/log"+to_string(serial);
     logfile= fopen(logname.c_str(), "a");
   #ifdef BATCH_RESULTS
@@ -158,7 +154,7 @@ int main(int argc, char** argv){
   #endif
   }
 #endif
-  if(!rank) PRINTF("*LOGARITHMIC* Cubes: (%d,%d,%d)\tProcs: (%d,%d,%d)\tEst points/cube=%d\n\n",cx,cy,cz, px,py,pz, N/nmk+1);
+  if(!rank) PRINTF("*LOGARITHMIC* Cubes: (%d,%d,%d)\tProcs: (%d,%d,%d)\tEst points/cube=%d\n\n",cx,cy,cz, px,py,pz, N/nmk);
   Parameters param(k,2, 1<<cx,1<<cy,1<<cz, 1<<px,1<<py,1<<pz, N/nmk);
   //Different random seed for each process
   std::hash<std::string> hasher;
@@ -172,8 +168,6 @@ int main(int argc, char** argv){
   auto startTime= chrono::system_clock::now();
   pointTransfer.transfer();   // Request points transfer
   PRINTF("#%d: Points comm started\n",mpi.rank());
-  //Everyone must have reached the last nonblocking collective communication before going to the next
-  mpi.barrier();
   queryTransfer.transfer();   // Request queries transfer
   PRINTF("#%d: Queries comm started\n",mpi.rank());
   
@@ -233,31 +227,10 @@ int main(int argc, char** argv){
     fclose(logfile);
   }
 #else
-  printf("#%d: Point transfer time (s): %f\nComplete comms time (s): %f\nSearch time (s): %f\n",
-         rank, ptransferT.count(), ccommsT.count(), searchT.count());
+  if(!rank) printf("#%d: Point transfer time (s): %f\nComplete comms time (s): %f\nSearch time (s): %f\n",
+                   rank, ptransferT.count(), ccommsT.count(), searchT.count());
 #endif
   //for(int i=0; i<qN; i++){/*TODO: Print individual searches time for histogram*/}
-        
-#ifdef __DEBUG__
-  //Test
-  PRINTF("#%d: Testing\n",mpi.rank());
-  Point3f testQ;
-  bool notest=false;
-  switch (mpi.rank()){
-    case 0: testQ= {0.2,0.499,0.3}; break;
-    case 1: testQ= {0.8,0.5,0.49999}; break;
-    case 2: testQ= {0.2,0.5,0.5}; break;
-    case 3: testQ= {0.8,0.8,0.8}; break;
-    default: notest=true;
-  }
-  if(!notest){
-    auto qres= search.query(testQ);
-    string knn;
-    knn+= "NN#"+to_string(mpi.rank())+" for ("+to_string(testQ.x)+","+to_string(testQ.y)+","+to_string(testQ.z)+"):\n";
-    for(auto&& elt : qres)
-      knn+= "\t-> ("+to_string(elt.x)+","+to_string(elt.y)+","+to_string(elt.z)+"): d= "+to_string(sqrt(elt.dist(testQ)))+"\n";
-    printf("%s\n", knn.c_str());
-  }
-#endif
+  PRINTF("#%d: Exit\n",rank);
   return 0; 
 }
