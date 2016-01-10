@@ -6,26 +6,36 @@
 #include "kNNAlgo.h"
 using namespace std;
 
+Point3f pointGridGen(const int i, const int perDim){
+  Point3f p {(float)(i%perDim)/perDim, (float)((i/perDim)%perDim)/perDim, (float)(i/(perDim*perDim))/perDim};
+  printf("[gen]: (%f,%f,%f)\n",p.x,p.y,p.z);
+  return p;
+}
+
 int main(){
   MPIhandler mpi(false);    //MPI turned off
-  int N=1<<20, Q=1<<16;
-  Point3f q[Q];
-  Parameters param(5,0, 10,10,10);
+  int mesh=1<<3, nDim=1<<4, N= nDim*nDim*nDim; 
+  Parameters param(6,0, mesh,mesh,mesh);
   CubeArray cubeArray(param,0,0,0);
-  for(int i=0; i<N; i++) cubeArray.place({xor128(), xor128(), xor128()});
-  auto n1= cubeArray.place({0.412, 0.412, 0.413});
-  auto n2= cubeArray.place({0.413, 0.412, 0.412});
-  auto n3= cubeArray.place({0.411, 0.416, 0.413});
+  printf("[test_kNN]: Constructed CubeArray\n");
+  for(int i=0; i<N; i++) cubeArray.place(pointGridGen(i,nDim));
   printf("[test_kNN]: Points placed in cube:\n");
-  printf("\t->(%d,%d,%d)\n", n1.x,n1.y,n1.z);
-  for(int i=0; i<Q-1; i++) q[i]= {xor128(), xor128(), xor128()};
-  q[Q-1]= {0.4124, 0.413, 0.4128};
+  //printf("\t->(%d,%d,%d)\n", n1.x,n1.y,n1.z);
+  
+  vector<Point3f> q(5);
+  vector<deque<Element>> qres;
+  q[0]= {0.34234, 0.2346, 0.24546};
+  q[1]= {0.4124, 0.413, 0.4128};
+  q[2]= {0.1, 0.8, 0.5};
+  q[3]= {0.000001, 0.000001, 0.000001};
+  q[4]= {0.000001, 0.999999, 0.366};
   printf("[test_kNN]: Queries produced\n");
   Search search(cubeArray, param,mpi);
-  for(int i=0; i<Q-1; i++) search.query(q[i]);
-  auto qres= search.query(q[Q-1]);
-  printf("[test_kNN]: 3NN for Point3(%f, %f, %f):\n", q[Q-1].x, q[Q-1].y, q[Q-1].z);
-  for(auto&& elt : qres) printf("\t-> (%f,%f,%f)\n", elt.x,elt.y,elt.z);
-  printf("\n");
+  for(unsigned i=0; i<q.size(); i++) qres.push_back(search.query(q[i]));
+  for(unsigned i=0; i<q.size(); i++){
+    printf("[test_kNNsingle]: NN for (%f, %f, %f):\n", q[i].x, q[i].y, q[i].z);
+    for(auto&& elt : qres[i]) printf("\t-> (%f,%f,%f): %e\n", elt.x,elt.y,elt.z,sqrt(elt.dist(q[i])));
+    printf("\n");
+  }
   return 0; 
 }

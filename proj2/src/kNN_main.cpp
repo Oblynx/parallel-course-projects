@@ -18,8 +18,6 @@ PointAddress createRand(){
   return p;
 }
 
-int PGlob;
-
 //! Generates random points + corresponding *CubeArray* (aka proc) address
 PointAddress pointGenerator(const Parameters& param){
   auto p= createRand();
@@ -132,7 +130,6 @@ unsigned log2floor(unsigned a){
 int main(int argc, char** argv){
   MPIhandler mpi(true, &argc, &argv);
   unsigned k=3, N=1<<24, Q=1<<18, nmk=1<<12, P= mpi.procN(), rank= mpi.rank();
-PGlob= P;
   if(argc>=3){
     k=   atoi(argv[1]);
     N=   1<<atoi(argv[2]), Q=N;
