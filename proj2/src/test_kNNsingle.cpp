@@ -14,8 +14,8 @@ Point3f pointGridGen(const int i, const int perDim){
 
 int main(){
   MPIhandler mpi(false);    //MPI turned off
-  int mesh=1<<3, nDim=1<<4, N= nDim*nDim*nDim; 
-  Parameters param(6,0, mesh,mesh,mesh);
+  int mesh=1<<3, nDim=1<<2, N= nDim*nDim*nDim; 
+  Parameters param(16,0, mesh,mesh,mesh);
   CubeArray cubeArray(param,0,0,0);
   printf("[test_kNN]: Constructed CubeArray\n");
   for(int i=0; i<N; i++) cubeArray.place(pointGridGen(i,nDim));

@@ -1,6 +1,7 @@
 #!/bin/bash
 
-for psize in $(seq 21 25); do
-  mpirun.mpich -n 4 ./kNN 1 $psize $(($psize-4)) 8
+mpirun.mpich -n 1 ./kNN 1 21 17 9
+for psize in $(seq 22 25); do
+  mpirun.mpich -n 1 ./kNN 1 $psize 18 9
 done
 

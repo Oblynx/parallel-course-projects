@@ -86,7 +86,7 @@ MPI
 \end_layout
 
 \begin_layout Subtitle
-Πρώτη έκδοση
+Τελική έκδοση
 \end_layout
 
 \begin_layout Author
@@ -94,7 +94,7 @@ MPI
 \end_layout
 
 \begin_layout Date
-6/1/2015
+10/1/2015
 \end_layout
 
 \begin_layout Subsection*
@@ -118,19 +118,35 @@ MPI
 \end_layout
 
 \begin_layout Itemize
-Εκτός από την παρεχόμενη έκδοση, ο κώδικας είναι διαθέσιμος στο Github:
- 
+Εκτός από την παρεχόμενη έκδοση, ο κώδικας είναι διαθέσιμος στο 
 \lang english
+Github
+\end_layout
 
+\begin_deeper
+\begin_layout Itemize
+
+\lang english
 \begin_inset CommandInset href
 LatexCommand href
-target "https://github.com/Oblynx/parallel-course-projects/tree/61e8e2609b0b78e9adfc2d7f44e34cddb49ae1d1/proj2"
+target "https://github.com/Oblynx/parallel-course-projects/tree/master/proj2"
 
 \end_inset
 
 
 \end_layout
 
+\begin_layout Itemize
+Η έκδοση του κώδικα που χρησιμοποιήθηκε εδώ είναι το 
+\lang english
+tag
+\lang greek
+ 
+\lang english
+proj2_v1.2
+\end_layout
+
+\end_deeper
 \begin_layout Itemize
 Χρησιμοποιείται 
 \lang english
@@ -139,18 +155,6 @@ C++11
  και 
 \lang english
 MPI-3
-\end_layout
-
-\begin_layout Itemize
-Εκ των υστέρων διαπιστώνω ότι το 
-\lang english
-Hellasgrid
-\lang greek
- δεν υποστηρίζει 
-\lang english
-MPI-3
-\lang greek
-, οπότε θα χρειαστεί μια μικρή αλλαγή για να τρέξει εκεί
 \end_layout
 
 \begin_layout Section
@@ -259,6 +263,51 @@ reference "fig:Οργάνωση-καταμερισμού-του"
 \end_layout
 
 \begin_layout Standard
+\begin_inset Wrap figure
+lines 0
+placement o
+overhang 0in
+width "40col%"
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename progFlow.svg
+	scale 60
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Ροή-προγράμματος"
+
+\end_inset
+
+Ροή προγράμματος
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
 Το μέγεθος του προβλήματος μπορεί να επιβάλλει το χωρισμό σε πολλές διεργασίες.
  Για να επιτευχθεί αυτό, κάθε διεργασία είναι υπεύθυνη για ένα κυβικό τμήμα
  του χώρου (που αποτελείται από πολλούς από τους προηγούμενους κύβους) και
@@ -324,51 +373,6 @@ overlap
 \end_layout
 
 \begin_layout Standard
-\begin_inset Wrap figure
-lines 0
-placement o
-overhang 0in
-width "40col%"
-status collapsed
-
-\begin_layout Plain Layout
-\begin_inset space \hfill{}
-\end_inset
-
-
-\begin_inset Graphics
-	filename progFlow.svg
-	scale 60
-
-\end_inset
-
-
-\begin_inset space \hfill{}
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-\begin_inset Caption Standard
-
-\begin_layout Plain Layout
-\begin_inset CommandInset label
-LatexCommand label
-name "fig:Ροή-προγράμματος"
-
-\end_inset
-
-Ροή προγράμματος
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\end_inset
-
 Η πορεία του προγράμματος παρουσιάζεται στο διάγραμμα 
 \begin_inset CommandInset ref
 LatexCommand ref
@@ -480,13 +484,13 @@ kNN
 placement H
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-\begin_inset Formula $query()$
+\begin_inset Formula $\unit{query}\left(\right)$
 \end_inset
 
 
@@ -499,7 +503,7 @@ status collapsed
 
 \begin_layout Enumerate
 Εύρεση κύβου 
-\begin_inset Formula $qloc$
+\begin_inset Formula $\unit{qloc}$
 \end_inset
 
  μέσα στα όρια του οποίου βρίσκεται το 
@@ -510,31 +514,35 @@ status collapsed
 \end_layout
 
 \begin_layout Enumerate
-Όρια αναζήτησης 
-\begin_inset Formula $searchLim=qloc$
+Χώρος αναζήτησης: 
+\begin_inset Formula $\unit{searchSpace}=\unit{qloc}$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Enumerate
-\begin_inset Formula $search(kNN)$
+\begin_inset Formula $\unit{search}\left(\unit{kNN}\right)$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Enumerate
-Αν δε βρέθηκαν σημεία ή η απόσταση του 
+Όσο δε βρέθηκαν 
+\begin_inset Formula $k$
+\end_inset
+
+ σημεία ή η απόσταση του 
 \begin_inset Formula $Q$
 \end_inset
 
  από το σύνορο του 
-\begin_inset Formula $qloc$
+\begin_inset Formula $\unit{searchSpace}$
 \end_inset
 
  είναι μικρότερη από την απόσταση του πιο απομακρυσμένου 
-\begin_inset Formula $kNN$
+\begin_inset Formula $\unit{kNN}$
 \end_inset
 
 
@@ -542,23 +550,17 @@ status collapsed
 
 \begin_deeper
 \begin_layout Enumerate
-Διεύρυνση χώρου αναζήτησης (συμπερίληψη όλων των κύβων που συνορεύουν με
- τον τωρινό χώρο αναζήτησης)
+\begin_inset Formula $\unit{expand}\left(\unit{searchSpace}\right)$
+\end_inset
+
+ (συμπερίληψη όλων των κύβων που συνορεύουν με τον τωρινό χώρο αναζήτησης)
 \end_layout
 
 \begin_layout Enumerate
-\begin_inset Formula $search(kNN)$
+\begin_inset Formula $\unit{search}\left(\unit{kNN}\right)$
 \end_inset
 
 
-\end_layout
-
-\begin_layout Enumerate
-Επανάλαβε όσο δεν έχουν βρεθεί 
-\begin_inset Formula $k$
-\end_inset
-
- γείτονες
 \end_layout
 
 \end_deeper
@@ -572,13 +574,13 @@ status collapsed
 placement H
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \begin_inset Caption Standard
 
 \begin_layout Plain Layout
-\begin_inset Formula $search(kNN)$
+\begin_inset Formula $\unit{search}\left(\unit{kNN}\right)$
 \end_inset
 
 
@@ -625,7 +627,7 @@ status collapsed
 \end_inset
 
 , που είναι το πιο απομακρυσμένο 
-\begin_inset Formula $kNN$
+\begin_inset Formula $\unit{kNN}$
 \end_inset
 
  από το 
@@ -637,14 +639,14 @@ status collapsed
 
 \begin_deeper
 \begin_layout Enumerate
-\begin_inset Formula $kNN-=top$
+\begin_inset Formula $\unit{kNN}-=top$
 \end_inset
 
 
 \end_layout
 
 \begin_layout Enumerate
-\begin_inset Formula $kNN+=elt$
+\begin_inset Formula $\unit{kNN}+=elt$
 \end_inset
 
 
@@ -667,7 +669,261 @@ status collapsed
 \lang english
 exception
 \lang greek
+, τερματίζοντας την εκτέλεση.
+\end_layout
+
+\begin_layout Subsection*
+Πιθανότητα εύρεσης γείτονα
+\end_layout
+
+\begin_layout Standard
+Για τη μελέτη της λεπτότητας του καταμερισμού του χώρου που επιτρέπει αυτός
+ ο αλγόριθμος γίνεται μια πιθανοτική ανάλυση.
+\end_layout
+
+\begin_layout Standard
+Έστω καρτεσιανός χώρος 
+\begin_inset Formula $\Delta$
+\end_inset
+
+ στον οποίο τοποθετούνται τυχαία 
+\begin_inset Formula $N$
+\end_inset
+
+ σημεία και ένας υποχώρος του 
+\begin_inset Formula $S$
+\end_inset
+
 .
+ Έστω επίσης 
+\begin_inset Formula $X$
+\end_inset
+
+ το πλήθος των σημείων που περιέχονται στον 
+\begin_inset Formula $S$
+\end_inset
+
+.
+ Τότε η 
+\begin_inset Formula $X$
+\end_inset
+
+ ακολουθεί διωνυμική κατανομή με παραμέτρους 
+\begin_inset Formula $N,\,p_{\in}$
+\end_inset
+
+ όπου 
+\begin_inset Formula $p_{\in}$
+\end_inset
+
+ η πιθανότητα για καθένα από τα σημεία να ανήκει στο 
+\begin_inset Formula $S$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Αν στο 
+\begin_inset Formula $\text{Δ}$
+\end_inset
+
+ τα 
+\begin_inset Formula $\text{Ν}$
+\end_inset
+
+ σημεία τοποθετούνται με ομοιόμορφα τυχαίο τρόπο, τότε 
+\begin_inset Formula $p_{\in}=\frac{\left|S\right|}{\left|\text{\Delta}\right|}$
+\end_inset
+
+ (και 
+\begin_inset Formula $p_{\notin}=1-p_{\in}$
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
+Ας θεωρήσουμε το 
+\begin_inset Formula $\Delta$
+\end_inset
+
+ ως το χώρο 
+\begin_inset Formula $[0,1)^{3}$
+\end_inset
+
+ του προβλήματος.
+ Αν 
+\begin_inset Formula $k<Np_{\in}$
+\end_inset
+
+, μπορούμε να φράξουμε τη διωνυμική κατανομή με τη βοήθεια της ανισότητας
+ 
+\lang english
+Chernoff
+\lang greek
+
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Βλέπε 
+\lang english
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://en.wikipedia.org/wiki/Binomial_distribution#Tail_Bounds"
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+.
+ Η πιθανότητα επαρκών γειτόνων στο 
+\begin_inset Formula $S$
+\end_inset
+
+ γίνεται τότε:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+p_{s}=p\left(X\geq k\right)=1-p\left(X<k\right)=1-p\left(X\le K\right)=1-F\left(K,N,p_{\in}\right)
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Όπου από την ανισότητα 
+\lang english
+Chernoff
+\lang greek
+ 
+\begin_inset Formula $F\left(n,p,k\right)\le exp\left(\frac{-(np-k)^{2}}{2np}\right)$
+\end_inset
+
+ έχουμε ένα κάτω φράγμα για την 
+\begin_inset Formula $p_{s}$
+\end_inset
+
+.
+ Αν απαιτήσουμε λοιπόν η πιθανότητα 
+\begin_inset Formula $p_{s}>1-a^{-1}$
+\end_inset
+
+, όπου 
+\begin_inset Formula $a$
+\end_inset
+
+ κάποιος μεγάλος αριθμός, μπορούμε να απαιτήσουμε το ίδιο και από το κάτω
+ φράγμα της και οδηγούμαστε στην ανίσωση:
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+p_{s}\ge1-exp\left(\frac{-(Np_{\in}-K)^{2}}{2Np_{\in}}\right)>1-α^{-1}\Leftrightarrow exp\left(\frac{-(Np_{\in}-K)^{2}}{2Np_{\in}}\right)<α^{-1}\Leftrightarrow\frac{(Np_{\in}-K)^{2}}{2Np_{\in}}>lna
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+N^{2}p_{\in}^{2}-2N(k-1+lna)p_{\in}+(k-1)^{2}>0
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+που είναι ισοδύναμη με την απαίτηση 
+\begin_inset Formula 
+\[
+p\left(X\ge k\right)>1-a^{-1}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Για παράδειγμα, στην περίπτωση που 
+\begin_inset Formula $k=1,\,N=2^{25},\,a=2^{45}$
+\end_inset
+
+, δηλαδή η πιθανότητα στο σύνολο των 
+\begin_inset Formula $N$
+\end_inset
+
+ ερωτημάτων ένα να μην ανήκει στο χώρο αναζήτησης να είναι μικρότερη από
+ περίπου 
+\begin_inset Formula $10^{6}$
+\end_inset
+
+, σημαίνει ότι ο χώρος αναζήτησης θα πρέπει να έχει μέγεθος
+\end_layout
+
+\begin_layout Standard
+\begin_inset Formula 
+\[
+\left|S\right|=p_{\in}>1.86\times10^{-6}
+\]
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Αν θεωρήσουμε ότι 
+\begin_inset Formula $S$
+\end_inset
+
+ είναι ο χώρος μετά την 1η επέκταση, άρα αποτελείται από 27 κύβους, τότε
+ 
+\begin_inset Formula $\left|Cube\right|>6.8858\times10^{-8}=2^{-23.8}$
+\end_inset
+
+.
+ Όμως 
+\begin_inset Formula $\left|Cube\right|=\left(n\times m\times k\right)^{-1}$
+\end_inset
+
+, άρα η λεπτότητα του καταμερισμού του χώρου μπορεί με ασφάλεια να φθάσει
+ το 
+\begin_inset Formula $2^{23}$
+\end_inset
+
+.
+ Βέβαια, με λιγότερα από 8 σημεία ανά κύβο, δευτερεύοντα στοιχεία όπως η
+ διεύρυνση του χώρου θα αρχίσουν να κυριεύουν το χρόνο εκτέλεσης.
+\end_layout
+
+\begin_layout Standard
+Η ανάλυση αυτή γενικεύεται και για οποιαδήποτε άλλη γνωστή κατανομή σημείων,
+ μόνο που τότε το 
+\begin_inset Formula $p_{\in}$
+\end_inset
+
+ θα εξαρτάται από το 
+\begin_inset Formula $S$
+\end_inset
+
+ κι όχι μόνο από το μέτρο του.
 \end_layout
 
 \begin_layout Section
@@ -774,15 +1030,7 @@ overlap
 \end_layout
 
 \begin_layout Standard
-Λόγω αδυναμίας σύνδεσης με το 
-\lang english
-Hellasgrid
-\lang greek
- δεν έχουν ακόμη ληφθεί αποτελέσματα από εκεί.
- Θα παραδοθούν σε επόμενη έκδοση αυτής της εργασίας.
- Τώρα παρατίθενται μερικά αποτελέσματα από μελέτη σε έναν υπολογιστή με
- 4 διεργασίες.
- Όπως φαίνεται από τα 
+Όπως φαίνεται από τα 
 \begin_inset Formula $t-N$
 \end_inset
 
@@ -796,6 +1044,353 @@ Hellasgrid
 \end_layout
 
 \begin_layout Standard
+Έχουν ληφθεί 2 σετ δεδομένων, από τον τοπικό υπολογιστή και από το 
+\lang english
+cluster
+\lang greek
+.
+ Ο τοπικός υπολογιστής παρέχει 4 φυσικά 
+\lang english
+threads
+\lang greek
+.
+ Το 
+\lang english
+cluster
+\lang greek
+ είχε συνωστισμό στη διάρκεια των μετρήσεων, οπότε μέσα σε 2.5 μέρες έγιναν
+ εκτελέσεις με 2 το πολύ 
+\lang english
+nodes
+\lang greek
+ -- εργασίες που ζητούν περισσότερα περιμένουν ακόμη στην ουρά! Τα δεδομένα
+ αποτελούνται από 3 μετρήσεις χρόνου ανά εκτέλεση:
+\end_layout
+
+\begin_layout Enumerate
+Αίτηση επικοινωνίας για ανταλλαγή σημείων μέχρι παραλαβή σημείων
+\end_layout
+
+\begin_layout Enumerate
+Αίτηση επικοινωνίας για ανταλλαγή σημείων μέχρι παραλαβή και ερωτημάτων
+ (υπερσύνολο του προηγούμενου)
+\end_layout
+
+\begin_layout Enumerate
+Συνολικός χρόνος απάντησης σε όλα τα ερωτήματα
+\end_layout
+
+\begin_layout Standard
+Η μέτρηση 1 περιλαμβάνει μονάχα επικοινωνίες 
+\lang english
+MPI
+\lang greek
+ και για αρκετά μεγάλο πρόβλημα όλος ο χρόνος ξοδεύεται στην αναμονή της
+ επικοινωνίας των σημείων 
+\begin_inset Formula $C$
+\end_inset
+
+, επομένως είναι ενδεικτική της ποιότητας των αργότερων επικοινωνιών στο
+ σύστημα.
+ Όλες οι εκτελέσεις στο 
+\lang english
+grid
+\lang greek
+ περιλαμβάνουν 2 
+\lang english
+nodes
+\lang greek
+.
+ Η μέτρηση 2 δεν έχει ξεκάθαρο περιεχόμενο (λόγω επικάλυψης επεξεργασίας
+ με τις 
+\lang english
+nonblocking
+\lang greek
+ επικοινωνίες) και συλλέχθηκε συμπληρωματικά.
+ Η μέτρηση 3 αποτελεί το μεγαλύτερο τμήμα του συνολικού χρόνου εκτέλεσης.
+\end_layout
+
+\begin_layout Standard
+Τα δεδομένα που συλλέχθηκαν από τον τοπικό υπολογιστή καλύπτουν το εύρος
+ των παραμέτρων 
+\begin_inset Formula $N$
+\end_inset
+
+ και 
+\begin_inset Formula $n\times m\times k$
+\end_inset
+
+ σε σειριακή και 
+\lang english
+4-process
+\lang greek
+ εκτέλεση.
+ Εξαιτίας του συνωστισμού στο 
+\lang english
+cluster
+\lang greek
+ συλλέχθηκαν από εκεί επιλεγμένα δεδομένα, με σταθερή την παράμετρο 
+\begin_inset Formula $n\times m\times k$
+\end_inset
+
+ και σαρώνοντας το μέγεθος του προβλήματος και το πλήθος των διεργασιών.
+ Οι μετρήσεις έφθασαν μέχρι 
+\begin_inset Formula $2^{3}$
+\end_inset
+
+ μόνο διεργασίες, αλλά στον τοπικό υπολογιστή επιβεβαιώθηκε ότι το πρόγραμμα
+ λειτουργεί χωρίς σφάλματα μέχρι και για 
+\begin_inset Formula $2^{7}$
+\end_inset
+
+ διεργασίες -- μάλιστα, με ελαφρά βελτιωμένη απόδοση σε σχέση με τις 4 διεργασίε
+ς.
+\end_layout
+
+\begin_layout Subsection*
+Παρατηρήσεις μετρήσεων
+\end_layout
+
+\begin_layout Itemize
+Το πρόβλημα έχει τετραγωνική πολυπλοκότητα, όπως δείχνουν τα γραφήματα 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cluster_search_t-N-P"
+
+\end_inset
+
+ και 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "laptop_search_t-N-m"
+
+\end_inset
+
+.
+ Η μέτρηση για 
+\begin_inset Formula $P=2$
+\end_inset
+
+ στο 
+\lang english
+cluster
+\lang greek
+ είναι προβληματική, όπως φαίνεται σε όλα τα γραφήματα, και αυτό μπορεί
+ να οφείλεται σε αλληλεπίδραση με κάποια άλλη ταυτόχρονη εργασία του 
+\lang english
+cluster
+\lang greek
+.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+Η παραλληλοποίηση είναι
+\series default
+ 
+\series bold
+σχεδόν τέλεια
+\series default
+, όπως εξάλλου αναμένεται από την έλλειψη αλληλεπίδρασης των διεργασιών
+ μετά από τις αρχικές επικοινωνίες, και αυτό φαίνεται στο 3ο υπογράφημα
+ των γραφημάτων 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "cluster_search_t-N-P"
+
+\end_inset
+
+.
+ Παρόλα αυτά, οι μετρήσεις στο 
+\lang english
+laptop
+\lang greek
+ δείχνουν πολύ λιγότερη επιτάχυνση από την παραλληλοποίηση, της τάξης του
+ 
+\begin_inset Formula $x2$
+\end_inset
+
+ για 4 διεργασίες ως προς το σειριακό, που μάλλον οφείλεται στην ταυτόχρονη
+ χρήση του υπολογιστή από άλλες διεργασίες και τα αναπόφευκτα 
+\lang english
+context switch
+\lang greek
+.
+\end_layout
+
+\begin_layout Itemize
+Ο καταμερισμός του χώρου σε κύβους έχει πολύ μεγάλη επίδραση στο χρόνο εκτέλεσης
+, γεγονός που δικαιολογεί την προσέγγιση ιδιαίτερα λεπτού καταμερισμού και
+ διαδοχικών διευρύνσεων του χώρου αναζήτησης που ακολουθείται εδώ.
+ Ακόμη και για καταμερισμό του επιπέδου 
+\begin_inset Formula $\frac{N}{n\times m\times k}=2^{3}$
+\end_inset
+
+, δηλαδή με αναμενόμενο αριθμό σημείων ανά κύβο μόλις 8, η πιθανότητα να
+ μην υπάρχει γείτονας μετά την πρώτη επέκταση για 
+\begin_inset Formula $N=2^{25}$
+\end_inset
+
+ είναι μικρότερη από 
+\begin_inset Formula $2^{45}$
+\end_inset
+
+!
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/grid/search_t-N_P.eps
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/grid/search_t-P_N.eps
+	scale 56
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/grid/search2_t-P_N.eps
+	scale 56
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "cluster_search_t-N-P"
+
+\end_inset
+
+
+\lang english
+Cluster
+\lang greek
+ -- Χρόνος 
+\lang english
+kNN
+\lang greek
+ σε συνάρτηση με μέγεθος προβλήματος και πλήθος διεργασιών
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/grid/ptComm_t-N_P.eps
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/grid/ptComm_t-P_N.eps
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "cluster_ptcomm_t-N-P"
+
+\end_inset
+
+
+\lang english
+Cluster
+\lang greek
+ -- Χρόνος επικοινωνιών σε συνάρτηση με μέγεθος προβλήματος και πλήθος διεργασιώ
+ν
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
 \begin_inset Newpage pagebreak
 \end_inset
 
@@ -806,59 +1401,63 @@ Hellasgrid
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
-\begin_inset Graphics
-	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/ptComm_t-m_parallelShared.eps
-
+\begin_inset space \hfill{}
 \end_inset
 
 
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-wide false
-sideways false
-status collapsed
-
-\begin_layout Plain Layout
 \begin_inset Graphics
 	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-m_parallelShared.eps
 
 \end_inset
 
 
-\end_layout
-
-\begin_layout Plain Layout
-
-\end_layout
-
+\begin_inset space \hfill{}
 \end_inset
 
 
 \end_layout
 
-\begin_layout Standard
-\begin_inset Float figure
-wide false
-sideways false
-status collapsed
-
 \begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
 \begin_inset Graphics
 	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-m_serial.eps
 
 \end_inset
 
 
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\lang english
+\begin_inset CommandInset label
+LatexCommand label
+name "laptop_search_t-m-N"
+
+\end_inset
+
+Laptop
+\lang greek
+ -- Χρόνος αναζήτησης ως προς πλήθος κύβων
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
 \end_layout
 
 \end_inset
@@ -870,7 +1469,83 @@ status collapsed
 \begin_inset Float figure
 wide false
 sideways false
-status collapsed
+status open
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-N_parallelShared.eps
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-N_serial.eps
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "laptop_search_t-N-m"
+
+\end_inset
+
+
+\lang english
+Laptop
+\lang greek
+ -- Χρόνος αναζήτησης ως προς μέγεθος προβλήματος -- Προσοχή στα όρια του
+ 
+\lang english
+x
+\lang greek
+ άξονα!
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status open
 
 \begin_layout Plain Layout
 \begin_inset Graphics
@@ -878,58 +1553,6 @@ status collapsed
 
 \end_inset
 
-
-\end_layout
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-N_parallelShared.eps
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Float figure
-wide false
-sideways false
-status open
-
-\begin_layout Plain Layout
-\begin_inset Graphics
-	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj2/src/analysis/search_t-N_serial.eps
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Plain Layout
 
 \end_layout
 

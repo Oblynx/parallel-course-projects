@@ -23,13 +23,17 @@ std::deque<Element> Search::query(const Element& q){
   searchLim_.l.x= qloc.x, searchLim_.h.x= qloc.x, searchLim_.l.y= qloc.y;
   searchLim_.h.y= qloc.y, searchLim_.l.z= qloc.z, searchLim_.h.z= qloc.z;
   search(q,nn,searchSpace);
+  int expansions=0;
   // If the greatest kNN distance (squared!) found is bigger than the distance from the boundary, expand search
-  if(nn.empty() || (nn.top()->dist(q) > cubeArray_.distFromBoundary(q,qloc)*cubeArray_.distFromBoundary(q,qloc)))
-    do{
+  while( nn.size() < param.k ||
+         nn.top()->dist(q) > (cubeArray_.distFromBoundary(q,qloc)+expansions)*
+                             (cubeArray_.distFromBoundary(q,qloc)+expansions) )
+    {
       //PRINTF("[Query#%d]: Not found! Expanding\n", mpi.rank()); 
       expand(searchSpace);
+      expansions++;
       search(q,nn,searchSpace);
-    }while( nn.size() < param.k );
+    }
 
   deque<Element> results;
   while(!nn.empty()){
