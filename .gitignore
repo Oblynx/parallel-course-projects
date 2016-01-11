@@ -1,5 +1,10 @@
 # Bins
 build/
+# Backups
+*.swp
+*.swa
+*.swo
+*~
 # Hidden
 .*
 # Compiled Object files
