@@ -7,7 +7,7 @@ include_directories(
   include
 )
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2 -march=native")
-list(APPEND CUDA_NVCC_FLAGS "--compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg")
+list(APPEND CUDA_NVCC_FLAGS "-std=c++11 --compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg")
 ### Debugging options
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
   set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -Og -fno-omit-frame-pointer -march=native")

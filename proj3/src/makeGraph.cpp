@@ -7,6 +7,7 @@
 using namespace std;
 
 #define INF INT_MAX
+#define INF 999
 
 int main(int argc, char** argv){
   FILE* out;
