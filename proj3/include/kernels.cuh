@@ -1,4 +1,4 @@
-__global__ void fw(int* g, int N, int k){
+__global__ void fw_simple(int* g, int N, int k){
   int x= blockIdx.x*blockDim.x + threadIdx.x, y= blockIdx.y*blockDim.y + threadIdx.y;
   if(x<N && y<N){
     int v1= g[y*N+k], v2= g[k*N+x];
@@ -68,7 +68,7 @@ __global__ void phase3(int* g, const int pstart, const int primary_n, const int 
 }
 
 template<int n>
-__global__ void phase1m(int* g, const int pstart, const int N){
+__global__ void phase1_multixy(int* g, const int pstart, const int N){
   __shared__ int tile[n][n];
   tile[2*threadIdx.y][2*threadIdx.x]= g[ (pstart+2*threadIdx.y)*N + pstart+2*threadIdx.x ];
   tile[2*threadIdx.y][2*threadIdx.x+1]= g[ (pstart+2*threadIdx.y)*N + pstart+2*threadIdx.x+1 ];
@@ -95,7 +95,7 @@ __global__ void phase1m(int* g, const int pstart, const int N){
 }
 
 template<int n>
-__global__ void phase2m(int* g, const int pstart, const int primary_n, const int N){
+__global__ void phase2_multixy(int* g, const int pstart, const int primary_n, const int N){
   __shared__ int tile[n][n], primary[n][n];
   int blkIdx_skip= (blockIdx.x >= primary_n)? blockIdx.x+1: blockIdx.x;      // skip primary tile
   int x_t= (blockIdx.y)? blkIdx_skip*n+2*threadIdx.x: pstart+2*threadIdx.x;     // tile coordinates
@@ -144,7 +144,7 @@ __global__ void phase2m(int* g, const int pstart, const int primary_n, const int
 }
 
 template<int n>
-__global__ void phase3m(int* g, const int pstart, const int primary_n, const int N){
+__global__ void phase3_multixy(int* g, const int pstart, const int primary_n, const int N){
   __shared__ int tile[n][n], row[n][n], col[n][n];
   int blkIdx_xskip= (blockIdx.x >= primary_n)? blockIdx.x+1: blockIdx.x;     // skip primary tile
   int blkIdx_yskip= (blockIdx.y >= primary_n)? blockIdx.y+1: blockIdx.y;
@@ -184,7 +184,7 @@ __global__ void phase3m(int* g, const int pstart, const int primary_n, const int
 
 
 template<int n>
-__global__ void phase1m2(int* g, const int pstart, const int N){
+__global__ void phase1_multiy(int* g, const int pstart, const int N){
   __shared__ int tile[n][n];
   tile[2*threadIdx.y][threadIdx.x]= g[ (pstart+2*threadIdx.y)*N + pstart+threadIdx.x ];
   tile[2*threadIdx.y+1][threadIdx.x]= g[ (pstart+2*threadIdx.y+1)*N + pstart+threadIdx.x ];
@@ -203,7 +203,7 @@ __global__ void phase1m2(int* g, const int pstart, const int N){
 }
 
 template<int n>
-__global__ void phase2m2(int* g, const int pstart, const int primary_n, const int N){
+__global__ void phase2_multiy(int* g, const int pstart, const int primary_n, const int N){
   __shared__ int tile[n][n], primary[n][n];
   int blkIdx_skip= (blockIdx.x >= primary_n)? blockIdx.x+1: blockIdx.x;      // skip primary tile
   int x_t= (blockIdx.y)? blkIdx_skip*n+threadIdx.x: pstart+threadIdx.x;     // tile coordinates
@@ -237,7 +237,7 @@ __global__ void phase2m2(int* g, const int pstart, const int primary_n, const in
 }
 
 template<int n>
-__global__ void phase3m2(int* g, const int pstart, const int primary_n, const int N){
+__global__ void phase3_multiy(int* g, const int pstart, const int primary_n, const int N){
   __shared__ int tile[n][n], row[n][n], col[n][n];
   int blkIdx_xskip= (blockIdx.x >= primary_n)? blockIdx.x+1: blockIdx.x;     // skip primary tile
   int blkIdx_yskip= (blockIdx.y >= primary_n)? blockIdx.y+1: blockIdx.y;

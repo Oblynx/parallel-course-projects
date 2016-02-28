@@ -14,6 +14,16 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
   add_definitions(-DDEBUG)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
+add_definitions(-DLOG)
+
 #######################   Project3   ###############################
+add_library(run_cpu src/run_cpu.cpp)
+cuda_add_library(run_gpu src/run_gpu.cu)
+cuda_add_library(utils src/utils.cu)
+
 add_executable(makeGraph src/makeGraph.cpp)
-cuda_add_executable(fw src/main.cu)
+add_executable(fw src/main.cpp)
+target_link_libraries(fw
+  utils
+  run_cpu
+  run_gpu)
