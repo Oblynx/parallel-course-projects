@@ -5,10 +5,9 @@
 #include "kernels.cu"
 using namespace std;
 
-#define gpuErrchk(ans) gpuAssert((ans), __FILE__, __LINE__)
-#define MAX_THRpBLK2D 32
 #define NO_TEST
 
+#define gpuErrchk(ans) gpuAssert((ans), __FILE__, __LINE__)
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true){
   if (code != cudaSuccess) {
     fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
@@ -84,6 +83,7 @@ Duration_fsec run_cpu(const HPinPtr<int>& g, const int N, unique_ptr<int[]>& res
   return cpu_time;
 }
 
+#define MAX_THRpBLK2D 16
 // simple GPU Floyd-Warshall
 Duration_fsec run_GPUsimple(const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth){
   DPtr<int> d_g(N*N);
@@ -110,6 +110,7 @@ Duration_fsec run_GPUsimple(const HPinPtr<int>& g, const int N, const unique_ptr
   return GPUSimple_time;
 }
 
+#define MAX_THRpBLK2D 16
 // GPU block algo
 Duration_fsec run_GPUblock(const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth ){
   DPtr<int> d_g(N*N);
@@ -119,7 +120,6 @@ Duration_fsec run_GPUblock(const HPinPtr<int>& g, const int N, const unique_ptr<
   const int B= N/n;
   dim3 bs(MAX_THRpBLK2D, MAX_THRpBLK2D);
   if(N<MAX_THRpBLK2D) bs= dim3(N,N);
-  dim3 gs(N/bs.x, N/bs.y);
 
   printf("Launching GPU block algo with %d primary blocks\n", B);
   /*clk*/auto start= chrono::system_clock::now();
@@ -142,6 +142,72 @@ Duration_fsec run_GPUblock(const HPinPtr<int>& g, const int N, const unique_ptr<
   }
   return GPUBlock_time; 
 }
+
+#define MAX_THRpBLK2D 32
+// GPU block algo -- multiple vertices per thread (x,y)
+Duration_fsec run_GPUblock_multi(const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth ){
+  DPtr<int> d_g(N*N);
+  cudaDeviceSynchronize();
+  HPinPtr<int> result_block(N*N);
+  constexpr const int n= MAX_THRpBLK2D;
+  const int B= N/n;
+  dim3 bs(n/2, n/2);
+  if(N<MAX_THRpBLK2D) bs= dim3(N,N);
+
+  printf("Launching GPU multi block algo with %d primary blocks\n", B);
+  /*clk*/auto start= chrono::system_clock::now();
+  d_g.copy(g.get(), N*N, Dir::H2D);
+  for(int b=0; b<B; b++){
+    phase1m<n> <<<1,bs>>>(d_g, b*n, N);
+    phase2m<n> <<<dim3(B-1,2),bs>>>(d_g, b*n, b, N);
+    phase3m<n> <<<dim3(B-1,B-1),bs>>>(d_g, b*n, b, N);
+  }
+  d_g.copy(result_block.get(), N*N, Dir::D2H);
+  /*clk*/auto GPUBlock_time= chrono::duration_cast<Duration_fsec>(chrono::system_clock::now() - start);
+  printf("GPU multi block kernel done: %.3f\n", GPUBlock_time.count());
+#ifdef LOG
+  fprintf(logfile, "%.3f;", GPUBlock_time.count());
+#endif
+  auto check= test(result_block, groundTruth, N, "GPUblock_multi");
+  if(!check){
+    printf("[GPUblock_multi]: Test FAILED!\n");
+    exit(1);
+  }
+  return GPUBlock_time; 
+}
+
+#define MAX_THRpBLK2D 32
+// GPU block algo -- multiple vertices per thread (y only)
+Duration_fsec run_GPUblock_multi2(const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth ){
+  DPtr<int> d_g(N*N);
+  cudaDeviceSynchronize();
+  HPinPtr<int> result_block(N*N);
+  constexpr const int n= MAX_THRpBLK2D;
+  const int B= N/n;
+  dim3 bs(n, n/2);
+
+  printf("Launching GPU multi2 block algo with %d primary blocks\n", B);
+  /*clk*/auto start= chrono::system_clock::now();
+  d_g.copy(g.get(), N*N, Dir::H2D);
+  for(int b=0; b<B; b++){
+    phase1m2<n> <<<1,bs>>>(d_g, b*n, N);
+    phase2m2<n> <<<dim3(B-1,2),bs>>>(d_g, b*n, b, N);
+    phase3m2<n> <<<dim3(B-1,B-1),bs>>>(d_g, b*n, b, N);
+  }
+  d_g.copy(result_block.get(), N*N, Dir::D2H);
+  /*clk*/auto GPUBlock_time= chrono::duration_cast<Duration_fsec>(chrono::system_clock::now() - start);
+  printf("GPU multi2 block kernel done: %.3f\n", GPUBlock_time.count());
+#ifdef LOG
+  fprintf(logfile, "%.3f;", GPUBlock_time.count());
+#endif
+  auto check= test(result_block, groundTruth, N, "GPUblock_multi2");
+  if(!check){
+    printf("[GPUblock_multi2]: Test FAILED!\n");
+    exit(1);
+  }
+  return GPUBlock_time; 
+}
+
 
 int main(int argc, char** argv){
   FILE* fin= stdin;
@@ -180,8 +246,10 @@ int main(int argc, char** argv){
 #ifndef NO_TEST
   run_cpu(g,N, groundTruth);
 #endif
-  run_GPUsimple(g,N, groundTruth);
+  //run_GPUsimple(g,N, groundTruth);
   run_GPUblock(g,N, groundTruth);
+  run_GPUblock_multi(g,N, groundTruth);
+  run_GPUblock_multi2(g,N, groundTruth);
 
 #ifdef LOG
   fprintf(logfile, "\n");
