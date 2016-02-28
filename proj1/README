@@ -1,5 +1,0 @@
-- Το αρχείο pbitonic-stdthread.cpp εξαρτάται από τη βιβλιοθήκη thread_pool.cpp
-- Στο χτίσιμο απαιτείται compiler flag -std=c++11 ή -std=c++14
-
-Release:    https://github.com/Oblynx/parallel-course-projects/releases/tag/1.0
-

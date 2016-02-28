@@ -1,9 +1,0 @@
-Job id                    Name             User            Time Use S Queue
-------------------------- ---------------- --------------- -------- - -----
-3274177.cream01            kNNmpi_16n8p     kisamara               0 Q auth           
-3274182.cream01            kNNmpi_8n8p      kisamara               0 Q auth           
-3274188.cream01            kNNmpi_8n4p      kisamara               0 Q auth           
-3274190.cream01            kNNmpi_4n4p      kisamara        00:01:55 R auth           
-3274191.cream01            kNNmpi_2n4p      kisamara        00:03:45 R auth           
-3274195.cream01            kNNmpi_1n4p      kisamara        00:00:00 R auth           
-3274196.cream01            kNNmpi_serial    kisamara               0 R auth           
