@@ -3,7 +3,6 @@
 #include <chrono>
 #include <cstdio>
 
-#define NO_TEST
 
 template<class T>
 struct HPinPtr{

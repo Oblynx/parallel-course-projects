@@ -70,7 +70,7 @@ Duration_fsec run_GPUblock(const HPinPtr<int>& g, const int N, const unique_ptr<
 }
 #undef MAX_THRpBLK2D
 
-#define MAX_THRpBLK2D 16
+#define MAX_THRpBLK2D 32
 // GPU block algo -- multiple vertices per thread (x,y)
 Duration_fsec run_GPUblock_multixy(const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth,
     FILE* logfile){
@@ -105,7 +105,7 @@ Duration_fsec run_GPUblock_multixy(const HPinPtr<int>& g, const int N, const uni
 }
 #undef MAX_THRpBLK2D
 
-#define MAX_THRpBLK2D 16
+#define MAX_THRpBLK2D 32
 // GPU block algo -- multiple vertices per thread (y only)
 Duration_fsec run_GPUblock_multiy(const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth,
     FILE* logfile ){

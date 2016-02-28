@@ -17,20 +17,24 @@ extern Duration_fsec run_GPUblock_multiy(const HPinPtr<int>& g, const int N, con
 
 int main(int argc, char** argv){
   FILE* fin= stdin;
-  if(argc>2 && !strcmp(argv[1],"-i")) fin= fopen(argv[2], "r");
-  else if(argc>4 && strcmp(argv[3],"-i")) fin= fopen(argv[4], "r");
+  int inSpecified= 0;
+  for(int i=1; i<argc; i++) if(!strcmp(argv[i],"-i")) inSpecified= i;
+  if(inSpecified) fin= fopen(argv[inSpecified+1], "r");
+  else printf("Reading from stdin\n");
   if (fin==NULL){
     printf("Wrong input file\n");
     exit(3);
   }
   FILE* logfile= stdout;
 #ifdef LOG
-  if(argc<2 || (!strcmp(argv[1],"-l") && (argc<4 || !strcmp(argv[3], "-l")))){
-    printf("Logging mode enabled. To run, specify logfile path as command line argument:\nUse: %s -l <logfile>\n", argv[0]);
+  int logSpecified= 0;
+  for(int i=1; i<argc; i++) if(!strcmp(argv[i],"-l")) logSpecified= i;
+  if(!logSpecified){
+    printf("Logging mode enabled. To run, specify logfile path as command line argument:\n\
+            Use: %s [-i <inputfile>] -l <logfile>\n", argv[0]);
     exit(2);
   }
-  int l_idx= (argc==3)? 2: 4;
-  logfile= fopen(argv[l_idx], "a");
+  logfile= fopen(argv[logSpecified+1], "a");
   if(logfile==NULL){
     printf("Wrong log file\n");
     exit(4);
@@ -42,6 +46,7 @@ int main(int argc, char** argv){
 
   int N;
   while(!fscanf(fin, "%d\n", &N));
+  N= 1<<N;
   HPinPtr<int> g(N*N);
   unique_ptr<int[]> groundTruth(new int[N*N]);
   for(int i=0; i<N; i++)
@@ -55,7 +60,7 @@ int main(int argc, char** argv){
 #ifndef NO_TEST
   run_cpu(g,N, groundTruth, logfile);
 #endif
-  run_GPUsimple(g,N, groundTruth, logfile);
+  //run_GPUsimple(g,N, groundTruth, logfile);
   run_GPUblock(g,N, groundTruth, logfile);
   run_GPUblock_multixy(g,N, groundTruth, logfile);
   run_GPUblock_multiy(g,N, groundTruth, logfile);
