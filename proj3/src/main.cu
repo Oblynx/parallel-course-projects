@@ -127,24 +127,36 @@ Duration_fsec run_GPUblock(const unique_ptr<int[]>&g, const int N, const unique_
   return GPUBlock_time; 
 }
 
-int main(){
-  int N;
-  scanf("%d\n", &N);
-  unique_ptr<int[]> g(new int[N*N]), groundTruth(new int[N*N]);
-  for(int i=0; i<N; i++)
-    for(int j=0; j<N; j++)
-      scanf("%d", &g[i*N+j]);
-  printf("\nN=%d\n", N);
-
+int main(int argc, char** argv){
+  FILE* fin= stdin;
+  if(argc>2 && !strcmp(argv[1],"-i")) fin= fopen(argv[2], "r");
+  else if(argc>4 && strcmp(argv[3],"-i")) fin= fopen(argv[4], "r");
+  if (fin==NULL){
+    printf("Wrong input file\n");
+    exit(3);
+  }
 #ifdef LOG
-  if(argc!=2){
-    printf("Logging mode enabled. To run, specify logfile path as command line argument. Aborting...\n");
+  if(argc<2 || (argv[1] != "-l" && (argc<4 || argv[3] != "-l"))){
+    printf("Logging mode enabled. To run, specify logfile path as command line argument:\nUse: %s -l <logfile>\n", argv[0]);
     exit(2);
   }
-  FILE* logfile= fopen(argv[1], "a");
+  int l_idx= (argc==3)? 2: 4;
+  FILE* logfile= fopen(argv[l_idx], "a");
+  if(logfile==NULL){
+    printf("Wrong log file\n");
+    exit(4);
+  }
   fprintf(logfile, "%d;", N);
 #endif
 
+  int N;
+  while(!fscanf(fin, "%d\n", &N));
+  unique_ptr<int[]> g(new int[N*N]), groundTruth(new int[N*N]);
+  for(int i=0; i<N; i++)
+    for(int j=0; j<N; j++)
+      while(!fscanf(fin, "%d", &g[i*N+j]));
+  printf("\nN=%d\n", N);
+  
   run_cpu(g,N, groundTruth);
   run_GPUsimple(g,N, groundTruth);
   run_GPUblock(g,N, groundTruth);
