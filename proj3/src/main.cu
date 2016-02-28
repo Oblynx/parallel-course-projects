@@ -7,6 +7,7 @@ using namespace std;
 
 #define gpuErrchk(ans) gpuAssert((ans), __FILE__, __LINE__)
 #define MAX_THRpBLK2D 32
+#define NO_TEST
 
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true){
   if (code != cudaSuccess) {
@@ -21,13 +22,24 @@ template<class T>
 struct DPtr{
   DPtr(int N) { gpuErrchk(cudaMalloc(&data_, N*sizeof(T))); }
   ~DPtr() { cudaFree(data_); }
-  void copy(T* a, int N, Dir dir) {
+  void copy (T* a, int N, Dir dir) {
     if(dir == Dir::H2D) gpuErrchk(cudaMemcpy(data_, a, sizeof(T)*N, cudaMemcpyHostToDevice));
     else gpuErrchk(cudaMemcpy(a, data_, sizeof(T)*N, cudaMemcpyDeviceToHost));
   }
-  T* get() { return data_; }
-  operator T*() { return data_; }
-private:
+  T* get() const { return data_; }
+  operator T*() const { return data_; }
+  private:
+  T* data_;
+};
+
+template<class T>
+struct HPinPtr{
+  HPinPtr(int N) { gpuErrchk(cudaHostAlloc(&data_, N*sizeof(T), cudaHostAllocDefault)); }
+  ~HPinPtr() { cudaFreeHost(data_); }
+  T& operator[](size_t i) const { return data_[i]; }
+  operator T*() const { return data_; }
+  T* get() const { return data_; } 
+  private:
   T* data_;
 };
 
@@ -42,7 +54,8 @@ void printG(unique_ptr<int[]>& g, int N){
 
 typedef chrono::duration<float, ratio<1>> Duration_fsec;
 
-bool test(const unique_ptr<int[]>& toCheck, const unique_ptr<int[]>& truth, const int N, string name){
+bool test(const HPinPtr<int>& toCheck, const unique_ptr<int[]>& truth, const int N, string name){
+#ifndef NO_TEST
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
       if(toCheck[i*N+j] != truth[i*N+j]){
@@ -50,11 +63,12 @@ bool test(const unique_ptr<int[]>& toCheck, const unique_ptr<int[]>& truth, cons
             truth[i*N+j]);
         return false;
       }
+#endif
   return true;
 }
 
 // CPU Floyd-Warshall
-Duration_fsec run_cpu(const unique_ptr<int[]>& g, const int N, unique_ptr<int[]>& result_cpu){
+Duration_fsec run_cpu(const HPinPtr<int>& g, const int N, unique_ptr<int[]>& result_cpu){
   for(int i=0; i<N*N; i++) result_cpu[i]= g[i];     // Work on a copy of the data
   /*clk*/auto start= chrono::system_clock::now();
   for(int k=0; k<N; k++)
@@ -71,9 +85,10 @@ Duration_fsec run_cpu(const unique_ptr<int[]>& g, const int N, unique_ptr<int[]>
 }
 
 // simple GPU Floyd-Warshall
-Duration_fsec run_GPUsimple(const unique_ptr<int[]>&g, const int N, const unique_ptr<int[]>& groundTruth){
+Duration_fsec run_GPUsimple(const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth){
   DPtr<int> d_g(N*N);
-  unique_ptr<int[]> result_simple(new int[N*N]);
+  cudaDeviceSynchronize();
+  HPinPtr<int> result_simple(N*N);
   dim3 bs(MAX_THRpBLK2D, MAX_THRpBLK2D);
   if(N<MAX_THRpBLK2D) bs= dim3(N,N);
   dim3 gs(N/bs.x, N/bs.y);
@@ -96,9 +111,10 @@ Duration_fsec run_GPUsimple(const unique_ptr<int[]>&g, const int N, const unique
 }
 
 // GPU block algo
-Duration_fsec run_GPUblock(const unique_ptr<int[]>&g, const int N, const unique_ptr<int[]>& groundTruth ){
+Duration_fsec run_GPUblock(const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth ){
   DPtr<int> d_g(N*N);
-  unique_ptr<int[]> result_block(new int[N*N]);
+  cudaDeviceSynchronize();
+  HPinPtr<int> result_block(N*N);
   constexpr const int n= MAX_THRpBLK2D;
   const int B= N/n;
   dim3 bs(MAX_THRpBLK2D, MAX_THRpBLK2D);
@@ -148,16 +164,22 @@ int main(int argc, char** argv){
   }
   fprintf(logfile, "%d;", N);
 #endif
+#ifdef NO_TEST
+  printf("WARNING! No_TEST has been defined\n\n");
+#endif
 
   int N;
   while(!fscanf(fin, "%d\n", &N));
-  unique_ptr<int[]> g(new int[N*N]), groundTruth(new int[N*N]);
+  HPinPtr<int> g(N*N);
+  unique_ptr<int[]> groundTruth(new int[N*N]);
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
       while(!fscanf(fin, "%d", &g[i*N+j]));
   printf("\nN=%d\n", N);
   
+#ifndef NO_TEST
   run_cpu(g,N, groundTruth);
+#endif
   run_GPUsimple(g,N, groundTruth);
   run_GPUblock(g,N, groundTruth);
 
