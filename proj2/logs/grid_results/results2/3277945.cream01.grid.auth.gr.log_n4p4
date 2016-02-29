@@ -1,0 +1,476 @@
+0;1,21,13;0.163533,0.300031,4.121218
+0;1,21,14;0.371985,0.446631,1.852190
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 15511 RUNNING AT wn029.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 15523 RUNNING AT wn029.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:2@wn016.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:2@wn016.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:2@wn016.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff631ed764, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_recv_handler(1652): Communication error with rank 13
+MPID_nem_tcp_recv_handler(1559): socket closed
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 15532 RUNNING AT wn029.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 64676 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): [mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+0;1,22,13;0.470949,0.826666,14.906829
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 29249 RUNNING AT wn019.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:2@wn016.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:2@wn016.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:2@wn016.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 64714 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 15579 RUNNING AT wn029.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:2@wn016.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:2@wn016.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:2@wn016.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 64731 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+0;1,23,13;0.866154,1.317223,66.517418
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 29320 RUNNING AT wn019.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:2@wn016.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:2@wn016.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:2@wn016.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 33559 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 33568 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 15726 RUNNING AT wn029.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+0;1,24,13;1.118832,2.217571,244.276211
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff9a536b44, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fffc60916c4, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff5d075544, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff2987bcc4, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fffcf200144, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fffc31198c4, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff4d1007c4, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff099d8244, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7ffff0da8dc4, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff8d5eae44, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 0: Connection reset by peer
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 29486 RUNNING AT wn019.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:2@wn016.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:2@wn016.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:2@wn016.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff5716fa64, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(834): 
+dequeue_and_set_error(865).....: Communication error with rank 1
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 29501 RUNNING AT wn019.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:2@wn016.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:2@wn016.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:2@wn016.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 33714 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fff4f6b3ee4, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 15: Connection reset by peer
+Fatal error in PMPI_Wait: A process has failed, error stack:
+PMPI_Wait(180).................: MPI_Wait(request=0x7fffc10eec64, status=0x1) failed
+MPIR_Wait_impl(69).............: 
+MPIDI_CH3I_Progress(462).......: 
+MPIDU_Sched_progress_state(816): 
+MPID_nem_tcp_connpoll(1833)....: Communication error with rank 15: Connection reset by peer
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 15911 RUNNING AT wn029.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+0;1,25,13;2.343877,4.384762,856.205416
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 30491 RUNNING AT wn019.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:2@wn016.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:2@wn016.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:2@wn016.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 34690 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 34701 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
+
+===================================================================================
+=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES
+=   PID 34710 RUNNING AT wn016.grid.auth.gr
+=   EXIT CODE: 139
+=   CLEANING UP REMAINING PROCESSES
+=   YOU CAN IGNORE THE BELOW CLEANUP MESSAGES
+===================================================================================
+[proxy:0:0@wn019.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:0@wn019.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:0@wn019.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:1@wn017.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:1@wn017.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:1@wn017.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[proxy:0:3@wn029.grid.auth.gr] HYD_pmcd_pmip_control_cmd_cb (pm/pmiserv/pmip_cb.c:885): assert (!closed) failed
+[proxy:0:3@wn029.grid.auth.gr] HYDT_dmxu_poll_wait_for_event (tools/demux/demux_poll.c:76): callback returned error status
+[proxy:0:3@wn029.grid.auth.gr] main (pm/pmiserv/pmip.c:206): demux engine error waiting for event
+[mpiexec@wn019.grid.auth.gr] HYDT_bscu_wait_for_completion (tools/bootstrap/utils/bscu_wait.c:76): one of the processes terminated badly; aborting
+[mpiexec@wn019.grid.auth.gr] HYDT_bsci_wait_for_completion (tools/bootstrap/src/bsci_wait.c:23): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] HYD_pmci_wait_for_completion (pm/pmiserv/pmiserv_pmci.c:218): launcher returned error waiting for completion
+[mpiexec@wn019.grid.auth.gr] main (ui/mpich/mpiexec.c:344): process manager error waiting for completion
