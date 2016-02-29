@@ -1,0 +1,1133 @@
+#LyX 2.1 created this file. For more info see http://www.lyx.org/
+\lyxformat 474
+\begin_document
+\begin_header
+\textclass scrartcl
+\use_default_options true
+\begin_modules
+fixltx2e
+fix-cm
+\end_modules
+\maintain_unincluded_children false
+\language greek
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_math auto
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2cm
+\topmargin 2.5cm
+\rightmargin 2cm
+\bottommargin 2.5cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language french
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Εργασία 3.5: 
+\lang english
+CUDA
+\lang greek
+ 
+\end_layout
+
+\begin_layout Subtitle
+Υλοποίηση αλγορίθμων 
+\lang english
+APSP
+\end_layout
+
+\begin_layout Author
+Κωνσταντίνος Σαμαράς-Τσακίρης
+\end_layout
+
+\begin_layout Subsection*
+Στόχος
+\end_layout
+
+\begin_layout Standard
+Η υλοποίηση 3 πυρήνων 
+\lang english
+CUDA 
+\lang greek
+που να επιλύουν το πρόβλημα 
+\lang english
+APSP
+\lang greek
+:
+\end_layout
+
+\begin_layout Enumerate
+Με τον πιο απλό τρόπο
+\end_layout
+
+\begin_layout Enumerate
+Με χρήση κοινής μνήμης
+\end_layout
+
+\begin_layout Enumerate
+Με επεξεργασία >1 στοιχείων ανά νήμα
+\end_layout
+
+\begin_layout Subsection*
+Σχόλια
+\end_layout
+
+\begin_layout Standard
+Ο κώδικας βρίσκεται στο 
+\lang english
+Github
+\lang greek
+: 
+\lang english
+
+\begin_inset CommandInset href
+LatexCommand href
+target "https://github.com/Oblynx/parallel-course-projects/tree/p3"
+
+\end_inset
+
+
+\lang greek
+.
+ Η αναφορά
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-1"
+
+\end_inset
+
+ βρίσκεται εδώ: 
+\lang english
+
+\begin_inset CommandInset href
+LatexCommand href
+target "http://repository.upenn.edu/cgi/viewcontent.cgi?article=1213&context=hms"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Μέθοδος παραλληλοποίησης
+\end_layout
+
+\begin_layout Subsection
+Απλή (
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+simple_gpu
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Standard
+Ο σειριακός αλγόριθμος 
+\lang english
+Floyd-Warshall
+\lang greek
+ είναι φημισμένης απλότητας (βλ.
+ 
+\lang english
+Dijkstra
+\lang greek
+) και η πρώτη προσέγγιση παραλληλοποίησής του είναι εξίσου απλή.
+ Ο εξωτερικός βρόχος παραμένει σειριακός και παραλληλοποιείται η πρόσβαση
+ στα στοιχεία του πίνακα σε κάθε βήμα.
+ Κάθε στοιχείο αντιστοιχείται σε ένα νήμα, το οποίο εκτελεί ό,τι και ο σειριακός
+ για συγκεκριμένη θέση στον πίνακα.
+ Ο πυρήνας αυτός καλείται με το μέγιστο δυνατό 
+\lang english
+block size
+\lang greek
+, εν προκειμένω 32, και σε ένα πλέγμα μεγέθους ανάλογου του μεγέθους του
+ προβλήματος.
+\end_layout
+
+\begin_layout Subsection
+Χρήση κοινής μνήμης (
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+block_gpu
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Standard
+\begin_inset Wrap figure
+lines 0
+placement o
+overhang 0col%
+width "50col%"
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Graphics
+	filename fw_accessPattern.eps
+	scale 40
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\lang english
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Floyd-Warshall-access-pattern"
+
+\end_inset
+
+Floyd-Warshall access pattern
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Μια πρώτη προσπάθεια βελτίωσης της πρόσβασης στην κύρια μνήμη εξετάζει τις
+ θέσεις του πίνακα από τις οποίες καλούνται δεδομένα στην εκτέλεση του απλού
+ πυρήνα, για να εντοπίσει πού η πρόσβαση δεν είναι συνενωμένη.
+ Όπως φαίνεται στο σχήμα 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Floyd-Warshall-access-pattern"
+
+\end_inset
+
+, αν θεωρήσουμε ότι ένα 
+\lang english
+thread block
+\lang greek
+ βρίσκεται γύρω από τη θέση 
+\begin_inset Formula $(x,y)$
+\end_inset
+
+, θα κληθούν από τη μνήμη οι ομάδες δεδομένων 
+\begin_inset Formula $(x,k)$
+\end_inset
+
+ και 
+\begin_inset Formula $(k,y)$
+\end_inset
+
+.
+ Τα δεδομένα στο 
+\begin_inset Formula $(x,k)$
+\end_inset
+
+ θα χρησιμοποιηθούν από κάθε επόμενο 
+\lang english
+warp
+\lang greek
+, άρα η τοπική τους αποθήκευση είναι πολύ σημαντική.
+ Η πρόσβαση σε αυτή την περιοχή μνήμης όμως είναι εξ αρχής συνενωμένη.
+\end_layout
+
+\begin_layout Standard
+Οι 
+\lang english
+GPU
+\lang greek
+ με 
+\lang english
+compute capability
+\lang greek
+ τουλάχιστον 2 υλοποιούν στο υλικό 
+\lang english
+caching
+\lang greek
+ της κύριας μνήμης.
+ Αυτό καλύπτει τις ανάγκες τοπικής φύλαξης των δεδομένων 
+\begin_inset Formula $(x,k)$
+\end_inset
+
+, άρα η χρήση της κοινής μνήμης θα πρέπει να στοχεύσει στην αποθήκευση των
+ δεδομένων της περιοχής 
+\begin_inset Formula $(k,y)$
+\end_inset
+
+.
+ Αν θεωρήσουμε ότι το πλάτος της περιοχής 
+\begin_inset Formula $(x,y)$
+\end_inset
+
+ είναι 32, τότε κάθε 
+\lang english
+warp
+\lang greek
+ καλεί μονάχα 1 στοιχείο από την περιοχή 
+\lang english
+(k,y)
+\lang greek
+, ενώ τα στοιχεία που βρίσκονται στις δεξιότερες στήλες, 
+\begin_inset Formula $(k+1,y),(k+2,y),...$
+\end_inset
+
+, και τα οποία η μνήμη θα μπορούσε να παράσχει στον ίδιο χρόνο, δε χρησιμοποιούν
+ται παρά μόνο στον επόμενο πυρήνα.
+\end_layout
+
+\begin_layout Standard
+Η παρατήρηση αυτής της δομής προκαλεί το ερώτημα σχεδίασης ενός εναλλακτικού
+ αλγορίθμου που να επεξεργάζεται τα δεδομένα του πίνακα σε στάδια και σε
+ μικρές κάθε φορά περιοχές που εφεξής θα καλούνται 
+\series bold
+πλακίδια
+\series default
+.
+\end_layout
+
+\begin_layout Subsubsection*
+
+\lang english
+Block algorithm
+\end_layout
+
+\begin_layout Standard
+Εντόπισα έναν τέτοιο ακριβώς αλγόριθμο στο άρθρο
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-1"
+
+\end_inset
+
+ που παρέχεται μαζί με την εργασία (
+\lang english
+apsp_blockalgo.pdf
+\lang greek
+), επομένως εδώ δε θα τον περιγράψω αναλυτικά.
+\end_layout
+
+\begin_layout Standard
+Συνοπτικά, ο αλγόριθμος χωρίζει τον πίνακα σε 
+\begin_inset Formula $Β$
+\end_inset
+
+ πλακίδια μεγέθους 
+\begin_inset Formula $n$
+\end_inset
+
+ και εφαρμόζει τα εξής για 
+\begin_inset Formula $Β$
+\end_inset
+
+ επαναλήψεις:
+\end_layout
+
+\begin_layout Enumerate
+Φάση 1: Επίλυση του προβλήματος 
+\lang english
+APSP
+\lang greek
+ στο τρέχον (κύριο) πλακίδιο, δηλαδή εντοπισμός των ελάχιστων μονοπατιών
+ που δεν ξεφεύγουν από τα όρια του πλακιδίου.
+ Μέγεθος πλέγματος: 
+\begin_inset Formula $1\times1$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Enumerate
+Φάση 2: Για κάθε πλακίδιο στην ίδια στήλη ή γραμμή με το κύριο, εξεύρεση
+ των ελάχιστων μονοπατιών που χρησιμοποιούν αποκλειστικά κόμβους του κυρίου
+ πλακιδίου ως ενδιάμεσους.
+ Μέγεθος πλέγματος: 
+\begin_inset Formula $(B-1)\times2$
+\end_inset
+
+ 
+\end_layout
+
+\begin_layout Enumerate
+Φάση 3: Για όλα τα υπόλοιπα πλακίδια, εξεύρεση των ελάχιστων μονοπατιών
+ που χρησιμοποιούν αποκλειστικά κόμβους του κυρίου πλακιδίου ως ενδιάμεσους.
+ Μέγεθος πλέγματος: 
+\begin_inset Formula $(B-1)\times(B-1)$
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Πολλαπλά στοιχεία ανά νήμα (
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+multi_xy
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+, 
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+multi_y
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+)
+\end_layout
+
+\begin_layout Standard
+Πάνω στον προηγούμενο αλγόριθμο δοκιμάστηκαν 2 προσεγγίσεις τέτοιας μορφής.
+ Κάθε νήμα 
+\begin_inset Formula $(x,y)$
+\end_inset
+
+ αναλαμβάνει τα στοιχεία:
+\end_layout
+
+\begin_layout Enumerate
+\begin_inset Formula $(2x,2y),(2x+1,2y),(2x,2y+1),(2x+1,2y+1)$
+\end_inset
+
+, δηλαδή ένα τετράγωνο 
+\begin_inset Formula $2\times2$
+\end_inset
+
+ στοιχείων
+\end_layout
+
+\begin_layout Enumerate
+\begin_inset Formula $(x,2y),(x,2y+1)$
+\end_inset
+
+, δηλαδή ένα ορθογώνιο 
+\begin_inset Formula $2\times1$
+\end_inset
+
+ στοιχείων
+\end_layout
+
+\begin_layout Standard
+Ο αλγόριθμος έμεινε ολόιδιος, με εξαίρεση την αλλαγή του 
+\lang english
+block size
+\lang greek
+.
+ Στην πρώτη περίπτωση και οι 2 διαστάσεις του υποδιπλασιάστηκαν, ενώ στη
+ 2η μόνο η διάσταση 
+\lang english
+y
+\lang greek
+.
+\end_layout
+
+\begin_layout Section
+Έλεγχος ορθότητας
+\end_layout
+
+\begin_layout Standard
+Με δεδομένη την απλότητα του σειριακού αλγορίθμου, ο έλεγχος ορθότητας πραγματοπ
+οιείται επιλύοντας το πρόβλημα σειριακά και συγκρίνοντας το αποτέλεσμα κάθε
+ παράλληλου αλγορίθμου με αυτό.
+ Σε περίπτωση που βρεθεί σφάλμα, το πρόγραμμα ειδοποιεί και σταματά.
+ Ο έλεγχος ορθότητας και η χρονοβόρα σειριακή επίλυση γενικότερα μπορούν
+ να αποφευχθούν με τον ορισμό της παραμέτρου 
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+NO_TEST
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+ κατά τη μεταγλώττιση.
+\end_layout
+
+\begin_layout Section
+Μετρήσεις
+\end_layout
+
+\begin_layout Subsubsection*
+Μέγεθος προβλήματος
+\end_layout
+
+\begin_layout Standard
+Η τάξη πολυπλοκότητας του αλγορίθμου είναι 
+\begin_inset Formula $O\left(n^{3}\right)$
+\end_inset
+
+.
+ Στις πειραματικές μετρήσεις χρόνου επιβεβαιώνεται η έντονη μη γραμμικότητα.
+ Σε μέγεθος προβλήματος 
+\begin_inset Formula $2^{12}$
+\end_inset
+
+ ο απλός αλγόριθμος 
+\lang english
+GPU
+\lang greek
+ έχει επιτάχυνση 
+\begin_inset Formula $\times3$
+\end_inset
+
+, ενώ οι κατά πλακίδια βελτιώνουν πάνω σε αυτό σε βαθμό 
+\begin_inset Formula $\times3.5$
+\end_inset
+
+, με συνολική επιτάχυνση 
+\begin_inset Formula $\times9.5$
+\end_inset
+
+ προς το σειριακό αλγόριθμο.
+ Σε μεγεθος 
+\begin_inset Formula $2^{13}$
+\end_inset
+
+, η επιτάχυνση του απλού αλγορίθμου 
+\lang english
+GPU
+\lang greek
+ είναι 
+\begin_inset Formula $\times2$
+\end_inset
+
+, των πλακιδίων σε σχέση με τον απλό 
+\begin_inset Formula $\times3.5-\times4$
+\end_inset
+
+ και των πλακιδίων σε σχέση με το σειριακό 
+\begin_inset Formula $\times7.5$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Το άρθρο
+\begin_inset CommandInset citation
+LatexCommand cite
+key "key-1"
+
+\end_inset
+
+ που προτείνει τον αλγόριθμο δηλώνει επιτάχυνση 
+\begin_inset Formula $\times60-\times130$
+\end_inset
+
+ σε σχέση με μια απλή σειριακή υλοποίηση, αλλά μόνο 
+\begin_inset Formula $\times2-\times4$
+\end_inset
+
+ απέναντι σε μια καλά ρυθμισμένη υλοποίηση 
+\lang english
+CPU
+\lang greek
+.
+ Ενώ ως προς μια απλή υλοποίηση 
+\lang english
+GPU
+\lang greek
+ δηλώνουν επιτάχυνση 
+\begin_inset Formula $\times5-\times6.5$
+\end_inset
+
+, που είναι σχετικά κοντά σε αυτό που πετυχαίνει τούτη η υλοποίηση.
+ Πιστεύω πως η τάξης μεγέθους διαφορά στην επιτάχυνση ως προς το σειριακό
+ αλγόριθμο σε σχέση με το άρθρο οφείλεται στη διαφορά στην ποιότητα του
+ υλικού ανάμεσα στο 
+\lang english
+CPU
+\lang greek
+ και 
+\lang english
+GPU
+\lang greek
+ σε αυτόν τον υπολογιστή, υπόθεση που δικαιολογεί τη σχετικά κοντινή τιμή
+ επιτάχυνσης ανάμεσα στον απλό και με πλακίδια αλγόριθμο 
+\lang english
+GPU
+\lang greek
+.
+\end_layout
+
+\begin_layout Subsubsection*
+
+\lang english
+Block size effect
+\end_layout
+
+\begin_layout Standard
+Στα 2 πειράματα που φαίνονται στο πλαίσιο 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:Σύγκριση-run1&2-στους"
+
+\end_inset
+
+ οι αλγόριθμοι πολλαπλών στοιχείων ανά νήμα εμφανίζουν διαφορετική συμπεριφορά
+ -- στο 
+\lang english
+run1
+\lang greek
+ είναι πιο αργοί από τον απλό αλγόριθμο κατά πλακίδια, ενώ στο 
+\lang english
+run2
+\lang greek
+ συμβαίνει το αντίστροφο.
+ Αυτό οφείλεται στο διαφορετικό 
+\lang english
+block size
+\lang greek
+ που δοκιμάστηκε για αυτούς: ενώ το 
+\lang english
+block size
+\lang greek
+ του 
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+block_gpu
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+ παραμένει σταθερό στο 
+\begin_inset Formula $16\times16$
+\end_inset
+
+, οι 
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+multi_xy
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+ και 
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+multi_y
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+ στο 
+\lang english
+run1
+\lang greek
+ έχουν 
+\lang english
+block size
+\lang greek
+ 
+\begin_inset Formula $16\times16$
+\end_inset
+
+, ενώ στο 
+\lang english
+run2
+\lang greek
+ έχουν 
+\begin_inset Formula $32\times32$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Τα τελικά 
+\lang english
+block sizes
+\lang greek
+ που επιλέχθηκαν, 
+\begin_inset Formula $32\times32$
+\end_inset
+
+ για τους αλγορίθμους 
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+multi
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+ και 
+\begin_inset Formula $16\times16$
+\end_inset
+
+ για το 
+\begin_inset Quotes fld
+\end_inset
+
+
+\lang english
+block_gpu
+\lang greek
+
+\begin_inset Quotes frd
+\end_inset
+
+ προέκυψαν μετά από πειράματα και ανάλυση με τον 
+\lang english
+NVidia Visual Profiler
+\lang greek
+.
+ Είναι βέλτιστα
+\series bold
+ 
+\series default
+μόνο για την κάρτα στην οποία δοκιμάστηκαν.
+\end_layout
+
+\begin_layout Subsubsection*
+Συνδεσιμότητα γράφου
+\end_layout
+
+\begin_layout Standard
+\begin_inset Wrap table
+lines 0
+placement o
+overhang 0col%
+width "50col%"
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset Tabular
+<lyxtabular version="3" rows="2" columns="5">
+<features rotate="0" tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\lang english
+CPU
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\lang english
+simpleGPU
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\lang english
+blockGPU
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\lang english
+multi_xy
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\lang english
+multi_y
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $2.6049$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $0.0625$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $0.0070$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $0.0069$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+\begin_inset Formula $0.0069$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+Τυπικές αποκλίσεις χρόνου εκτέλεσης για διαφορετικές συνδεσιμότητες γράφου
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Οι μετρήσεις δείχνουν ότι το ποσοστό συνδέσεων στο γράφο δεν επηρεάζει την
+ ταχύτητα εκτέλεσης του αλγορίθμου.
+ Αυτό είναι αναμενόμενο, γιατί η μοναδική διαφορά ανάμεσα στην επίλυση ενός
+ προβλήματος μικρής συνδεσιμότητας σε σχέση με ένα πρόβλημα μεγάλης είναι
+ η συχνότητα εκτέλεσης μίας αποθήκευσης στη μνήμη.
+ Ειδικά στην περίπτωση της χρήσης κοινής μνήμης, το κόστος αυτό ανάγεται
+ σε 1 κύκλο μηχανής, είναι επομένως αμελητέο.
+\end_layout
+
+\begin_layout Standard
+Ο αλγόριθμος 
+\lang english
+Floyd-Warshall
+\lang greek
+ είναι προτιμητέος στους πυκνούς γράφους, όπου το πλήθος των ακμών είναι
+ ανάλογο του 
+\begin_inset Formula $N^{2}$
+\end_inset
+
+.
+ Αντίθετα, αν το πλήθος των ακμών είναι ανάλογο του 
+\begin_inset Formula $N$
+\end_inset
+
+ (αραιός γράφος), το 
+\lang english
+APSP
+\lang greek
+ μπορεί να επιλυθεί αποδοτικότερα με επαναληπτική εφαρμογή του αλγορίθμου
+ του 
+\lang english
+Dijkstra
+\lang greek
+ από κάθε κορυφή.
+\end_layout
+
+\begin_layout Bibliography
+\begin_inset CommandInset bibitem
+LatexCommand bibitem
+key "key-1"
+
+\end_inset
+
+
+\lang english
+Katz, G.
+ J., & Kider, J.
+ T.
+ (2008).
+ All-Pairs Shortest-Paths for Large Graphs on the GPU.
+ Proceedings of the 23rd ACM SIGGRAPH/ EUROGRAPHICS Symposium on Graphics
+ Hardware (GH '08), 47-55.
+ http://dx.doi.org/10.2312/EGGH/EGGH08/047-055
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj3/src/analysis/run2_full.eps
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\lang english
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Run2:-Χρόνος-εκτέλεσης"
+
+\end_inset
+
+Run2
+\lang greek
+: Χρόνος εκτέλεσης προς μέγεθος προβλήματος
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj3/src/analysis/run1.eps
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/oblivion/Documents/Thmmy/Examino7/parallel/parallel-course-projects/proj3/src/analysis/run2.eps
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:Σύγκριση-run1&2-στους"
+
+\end_inset
+
+Σύγκριση 
+\lang english
+run1&2
+\lang greek
+ στους ίδιους άξονες
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

@@ -52,7 +52,7 @@ int main(int argc, char** argv){
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
       while(!fscanf(fin, "%d", &g[i*N+j]));
-  printf("\nN=%d\n", N);
+  printf("N=%d\n", N);
 #ifdef LOG
   fprintf(logfile, "%d;", N);
 #endif
@@ -60,7 +60,7 @@ int main(int argc, char** argv){
 #ifndef NO_TEST
   run_cpu(g,N, groundTruth, logfile);
 #endif
-  //run_GPUsimple(g,N, groundTruth, logfile);
+  run_GPUsimple(g,N, groundTruth, logfile);
   run_GPUblock(g,N, groundTruth, logfile);
   run_GPUblock_multixy(g,N, groundTruth, logfile);
   run_GPUblock_multiy(g,N, groundTruth, logfile);
