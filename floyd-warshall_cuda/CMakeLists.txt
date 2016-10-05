@@ -8,15 +8,15 @@ include_directories(
 )
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2 -march=native")
-list(APPEND CUDA_NVCC_FLAGS "-std=c++11 -O2 --compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg")
+list(APPEND CUDA_NVCC_FLAGS " -O2 --compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg")
 ### Debugging options
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
   set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -Og -fno-omit-frame-pointer -march=native")
   add_definitions(-DDEBUG)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
-add_definitions(-DLOG)
-#add_definitions(-DNO_TEST)
+#add_definitions(-DLOG)
+add_definitions(-DNO_TEST)
 
 #######################   Project3   ###############################
 add_library(run_cpu src/run_cpu.cpp)

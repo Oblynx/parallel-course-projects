@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 2.6.4)
-set(CMAKE_CXX_COMPILER mpic++.mpich)
 # Run execs with mpirun.mpich?
 project(parallel-course-projects)
 
+find_package(MPI REQUIRED)
 include_directories(
   include
+  ${MPI_INCLUDE_PATH}
 )
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2 -march=native")
 ### Debugging options
@@ -20,6 +21,7 @@ add_definitions(-D__GXX_EXPERIMENTAL_CXX0X__)
 add_library(kNNAlgo src/kNNAlgo.cpp)
 add_library(utils src/utils.cpp)
 add_library(mpi_handler src/mpi_handler.cpp)
+target_link_libraries(mpi_handler ${MPI_LIBRARIES})
 
 add_executable(kNN src/kNN_main.cpp)
 target_link_libraries(kNN
