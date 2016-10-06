@@ -12,6 +12,9 @@
   #define COUT   while(0) std::cout
 #endif
 
+#define MAX_THRperBLK2D 16
+#define MAX_THRperBLK2D_MULTI 32
+
 template<class T>
 struct HPinPtr{
   HPinPtr(const int N);

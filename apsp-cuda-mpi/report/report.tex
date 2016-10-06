@@ -1,0 +1,108 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{xltxtra}	% XeLaTeX
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{wrapfig}	% Wrap text around figs
+\usepackage{lscape}
+\usepackage{rotating}	% Sideways figure
+\usepackage{hyperref}	% Hyperlinks
+\usepackage{caption}	% Hyperlinks to float top
+\usepackage{subcaption}
+\usepackage{units}		% dB unit
+\usepackage{amsmath}	% math \text{}
+\usepackage{inputenc}
+\usepackage{color}		% Text colors
+\usepackage{geometry}	% Set margins
+\geometry{
+  a4paper,
+  total={170mm,257mm},
+  left=20mm,
+  top=20mm,
+}
+
+%-------------------------------------Custom commands----------------------------------------------------------
+  \usepackage{amsfonts}
+  \def \IN{\mathbb N} \def \IZ{\mathbb Z} \def \IQ{\mathbb Q} \def \IR{\mathbb R} \def \IC{\mathbb C}
+  \def \NN{\mathbb N} \def \ZZ{\mathbb Z} \def \QQ{\mathbb Q} \def \RR{\mathbb R} \def \CC{\mathbb C}
+  \def \deg{^\circ}
+%-------------------------------GREEK LETTERS DEFINITION-------------------------------------------------------
+  \newcommand{\gra}{{\alpha}} \newcommand{\grb}{{\beta}} \newcommand{\grg}{{\gamma}} \newcommand{\grd}{{\delta}}
+  \newcommand{\gre}{{\epsilon}} \newcommand{\grz}{{\zeta}} \newcommand{\grh}{{\eta}} \newcommand{\gru}{{\theta}}
+  \newcommand{\gri}{{\iota}} \newcommand{\grk}{{\kappa}} \newcommand{\grl}{{\lambda}} \newcommand{\grm}{{\mu}}
+  \newcommand{\grn}{{\nu}} \newcommand{\grj}{{\xi}} \newcommand{\gro}{{\rm o}} \newcommand{\grp}{{\pi}}
+  \newcommand{\grr}{{\rho}} \newcommand{\grs}{{\sigma}} \newcommand{\grt}{{\tau}} \newcommand{\gry}{{\upsilon}}
+  \newcommand{\grf}{{\phi}} \newcommand{\grx}{{\chi}} \newcommand{\grc}{{\psi}} \newcommand{\grv}{{\omega}}
+  \newcommand{\grA}{{\rm A}} \newcommand{\grB}{{\rm B}} \newcommand{\grG}{{\Gamma}} \newcommand{\grD}{{\Delta}}
+  \newcommand{\grE}{{\rm E}} \newcommand{\grZ}{{\rm Z}} \newcommand{\grH}{{\rm H}} \newcommand{\grU}{{\Theta}}
+  \newcommand{\grI}{{\rm I}} \newcommand{\grK}{{\rm K}} \newcommand{\grL}{{\Lambda}} \newcommand{\grM}{{\rm M}}
+  \newcommand{\grN}{{\rm N}} \newcommand{\grJ}{{\Xi}} \newcommand{\grO}{{\rm O}} \newcommand{\grP}{{\Pi}}
+  \newcommand{\grR}{{\rm R}} \newcommand{\grS}{{\Sigma}} \newcommand{\grT}{{\rm T}} \newcommand{\grY}{{\rm Y}}
+  \newcommand{\grF}{{\Phi}} \newcommand{\grX}{{\rm X}} \newcommand{\grC}{{\Psi}} \newcommand{\grV}{{\Omega}}
+%---------------------------------------------------------------------------------------------------------------
+
+\newcommand{\code}[1] {\texttt{#1}}		% Monospace font for writing code and such
+
+\setromanfont[Mapping=tex-text]{Linux Libertine O}
+\setsansfont[Mapping=tex-text]{DejaVu Sans}
+\setmonofont[Mapping=tex-text]{DejaVu Sans Mono}
+
+\renewcommand{\figurename}{Σχήμα}
+\renewcommand{\tablename}{Πίνακας}
+\renewcommand{\refname}{Αναφορές}
+
+\usepackage{algorithm2e}
+
+\title{APSP on GPU cluster with MPI}
+\author{Κωνσταντίνος Σαμαράς-Τσακίρης}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+\section*{Σκοπός}
+  Αυτή η εργασία επεκτείνει την επίλυση του προβλήματος APSP σε GPU, επιτρέποντας στο πλαίσιο ενός MPI cluster την παράλληλη αξιοποίηση πολλών GPU, για ταχύτερη επίλυση μεγάλων προβλημάτων, καθώς και τη  δυνατότητα επίλυσης πολύ μεγάλων προβλημάτων που δε χωρούν στη μνήμη μίας GPU.
+
+\section{Αλγόριθμος}
+  Ο βασικός αλγόριθμος επίλυσης του APSP που χρησιμοποιείται εδώ είναι ο αλγόριθμος πλακιδίων (tiled) της προηγούμενης εργασίας. Ο πίνακας γειτνίασης χωρίζεται σε b διαγώνια πλακίδια. Για κάθε πλακίδιο, εκτελούνται 3 φάσεις επεξεργασίας. Κάθε φάση βρίσκει τα συντομότερα μονοπάτια για κάθε ζεύγος κόμβων στην ``περιοχή επίλυσης'', με ενδιάμεσους κόμβους μόνο από την ``περιοχή εξέτασης'', και αντικαθιστά το υπάρχον μονοπάτι σε κάθε περίπτωση, αν βρεθεί συντομότερο. Επομένως, για κάθε πλακίδιο $B_i$, όπου $i=1..b$, οι φάσεις είναι:
+
+  \begin{tabular}{r| l l}
+	Φάση & Περιοχή επίλυσης & Περιοχή εξέτασης \\ \hline
+	1	 & $B_i$			& $B_i$			   \\
+	2	 & Γραμμή και στήλη του $B_i$ & $B_i$  \\
+	3	 & Υπόλοιπος πίνακας & Γραμμή και στήλη του $B_i$ \\
+  \end{tabular}
+
+  Οι παραπάνω φάσεις, καθώς και η ακολουθία των διαγωνίων πλακιδίων, εκτελούνται σειριακά και χρησιμοποιούν εκ των πραγμάτων ένα μικρό μόνο τμήμα του συνολικού πίνακα. Η βασική ευκαιρία για διαμοιρασμό του προβλήματος εντοπίζεται στη φάση 3, στην οποία γίνεται παράλληλη επεξεργασία ολόκληρου σχεδόν του πίνακα. Θα υποτεθεί ότι ο πίνακας είναι αρκετά μικρός, ώστε οι φάσεις 1 και 2 να χωράνε στη μνήμη μίας GPU, ενώ η φάση 3 θα διαμοιραστεί μέσω MPI στα nodes του cluster. Ο κεντρικός κόμβος θα διατηρεί στη κύρια μνήμη τον πλήρη πίνακα και θα επικοινωνεί με τους υπόλοιπους τα κομμάτια που απαιτούνται.
+  Η διαδικασία περιγράφεται σε ψευδοκώδικα στο \ref{algo:mpi-apsp}.
+
+  Αν N το μέγεθος του προβλήματος, οι φάσεις 1,2 λύνουν προβλήματα μεγέθους $O(N)$, ενώ η φάση 3 λύνει πρόβλημα μεγέθους $O(N^2)$. Συνεπώς, απαιτεί και το μεγαλύτερο μέρος του χρόνου επίλυσης. Η ανάλυση της προηγούμενης εργασίας με τον nvprof δείχνει ότι, κατά την εκτέλεση σε 1 GPU, η φάση 1 συντελεί το 0.0\% του χρόνου εκτέλεσης, η φάση 2 το 1.7\% και η φάση 3 το 98.3\%, δικαιολογώντας την εστίαση της προσοχής στη φάση 3.
+
+  \begin{algorithm}
+    \KwData{Adjacency matrix}
+    \KwResult{All-pairs shortest paths}
+
+    Φόρτωση πλήρους πίνακα\;
+    \For{$i=0$ \KwTo $b$}{
+	  Γραμμή και στήλη του $B_i$ → GPU\;
+	  GPU: Φάση 1\;
+	  GPU: Φάση 2\;
+	  Γραμμή και στήλη του $B_i$ → CPU\;
+	  MPI: Μοίρασε τον υπόλοιπο πίνακα\;
+	  MPI: Broadcast τη γραμμή και στήλη του $B_i$\;
+	  \For{every MPI node in parallel}{
+		Τμήμα πίνακα → GPU\;
+		Γραμμή και στήλη → GPU\;
+		GPU: Φάση 3\;
+		Τμήμα πίνακα → CPU\;
+	  }
+	  MPI: Gather τμήματα πίνακα\;
+    }
+	\caption{Διαμοιρασμός APSP στο MPI cluster \label{algo:mpi-apsp}}
+  \end{algorithm}
+
+
+
+
+\end{document}

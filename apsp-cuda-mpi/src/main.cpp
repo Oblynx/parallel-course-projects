@@ -4,19 +4,24 @@
 #include <chrono>
 #include "utils.h"
 #include "mpi_handler.h"
+#include "tasks.h"
 
 using namespace std;
 
-extern Duration_fsec run_cpu(const HPinPtr<int>& g, const int N, unique_ptr<int[]>& result_cpu, FILE* logfile);
-extern Duration_fsec run_GPUblock(MPIhandler mpi, const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth,
-    FILE* logfile);
-extern Duration_fsec run_GPUblock_multixy(MPIhandler mpi, const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth,
-    FILE* logfile);
-extern Duration_fsec run_GPUblock_multiy(MPIhandler mpi, const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth,
-    FILE* logfile);
+
+// MPI node main functions
+int master(MPIhandler mpi, int argc, char** argv);
+extern int slave(MPIhandler mpi, int argc, char** argv);
 
 int main(int argc, char** argv){
   MPIhandler mpi(true, &argc, &argv);
+  auto status= (mpi.rank())?
+                  slave(mpi, argc,argv): 
+                  master(mpi, argc,argv);
+  return status;
+}
+
+int master(MPIhandler mpi, int argc, char** argv){
   FILE* fin= stdin;
   int inSpecified= 0;
   for(int i=1; i<argc; i++) if(!strcmp(argv[i],"-i")) inSpecified= i;
@@ -44,11 +49,12 @@ int main(int argc, char** argv){
 #ifdef NO_TEST
   printf("WARNING! No_TEST has been defined\n");
 #endif
-
+  
+  // Input data
   int N;
   while(!fscanf(fin, "%d\n", &N));
   N= 1<<N;
-  HPinPtr<int> g(N*N);
+  unique_ptr<int[]> g(new int[N*N]);
   unique_ptr<int[]> groundTruth(new int[N*N]);
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
@@ -58,12 +64,12 @@ int main(int argc, char** argv){
   fprintf(logfile, "%d;", N);
 #endif
   
+  // Run algorithms
 #ifndef NO_TEST
-  run_cpu(g,N, groundTruth, logfile);
+  run_cpu(g.get(),N, groundTruth, logfile);
 #endif
-  run_GPUblock(mpi, g,N, groundTruth, logfile);
-  run_GPUblock_multixy(mpi, g,N, groundTruth, logfile);
-  run_GPUblock_multiy(mpi, g,N, groundTruth, logfile);
+  run_GPUblock(mpi, g.get(),N, groundTruth, logfile);
+  run_GPUblock_multiy(mpi, g.get(),N, groundTruth, logfile);
 
 #ifdef LOG
   fprintf(logfile, "\n");

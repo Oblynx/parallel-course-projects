@@ -60,9 +60,9 @@ int main(int argc, char** argv){
 #ifndef NO_TEST
   run_cpu(g,N, groundTruth, logfile);
 #endif
-  run_GPUsimple(g,N, groundTruth, logfile);
-  run_GPUblock(g,N, groundTruth, logfile);
-  run_GPUblock_multixy(g,N, groundTruth, logfile);
+  //run_GPUsimple(g,N, groundTruth, logfile);
+  //run_GPUblock(g,N, groundTruth, logfile);
+  //run_GPUblock_multixy(g,N, groundTruth, logfile);
   run_GPUblock_multiy(g,N, groundTruth, logfile);
 
 #ifdef LOG
