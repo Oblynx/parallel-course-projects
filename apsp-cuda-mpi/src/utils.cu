@@ -4,7 +4,6 @@
 
 template<>
 HPinPtr<int>::HPinPtr(const int N) {
-  COUT<<"[HPinPtr]: Allocating\n";
   gpuErrchk(cudaHostAlloc(&data_, N*sizeof(int), cudaHostAllocDefault));
 }
 template<>

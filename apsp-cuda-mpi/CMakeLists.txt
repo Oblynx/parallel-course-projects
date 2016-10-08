@@ -22,7 +22,7 @@ IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
 
 #add_definitions(-DLOG)
-add_definitions(-DNO_TEST)
+#add_definitions(-DNO_TEST)
 #add_definitions(-D__GXX_EXPERIMENTAL_CXX0X__)
 
 #######################   Project4   ###############################
@@ -32,12 +32,17 @@ target_link_libraries(mpi_handler ${MPI_LIBRARIES})
 cuda_add_library(utils src/utils.cu)
 cuda_add_library(kernels src/kernels.cu)
 target_link_libraries(kernels utils)
+cuda_add_library(kernels_test src/kernels_test.cu)
+target_link_libraries(kernels_test utils)
 
 ### Task libs ###
-add_library(run_cpu src/run_cpu.cpp)
-target_link_libraries(run_cpu utils)
-add_library(run_gpu src/run_gpu.cpp)
-target_link_libraries(run_gpu
+add_library(run_tests src/run_tests.cpp)
+target_link_libraries(run_tests
+  utils
+  kernels_test
+)
+add_library(run_gpu_mpi src/run_gpu_mpi.cpp)
+target_link_libraries(run_gpu_mpi
   mpi_handler
   utils
   kernels
@@ -55,8 +60,8 @@ add_executable(fw src/main.cpp)
 target_link_libraries(fw
   utils
   mpi_handler
-  run_cpu
-  run_gpu
+  run_tests
+  run_gpu_mpi
   slave
 )
 

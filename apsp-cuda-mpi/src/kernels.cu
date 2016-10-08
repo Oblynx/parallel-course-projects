@@ -1,5 +1,4 @@
 #include "utils.h"  // Define MAX_THRperBLK, MAX_THRperBLK_MULTI macros
-#include "kernel_wrp.h"
 
 //################# Kernels ###############
 // GPUblock kernels
@@ -44,14 +43,15 @@ __global__ void phase2_krn(int* g, const int* primaryTile, const int N){
   g[ (blockIdx.y*(N-n)*n + blockIdx.x*n) + (threadIdx.y*n+threadIdx.x) ]= tile[threadIdx.y][threadIdx.x];
 }
 
-__global__ void phase3_krn(int* g, const int pstart, const int primary_n, const int N){
+// Start: in blocks, not ints,relb= b-start 
+__global__ void phase3_krn(int* g, const int* rowcol, const int relb, const int rowL){
   __shared__ int tile[n][n], row[n][n], col[n][n];
-  int blkIdx_xskip= (blockIdx.x >= primary_n)? blockIdx.x+1: blockIdx.x;     // skip primary tile
-  int blkIdx_yskip= (blockIdx.y >= primary_n)? blockIdx.y+1: blockIdx.y;
+  int blkIdx_xskip= (blockIdx.x >= relb)? blockIdx.x+1: blockIdx.x;     // skip primary tile
+  int blkIdx_yskip= (blockIdx.y >= relb)? blockIdx.y+1: blockIdx.y;
   int x_t= blkIdx_xskip*n+threadIdx.x, y_t= blkIdx_yskip*n+threadIdx.y;     // tile coordinates
-  row[threadIdx.y][threadIdx.x]= g[ (pstart+threadIdx.y)*N + x_t ];
-  col[threadIdx.y][threadIdx.x]= g[ y_t*N + pstart+threadIdx.x   ];
-  tile[threadIdx.y][threadIdx.x]= g[y_t*N + x_t];
+  row[threadIdx.y][threadIdx.x]=  g[ threadIdx.y*rowL + x_t ];
+  col[threadIdx.y][threadIdx.x]=  g[ y_t*rowL + threadIdx.x ];
+  tile[threadIdx.y][threadIdx.x]= g[ y_t*rowL + x_t ];
   __syncthreads();
 
   for(int k=0; k<n; k++){
@@ -60,10 +60,11 @@ __global__ void phase3_krn(int* g, const int pstart, const int primary_n, const 
     __syncthreads();
   }
 
-  g[y_t*N + x_t]= tile[threadIdx.y][threadIdx.x];
+  g[ y_t*rowL + x_t ]= tile[threadIdx.y][threadIdx.x];
 }
 #undef n
 
+// TODO
 // GPUblock_multiy kernels
 #define n MAX_THRperBLK2D_MULTI
 __global__ void phase1_multiy_krn(int* g, const int pstart, const int N){
@@ -151,8 +152,8 @@ void phase1(const dim3 gs, const dim3 bs, int* g, const int N){
 void phase2(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int N){
   phase2_krn<<<gs,bs>>>(g,primaryTile,N);
 }
-void phase3(const dim3 gs, const dim3 bs, int* g, const int pstart, const int primary_n, const int N){
-  phase3_krn<<<gs,bs>>>(g,pstart,primary_n,N);
+void phase3(const dim3 gs, const dim3 bs, int* g, const int* rowcol, const int relb, const int rowL){
+  phase3_krn<<<gs,bs>>>(g,rowcol, relb,rowL);
 }
 
 void phase1_multiy(const dim3 gs, const dim3 bs, int* g, const int pstart, const int N){

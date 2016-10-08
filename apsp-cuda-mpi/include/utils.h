@@ -28,7 +28,7 @@ struct HPinPtr{
 
 typedef std::chrono::duration<float, std::ratio<1>> Duration_fsec;
 
-inline bool test(const HPinPtr<int>& toCheck, const std::unique_ptr<int[]>& truth, const int N, std::string name){
+inline bool test(const int* toCheck, const int* truth, const int N, std::string name){
 #ifndef NO_TEST
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
@@ -42,7 +42,7 @@ inline bool test(const HPinPtr<int>& toCheck, const std::unique_ptr<int[]>& trut
 }
 
 //Debug
-inline void printG(const std::unique_ptr<int[]>& g, const int N){
+inline void printG(const int* g, const int N){
   for(int i=0; i<N; i++){
     for(int j=0; j<N; j++)
       printf("%3d\t", g[i*N+j]);

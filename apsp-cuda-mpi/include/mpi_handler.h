@@ -1,6 +1,7 @@
 #pragma once
 #include <mpich/mpi.h>
 #include <unordered_map>
+#include <array>
 #include "utils.h"
 
 class MPIhandler{
@@ -19,23 +20,23 @@ public:
   }
   int procN() { return (disabled)? 1: procN_; }
   int rank() { return (disabled)? 0: rank_; }
-  void makeTileType(const int n, const int N, const int extent){
-    if(mpitileDefined_) { error= MPI_Type_free(&MPI_TILE); errorHandler(); }
-    error= MPI_Type_vector(n,n,N, MPI_INT, &MPI_TILE); errorHandler();
-    error= MPI_Type_create_resized(MPI_TILE, 0,extent*sizeof(int), &MPI_TILE); errorHandler();
-    error= MPI_Type_commit(&MPI_TILE); errorHandler();
-    mpitileDefined_= true;
-  }
-
+  int submatRowL() { return (disabled)? 0: submatRowL_; }
+  int submatRowN() { return (disabled)? 0: submatRowN_; }
+  int submatStart() { return (disabled)? 0: submatStarts_[rank_]; }
+  void makeTypes(const int n, const int N);
   void bcast(const int* buffer, const int count);
-  int scatterTiles(const int* buffer, const int* counts, const int* offsets, int* rcvBuf, const int rcvCount);
+  int scatterMat(const int* g, int* rcvSubmat);           // Return value for transition into async calls
+  int gatherMat (const int* rcvSubmat, int* g);           // Return value for transition into async calls
+  void splitMat(const int N);
   bool testRq(const int hash);
   void waitRq(const int hash);
 
   const char disabled;
-  MPI_Datatype MPI_TILE;
+  MPI_Datatype MPI_TILE, MPI_SUBMAT;
 private:
-	int error, rank_, procN_, mpitileDefined_= false;
+	int error, rank_, procN_, mpitypesDefined_= false, matSplit_= false;
+  std::unique_ptr<int[]> submatStarts_, ones_;
+  int submatRowL_, submatRowN_;
   std::unordered_map<int,MPI_Request> rqStore_;
 };
 
