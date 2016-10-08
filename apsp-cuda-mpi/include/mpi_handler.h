@@ -7,34 +7,36 @@ class MPIhandler{
 public:
 	//! Takes &argc, &argv
 	MPIhandler(bool enable, int* argc=NULL, char*** argv=NULL);
+  MPIhandler(const MPIhandler&) =delete;            // No copy construct/assign
+  MPIhandler& operator=(const MPIhandler&) =delete;
 	~MPIhandler();
+
   void errorHandler();
   void barrier() {
     if(!disabled){
       error= MPI_Barrier(MPI_COMM_WORLD); errorHandler();
     }
   }
-  MPI_Datatype typePoint3f(){ return pfT; }
-  MPI_Datatype typePoint3() { return pT;  }
   int procN() { return (disabled)? 1: procN_; }
   int rank() { return (disabled)? 0: rank_; }
-  class AsyncRequest{
-   public:
-    AsyncRequest(MPIhandler& mpi): mpi(mpi) {}
-    void Ialltoall(const void* sendBuf, int sendCnt, MPI_Datatype
-                  datatype, void* rcvBuf, int rcvCnt);
-    void Ialltoallv(const void* sendBuf, const int sendCnt[], const int sdispl[], MPI_Datatype
-                   datatype, void* rcvBuf, const int rcvCnt[], const int rdispl[]);
-    void wait();
-   private:
-    bool requestInTransit=false;
-    MPI_Request pendingRequest;
-    MPIhandler& mpi;
-  };
+  void makeTileType(const int n, const int N, const int extent){
+    if(mpitileDefined_) { error= MPI_Type_free(&MPI_TILE); errorHandler(); }
+    error= MPI_Type_vector(n,n,N, MPI_INT, &MPI_TILE); errorHandler();
+    error= MPI_Type_create_resized(MPI_TILE, 0,extent*sizeof(int), &MPI_TILE); errorHandler();
+    error= MPI_Type_commit(&MPI_TILE); errorHandler();
+    mpitileDefined_= true;
+  }
+
+  void bcast(const int* buffer, const int count);
+  int scatterTiles(const int* buffer, const int* counts, const int* offsets, int* rcvBuf, const int rcvCount);
+  bool testRq(const int hash);
+  void waitRq(const int hash);
+
   const char disabled;
+  MPI_Datatype MPI_TILE;
 private:
-  MPI_Datatype pT, pfT;
-	int error, rank_, procN_;
+	int error, rank_, procN_, mpitileDefined_= false;
+  std::unordered_map<int,MPI_Request> rqStore_;
 };
 
 

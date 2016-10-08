@@ -10,10 +10,6 @@ MPIhandler::MPIhandler(bool enable, int* argc, char*** argv): disabled(!enable) 
     error= MPI_Comm_size(MPI_COMM_WORLD, &procN_);  errorHandler();
     error= MPI_Comm_rank(MPI_COMM_WORLD, &rank_);   errorHandler();
     // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
-    error= MPI_Type_contiguous(3, MPI_INT, &pT);    errorHandler();
-    error= MPI_Type_commit(&pT);  errorHandler();
-    error= MPI_Type_contiguous(3, MPI_FLOAT, &pfT);  errorHandler();
-    error= MPI_Type_commit(&pfT);   errorHandler();
   }
 }
 MPIhandler::~MPIhandler() { if(!disabled) MPI_Finalize(); }
@@ -30,36 +26,31 @@ void MPIhandler::errorHandler() {
     fprintf(stderr, "\t!!! ERROR #%3d: %s !!!\n", rank_, error_string);
   }
 }
-//! MPI_Ialltoall wrapper
-void MPIhandler::AsyncRequest::Ialltoall(const void* sendBuf, const int sendCnt, MPI_Datatype type, void* rcvBuf, const int rcvCnt){
-  if(mpi.disabled){
-    rcvBuf= (void*)sendBuf;
-    return;
-  }
-  if(requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Attempted to start transit\
-                                                while another is pending.\n");
-  requestInTransit=true;
-  mpi.error= MPI_Ialltoall(sendBuf,sendCnt,type,rcvBuf,rcvCnt,type,MPI_COMM_WORLD,&pendingRequest);
-  if(mpi.error) PRINTF("--> [MPI]: Error in Ialltoall comm!!! errcode=%d",mpi.error);
-  mpi.errorHandler();
+void MPIhandler::bcast(const int* buffer, const int count){
+  error= MPI_Bcast(&buffer, count, MPI_INT, rank(), MPI_COMM_WORLD); errorHandler();
 }
-//! MPI Ialltoallv wrapper
-void MPIhandler::AsyncRequest::Ialltoallv(const void* sendBuf, const int sendCnt[], const int sdispl[],
-                                          MPI_Datatype type,void* rcvBuf, const int rcvCnt[], const int rdispl[]){
-  if(mpi.disabled){
-    rcvBuf= (void*)sendBuf;
-    return;
+
+int MPIhandler::scatterTiles(const int* buffer, const int* counts, const int* offsets, int* rcvBuf, const int rcvCount){
+  // Generate request key
+  int key= rand();
+  {
+    MPI_Request rq;
+    auto storeResult= rqStore_.emplace(make_pair(key,rq));
+    while(!storeResult.second){       // While insert is unsuccessful, because key already exists
+      key= rand();
+      storeResult= rqStore_.emplace(make_pair(key,rq));
+    }
   }
-  if(requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Attempted to start transit\
-                                                while another is pending.\n");
-  requestInTransit=true;
-  mpi.error= MPI_Ialltoallv(sendBuf,sendCnt,sdispl,type,rcvBuf,rcvCnt,rdispl,
-                            type,MPI_COMM_WORLD,&pendingRequest);
-  mpi.errorHandler();
+  MPI_Request& rq= rqStore_[key];
+
+  MPI_Iscatterv(buffer, counts, offsets, MPI_TILE, rcvBuf, rcvCount, MPI_TILE, 0, MPI_COMM_WORLD, &rq);
+  return key;
 }
-void MPIhandler::AsyncRequest::wait(){
-  if(mpi.disabled) return;
-  if(!requestInTransit) throw new runtime_error("[MPI_AsyncRequest]: Called wait while no request pending!\n");
-  mpi.error= MPI_Wait(&pendingRequest, MPI_STATUS_IGNORE);  mpi.errorHandler();
-  requestInTransit=false;
+bool MPIhandler::testRq(const int hash){
+  int complete= 0;
+  error= MPI_Test(&rqStore_[hash], &complete, MPI_STATUS_IGNORE); errorHandler();
+  return complete;
+}
+void MPIhandler::waitRq(const int hash){
+  error= MPI_Wait(&rqStore_[hash], MPI_STATUS_IGNORE); errorHandler();
 }

@@ -10,8 +10,8 @@ using namespace std;
 
 
 // MPI node main functions
-int master(MPIhandler mpi, int argc, char** argv);
-extern int slave(MPIhandler mpi, int argc, char** argv);
+int master(MPIhandler& mpi, int argc, char** argv);
+extern int slave(MPIhandler& mpi, int argc, char** argv);
 
 int main(int argc, char** argv){
   MPIhandler mpi(true, &argc, &argv);
@@ -21,7 +21,7 @@ int main(int argc, char** argv){
   return status;
 }
 
-int master(MPIhandler mpi, int argc, char** argv){
+int master(MPIhandler& mpi, int argc, char** argv){
   FILE* fin= stdin;
   int inSpecified= 0;
   for(int i=1; i<argc; i++) if(!strcmp(argv[i],"-i")) inSpecified= i;
@@ -69,7 +69,7 @@ int master(MPIhandler mpi, int argc, char** argv){
   run_cpu(g.get(),N, groundTruth, logfile);
 #endif
   run_GPUblock(mpi, g.get(),N, groundTruth, logfile);
-  run_GPUblock_multiy(mpi, g.get(),N, groundTruth, logfile);
+  //run_GPUblock_multiy(mpi, g.get(),N, groundTruth, logfile);
 
 #ifdef LOG
   fprintf(logfile, "\n");

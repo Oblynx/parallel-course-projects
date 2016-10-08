@@ -1,5 +1,5 @@
 #include "utils.h"
-#include "DPtr.cuh"
+#include "DPtr.h"
 #include <cuda_runtime.h>
 
 template<>

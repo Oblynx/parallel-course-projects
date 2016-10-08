@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdio>
+#include <cstdlib>
 #include <cuda_runtime.h>
 
 #define gpuErrchk(ans) gpuAssert((ans), __FILE__, __LINE__)
@@ -15,9 +16,9 @@ template<class T>
 struct DPtr{
   DPtr(int N) { gpuErrchk(cudaMalloc(&data_, N*sizeof(T))); }
   ~DPtr() { cudaFree(data_); }
-  void copy (T* a, int N, Dir dir) {
-    if(dir == Dir::H2D) gpuErrchk(cudaMemcpy(data_, a, sizeof(T)*N, cudaMemcpyHostToDevice));
-    else gpuErrchk(cudaMemcpy(a, data_, sizeof(T)*N, cudaMemcpyDeviceToHost));
+  void copy (T* a, const int N, const Dir dir, const int offset=0) {
+    if(dir == Dir::H2D) gpuErrchk(cudaMemcpy(data_+offset, a, sizeof(T)*N, cudaMemcpyHostToDevice));
+    else gpuErrchk(cudaMemcpy(a, data_+offset, sizeof(T)*N, cudaMemcpyDeviceToHost));
   }
   T* get() const { return data_; }
   operator T*() const { return data_; }

@@ -51,4 +51,3 @@ inline void printG(const std::unique_ptr<int[]>& g, const int N){
   printf("_____________________________________\n");
 }
 
-

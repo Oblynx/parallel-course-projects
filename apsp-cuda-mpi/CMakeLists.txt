@@ -12,7 +12,8 @@ include_directories(
 )
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2 -march=native")
-list(APPEND CUDA_NVCC_FLAGS "-O2 --compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg -Wno-deprecated-gpu-targets")
+list(APPEND CUDA_NVCC_FLAGS "-O2 --compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg
+-Wno-deprecated-gpu-targets --default-stream per-thread")
 ### Debugging options
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
   set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -Og -fno-omit-frame-pointer -march=native")
@@ -25,17 +26,30 @@ add_definitions(-DNO_TEST)
 #add_definitions(-D__GXX_EXPERIMENTAL_CXX0X__)
 
 #######################   Project4   ###############################
+### Util libs ###
 add_library(mpi_handler src/mpi_handler.cpp)
 target_link_libraries(mpi_handler ${MPI_LIBRARIES})
+cuda_add_library(utils src/utils.cu)
+cuda_add_library(kernels src/kernels.cu)
+target_link_libraries(kernels utils)
 
-
+### Task libs ###
 add_library(run_cpu src/run_cpu.cpp)
-cuda_add_library(run_gpu src/run_gpu.cu)
+target_link_libraries(run_cpu utils)
+add_library(run_gpu src/run_gpu.cpp)
 target_link_libraries(run_gpu
   mpi_handler
+  utils
+  kernels
 )
-cuda_add_library(utils src/utils.cu)
+add_library(slave src/slave.cpp)
+target_link_libraries(slave
+  mpi_handler
+  utils
+  kernels
+)
 
+### Execs ###
 add_executable(makeGraph src/makeGraph.cpp)
 add_executable(fw src/main.cpp)
 target_link_libraries(fw
@@ -43,6 +57,7 @@ target_link_libraries(fw
   mpi_handler
   run_cpu
   run_gpu
+  slave
 )
 
 if(MPI_COMPILE_FLAGS)

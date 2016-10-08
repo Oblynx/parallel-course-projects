@@ -19,29 +19,29 @@ __global__ void phase1_krn(int* g, const int N){
   g[ threadIdx.y*N + threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
 }
 
-__global__ void phase2_krn(int* g, const int pstart, const int primary_n, const int N){
+__global__ void phase2_krn(int* g, const int* primaryTile, const int N){
   __shared__ int tile[n][n], primary[n][n];
-  int blkIdx_skip= (blockIdx.x >= primary_n)? blockIdx.x+1: blockIdx.x;      // skip primary tile
-  int x_t= (blockIdx.y)? blkIdx_skip*n+threadIdx.x: pstart+threadIdx.x;     // tile coordinates
-  int y_t= (blockIdx.y)? pstart+threadIdx.y: blkIdx_skip*n+threadIdx.y;     // blkIdx,y? row: col
-  primary[threadIdx.y][threadIdx.x]= g[ (pstart+threadIdx.y)*N + pstart+threadIdx.x ];
-  tile[threadIdx.y][threadIdx.x]= g[y_t*N + x_t];
+
+  primary[threadIdx.y][threadIdx.x]= primaryTile[threadIdx.y*N + threadIdx.x];
+  tile[threadIdx.y][threadIdx.x]=
+    g[ (blockIdx.y*(N-n)*n + blockIdx.x*n) + (threadIdx.y*n+threadIdx.x) ];
   __syncthreads();
-  
-  if(blockIdx.y)
+
+  // Not verified
+  if(blockIdx.y)              // If column
     for(int k=0; k<n; k++){
       if(tile[threadIdx.y][threadIdx.x] > primary[threadIdx.y][k]+tile[k][threadIdx.x])
         tile[threadIdx.y][threadIdx.x]= primary[threadIdx.y][k]+tile[k][threadIdx.x];
       __syncthreads();
     }
-  else
+  else                        // if row
     for(int k=0; k<n; k++){
       if(tile[threadIdx.y][threadIdx.x] > tile[threadIdx.y][k]+primary[k][threadIdx.x])
         tile[threadIdx.y][threadIdx.x]= tile[threadIdx.y][k]+primary[k][threadIdx.x];
       __syncthreads();
     }
 
-  g[y_t*N + x_t]= tile[threadIdx.y][threadIdx.x];
+  g[ (blockIdx.y*(N-n)*n + blockIdx.x*n) + (threadIdx.y*n+threadIdx.x) ]= tile[threadIdx.y][threadIdx.x];
 }
 
 __global__ void phase3_krn(int* g, const int pstart, const int primary_n, const int N){
@@ -146,10 +146,10 @@ __global__ void phase3_multiy_krn(int* g, const int pstart, const int primary_n,
 
 //############# Kernel Wrappers ############
 void phase1(const dim3 gs, const dim3 bs, int* g, const int N){
-  phase1_krn<<<gs,bs>>>(g,pstart,N);
+  phase1_krn<<<gs,bs>>>(g,N);
 }
-void phase2(const dim3 gs, const dim3 bs, int* g, const int pstart, const int primary_n, const int N){
-  phase2_krn<<<gs,bs>>>(g,pstart,primary_n,N);
+void phase2(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int N){
+  phase2_krn<<<gs,bs>>>(g,primaryTile,N);
 }
 void phase3(const dim3 gs, const dim3 bs, int* g, const int pstart, const int primary_n, const int N){
   phase3_krn<<<gs,bs>>>(g,pstart,primary_n,N);
