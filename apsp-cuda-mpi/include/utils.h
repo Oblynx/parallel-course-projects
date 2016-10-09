@@ -12,7 +12,7 @@
   #define COUT   while(0) std::cout
 #endif
 
-#define MAX_THRperBLK2D 16
+#define MAX_THRperBLK2D 2
 #define MAX_THRperBLK2D_MULTI 32
 
 template<class T>
@@ -42,11 +42,19 @@ inline bool test(const int* toCheck, const int* truth, const int N, std::string 
 }
 
 //Debug
-inline void printG(const int* g, const int N){
+inline void printG(const int* g, const int N, const int n){
   for(int i=0; i<N; i++){
-    for(int j=0; j<N; j++)
-      printf("%3d\t", g[i*N+j]);
-    printf("\n");
+    for(int j=0; j<N; j++){
+      if((j+1)%n) printf("%3d ", g[i*N+j]);
+      else    printf("%3d|", g[i*N+j]);
+    }
+    if((i+1)%n) printf("\n");
+    else{
+      printf("\n");
+      for(int j=0; j<N; j++)
+        printf("----");
+      printf("\n");
+    }
   }
   printf("_____________________________________\n");
 }

@@ -1,9 +1,9 @@
 #pragma once
 #include <cuda_runtime_api.h>
 
-void phase1(const dim3 gs, const dim3 bs, int* g, const int N);
-void phase2(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int N);
-void phase3(const dim3 gs, const dim3 bs, int* g, const int* rowcol, const int relb, const int rowL);
+void phase1(const dim3 gs, const dim3 bs, int* g);
+void phase2(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int b, const int N);
+void phase3(const dim3 gs, const dim3 bs, int* g, const int* rowcol, const int b, const int N, const int xStart, const int yStart, const int rowL);
 
 void phase1_multiy(const dim3 gs, const dim3 bs, int* g, const int pstart, const int N);
 void phase2_multiy(const dim3 gs, const dim3 bs, int* g, const int pstart, const int primary_n, const int N);

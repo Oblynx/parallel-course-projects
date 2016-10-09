@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.6.4)
 project(project4)
 
+set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda")
+
 # MPI with cmake:
 # https://cmake.org/pipermail/cmake/2011-June/045037.html
 find_package(MPI REQUIRED)

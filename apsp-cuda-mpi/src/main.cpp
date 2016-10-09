@@ -60,14 +60,16 @@ int master(MPIhandler& mpi, int argc, char** argv){
     for(int j=0; j<N; j++)
       while(!fscanf(fin, "%d", &g[i*N+j]));
   printf("N=%d\n", N);
+  mpi.bcast(&N,1);
 #ifdef LOG
   fprintf(logfile, "%d;", N);
 #endif
   
   // Run algorithms
 #ifndef NO_TEST
-  //run_cpu_test(g.get(),N, groundTruth.get(), logfile);
-  run_gpu_test(g.get(),N, groundTruthGPU.get(), logfile);
+  run_cpu_test(g.get(),N, groundTruth.get(), logfile);
+  //run_gpu_test(g.get(),N, groundTruthGPU.get(), logfile);
+  printG(groundTruth.get(), N,N);
 #endif
   run_gpu_mpi_master(mpi, g.get(),N, groundTruth.get(), logfile);
 

@@ -7,7 +7,8 @@
 
 using namespace std;
 
-#define INF 1<<29
+#define INF (1<<29)
+#define INF (1<<9)
 
 int main(int argc, char** argv){
   FILE* out;

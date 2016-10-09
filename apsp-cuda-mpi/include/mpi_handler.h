@@ -24,10 +24,10 @@ public:
   int submatRowN() { return (disabled)? 0: submatRowN_; }
   int submatStart() { return (disabled)? 0: submatStarts_[rank_]; }
   void makeTypes(const int n, const int N);
-  void bcast(const int* buffer, const int count);
+  void splitMat(const int N);
+  void bcast(int* buffer, const int count);
   int scatterMat(const int* g, int* rcvSubmat);           // Return value for transition into async calls
   int gatherMat (const int* rcvSubmat, int* g);           // Return value for transition into async calls
-  void splitMat(const int N);
   bool testRq(const int hash);
   void waitRq(const int hash);
 

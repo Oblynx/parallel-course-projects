@@ -1,6 +1,7 @@
 #include <limits.h>
 #include <stdexcept>
 #include <iostream>
+#include <cstdio>
 #include <cmath>
 #include "mpi_handler.h"
 using namespace std;
@@ -12,6 +13,7 @@ MPIhandler::MPIhandler(bool enable, int* argc, char*** argv): disabled(!enable) 
     error= MPI_Comm_rank(MPI_COMM_WORLD, &rank_);   errorHandler();
     // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
     ones_.reset(new int[procN_]);
+    for(int i=0; i<procN_; i++) ones_[i]= 1;
   }
 }
 MPIhandler::~MPIhandler() { if(!disabled) MPI_Finalize(); }
@@ -28,8 +30,8 @@ void MPIhandler::errorHandler() {
     fprintf(stderr, "\t!!! ERROR #%3d: %s !!!\n", rank_, error_string);
   }
 }
-void MPIhandler::bcast(const int* buffer, const int count){
-  error= MPI_Bcast(&buffer, count, MPI_INT, rank(), MPI_COMM_WORLD); errorHandler();
+void MPIhandler::bcast(int* buffer, const int count){
+  error= MPI_Bcast(&buffer, count, MPI_INT, 0, MPI_COMM_WORLD); errorHandler();
 }
 
 void MPIhandler::makeTypes(const int n, const int N){
@@ -49,6 +51,19 @@ void MPIhandler::makeTypes(const int n, const int N){
 
 int MPIhandler::scatterMat(const int* g, int* rcvSubmat){
   if(!matSplit_) throw new std::logic_error("Fist split matrix before calling scatterMat!\n");
+/*
+  printf("[scatter]: matrix:\n");
+  for(int i=0; i<32; i++){
+    for(int j=0; j<32; j++)
+      printf("%3d ", g[i*32+j]);
+    printf("\n");
+  }
+  printf("\n[scatter]: counts:\n");
+  for(int i=0; i<procN_; i++) printf("%3d ", ones_[i]);
+  printf("\n[scatter]: Starts:\n");
+  for(int i=0; i<procN_; i++) printf("g[%3d]=%3d ", submatStarts_[i], g[submatStarts_[i]]);
+  printf("\n");
+*/
   MPI_Scatterv(g, ones_.get(), submatStarts_.get(), MPI_SUBMAT, rcvSubmat,1,MPI_SUBMAT, 0,MPI_COMM_WORLD);
   return 0;
 }
