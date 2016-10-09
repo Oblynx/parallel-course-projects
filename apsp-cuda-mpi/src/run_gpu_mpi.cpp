@@ -77,6 +77,15 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     mpi.scatterMat(g, msgSubmat.get());
     PRINTF("[run_gpu]: b=%d matrix scattered\n",b);
 
+    PRINTF("[run_gpu]: MPI msg:\n");
+    for(int i=0; i<s_y; i++){
+      for(int j=0; j<s_x; j++){
+        printf("%3d ", msgSubmat[i*s_x+j]);
+      }
+      printf("\n");
+    }
+    printf("\n");
+
     //##### Compute Phase1&2 #####//
     copyPhase1(g,d_g1,b,n,N,Dir::H2D);          // Copy primary tile to GPU
     phase1(1,bs,d_g1);                        // Phase 1 kernel
@@ -98,20 +107,17 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     
     //##### MPI tile, row, col #####//
     copyRowcolMsg(g,msgRowcol.get(), b,n,N);         // Copy row&col to CPU
+    
+    printf("Msg row-col:\n");
+    for(int i=0; i<2*n; i++){
+      for(int j=0; j<N; j++) printf("%3d ", msgRowcol[i*N+j]);
+      printf("\n"); 
+    }
+
     // MPI bcast row+col
     mpi.bcast(msgRowcol.get(),2*n*N);
     PRINTF("[run_gpu]: b=%d row/col broadcasted\n",b);
     //for(auto&& rq: mpiAsyncRqTickets) mpi.waitRq(rq);   // Wait for all phase3 transfers to complete
-
-    PRINTF("[run_gpu]: MPI msg:\n");
-    for(int i=0; i<s_y; i++){
-      for(int j=0; j<s_x; j++){
-        printf("%3d ", msgSubmat[i*s_x+j]);
-      }
-      printf("\n");
-    }
-    printf("\n");
-
 
     //##### Compute Phase3 #####//
     d_g3.copy(msgSubmat.get(),s_x*s_y, Dir::H2D);
@@ -187,109 +193,23 @@ Duration_fsec run_GPUblock_multiy(MPIhandler& mpi, const HPinPtr<int>& g, const 
 
 
 /*#########  Copy helpers  #########*/
+// Copy primary tile to GPU
 void copyPhase1(int* g, DPtr<int>& d_g1, const int b, const int n, const int N, Dir direction){
-  // Copy primary tile to GPU
   for(int i=0; i<n; i++){
     d_g1.copy(g+ N*n*b+n*b +N*i,n, direction,n*i);
   }
 }
+// Copy current row&col to GPU
 void copyPhase2(int*g, DPtr<int>& d_g2, const int b, const int n, const int N, Dir direction){
-  for(int i=0; i<n; i++)                            // Copy row
-    d_g2.copy(g+ N*n*b +N*i, N, direction, N*i);
+  d_g2.copy(g+ N*n*b, N*n, direction);              // Copy row
   for(int i=0; i<N; i++)                            // Copy col
     d_g2.copy(g+ n*b +N*i, n, direction, N*n+ N*(i%n)+ n*(i/n));
 }
-
+// Copy current row&col to msg
 void copyRowcolMsg(int* g, int* msgRowcol, const int b, const int n, const int N){
-  // TODO: Pick final version
-  /*  ### Version: N-n ###
-  // Copy row to message
-  for(int i=0; i<n; i++){
-    for(int j=0; j < n*b; j++){
-      msgRowcol[(N-n)*i +j]= g[N*b+N*i +j];
-    }
-    for(int j=0; j < N-n*(b+1); j++){
-      msgRowcol[(N-n)*i+n*b +j]= g[N*b+N*i+n*(b+1) +j];
-    }
-  }
-  // Copy col to message
-  for(int i=0; i<n*b; i++){
-    for(int j=0; j<n; j++){
-      msgRowcol[(N-n)*n + N*(i%n) + n*(i/n) +j]= g[n*b + N*i +j];
-    }
-  }
-  for(int i=n*(b+1); i<N; i++){
-    for(int j=0; j<n; j++){
-      msgRowcol[(N-n)*n + N*((i-n)%n)+n*((i-n)/n) +j]= g[n*b + N*i +j];
-    }
-  }
-  */
-
-  // ### Version: N ###
-  for(int j=0; j<n*N; j++) msgRowcol[j]= g[n*b*N +j];   // Row
-  for(int j=0; j<n*N; j++)
-    msgRowcol[n*N +j]= g[n*b + j%n + N*(j/n)];           // Col
+  for(int j=0; j<n*N; j++) msgRowcol[j]= g[n*b*N +j];    // Row
+  for(int i=0; i<N*n; i++)                               // Col
+    msgRowcol[N*n+ (i%n)+ N*((i/n)%n)+ n*(i/(n*n))]= g[n*b+ (i%n)+ N*(i/n)];
 }
-
-
-/*#########  MPI comm helpers  #########*/
-// Partition row into MPI processes
-// Input:
-//   - rowStart: Pointer to 1st elt of row
-//   - procN: Total processes
-// In/Out:
-//   - startProc: The first process for which to calculate. Becomes the last process used +1
-//   - remainingTilesProc: How many tiles the proc still requires
-// Output:
-//   - start,count: [for each proc]: params for MPI_Scatterv
-//   - return: Row elements remaining (if row is fully covered, =0)
-/*int partitionRow(int rowStart, int rowSize, const int procN, int& startProc, int* remainingTilesProc,
-    int* start, int* count){
-  int p= startProc;       // p: process index
-  for(p= startProc; p < procN && rowSize > 0; p++){
-    if(remainingTilesProc[p] < rowSize){
-      start[p]= rowStart, count[p]= remainingTilesProc[p];
-      remainingTilesProc[p]= 0;
-      rowStart+= count[p]; rowSize-= count[p];
-    } else {
-      start[p]= rowStart, count[p]= rowSize;
-      remainingTilesProc[p]-= count[p];
-      rowSize= 0;
-    }
-  }
-  startProc= p;
-  return rowSize;
-}*/
-
-// Partitions the section's tiles into processes. Output: start,count (for MPIscatterv)
-// Returns the last covered tile in the section
-/*int partitionSection(int sectionStart, const int row1Length, const int rowLength, const int rowsN,
-    const int procN, int& lastRowReached, int* remainingTilesProc, int* start, int* count){
-  int remainingInRow= 0, row= 0, proc= 0; 
-  if(row1Length != rowLength){               // If starting with a partial row
-    remainingInRow= partitionRow(sectionStart+rowLength*row, row1Length, procN, proc, remainingTilesProc, start, count);
-    row++;
-  }
-  for(; row<rowsN; row++){
-    remainingInRow= partitionRow(sectionStart+rowLength*row, rowLength, procN, proc, remainingTilesProc, start, count);
-    if(proc == procN){
-      row++;
-      break;
-    }
-  }
-  lastRowReached+= row-1;
-  return row*rowLength - remainingInRow;
-}*/
-
-/*void scatterSection(MPIhandler& mpi, vector<int>& rqStore, int* g, int sectionStart, const int rowLength,
-    const int rowN, int* tilesProc, int* counts, int* offsets){
-  const int sectionSize= rowLength*rowN;
-  int partEnd= 0, lastRowReached= 0;
-  while(partEnd < sectionSize){      // Section not done
-    partEnd+= partitionSection(sectionStart+ partEnd, (lastRowReached+1)*rowLength-partEnd, rowLength,
-                               rowN-lastRowReached, mpi.procN(), lastRowReached, tilesProc, offsets, counts);
-    rqStore.push_back(mpi.scatterTiles(g+sectionStart, counts, offsets, nullptr,0));
-  }
-}*/
 
 
