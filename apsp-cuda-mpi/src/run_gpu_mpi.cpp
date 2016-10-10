@@ -59,8 +59,8 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
     PRINTF("[run_gpu]: b=%d phase1 complete\n",b);
     phase2(dim3(B-1,2),bs, d_g2,d_g1,b,N);        // Phase 2 kernel
     
-    copyPhase1(g,d_g1,b,n,N,Dir::D2H);          // Copy primary tile to CPU
     copyPhase2(g,d_g2,b,n,N,Dir::D2H);          // Copy row&col to CPU
+    copyPhase1(g,d_g1,b,n,N,Dir::D2H);          // Copy primary tile to CPU
     cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d phase2 complete\n",b);
     //printG(g,N,n);
@@ -83,8 +83,8 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
 
     mpi.gatherMat(msgSubmat,g);
     mpi.barrier();
-    copyPhase1(g,d_g1,b,n,N,Dir::D2H);          // Copy again, because MPI gather has overwritten it
     copyPhase2(g,d_g2,b,n,N,Dir::D2H);
+    copyPhase1(g,d_g1,b,n,N,Dir::D2H);          // Copy again, because MPI gather has overwritten it
     cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d matrix gathered\n",b);
     //printG(g,N,n);
