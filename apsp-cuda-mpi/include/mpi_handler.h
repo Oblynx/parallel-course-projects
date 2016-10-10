@@ -26,7 +26,7 @@ public:
   void makeTypes(const int n, const int N);
   void splitMat(const int N);
   void bcast(int* buffer, const int count);
-  int scatterMat(const int* g, int* rcvSubmat);           // Return value for transition into async calls
+  int scatterMat(int* g, int* rcvSubmat);           // Return value for transition into async calls
   int gatherMat (const int* rcvSubmat, int* g);           // Return value for transition into async calls
   bool testRq(const int hash);
   void waitRq(const int hash);

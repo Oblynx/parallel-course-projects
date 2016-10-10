@@ -26,8 +26,8 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
   if(N<MAX_THRperBLK2D) bs= dim3(N,N);
   
   // MPI transfer setup
-  mpi.makeTypes(n,N);
   mpi.splitMat(N);
+  mpi.makeTypes(n,N);
   const int s_x= mpi.submatRowL(), s_y= mpi.submatRowN();
 
   // Allocate GPU memory
@@ -77,15 +77,6 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     mpi.scatterMat(g, msgSubmat.get());
     PRINTF("[run_gpu]: b=%d matrix scattered\n",b);
 
-    PRINTF("[run_gpu]: MPI msg:\n");
-    for(int i=0; i<s_y; i++){
-      for(int j=0; j<s_x; j++){
-        printf("%3d ", msgSubmat[i*s_x+j]);
-      }
-      printf("\n");
-    }
-    printf("\n");
-
     //##### Compute Phase1&2 #####//
     copyPhase1(g,d_g1,b,n,N,Dir::H2D);          // Copy primary tile to GPU
     phase1(1,bs,d_g1);                        // Phase 1 kernel
@@ -107,13 +98,6 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     
     //##### MPI tile, row, col #####//
     copyRowcolMsg(g,msgRowcol.get(), b,n,N);         // Copy row&col to CPU
-    
-    printf("Msg row-col:\n");
-    for(int i=0; i<2*n; i++){
-      for(int j=0; j<N; j++) printf("%3d ", msgRowcol[i*N+j]);
-      printf("\n"); 
-    }
-
     // MPI bcast row+col
     mpi.bcast(msgRowcol.get(),2*n*N);
     PRINTF("[run_gpu]: b=%d row/col broadcasted\n",b);
@@ -127,7 +111,7 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
-    PRINTF("[run_gpu]: MPI msg:\n");
+    PRINTF("[run_gpu]: MPI submat:\n");
     for(int i=0; i<s_y; i++){
       for(int j=0; j<s_x; j++){
         printf("%3d ", msgSubmat[i*s_x+j]);
@@ -137,8 +121,8 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     printf("\n");
 
     mpi.gatherMat(msgSubmat.get(),g);
-    PRINTF("[run_gpu]: b=%d matrix gathered\n",b);
     mpi.barrier();
+    PRINTF("[run_gpu]: b=%d matrix gathered\n",b);
     printG(g,N,n);
   }
   auto GPUBlock_time= chrono::duration_cast<Duration_fsec>(chrono::system_clock::now() - start);

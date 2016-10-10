@@ -25,8 +25,8 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
   if(N<MAX_THRperBLK2D) bs= dim3(N,N);
   
   // MPI transfer setup
-  mpi.makeTypes(n,N);
   mpi.splitMat(N);
+  mpi.makeTypes(n,N);
   const int s_x= mpi.submatRowL(), s_y= mpi.submatRowN();
 
   // Allocate GPU memory

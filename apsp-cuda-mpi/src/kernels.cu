@@ -54,7 +54,6 @@ __global__ void phase3_krn(int* g, const int* rowcol, const int b, const int N, 
   __syncthreads();
 
 
-
   for(int k=0; k<n; k++){
     if(tile[threadIdx.y][threadIdx.x] > col[threadIdx.y][k]+row[k][threadIdx.x])
       tile[threadIdx.y][threadIdx.x]= col[threadIdx.y][k]+row[k][threadIdx.x];
