@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <vector>
+#include <ctime>
 #include <cuda_runtime_api.h>
 #include "utils.h"
 #include "DPtr.h"
@@ -17,7 +18,7 @@ void copyPhase2(int* g, DPtr<int>& d_g2, const int b, const int n, const int N, 
 void copyRowcolMsg(int* g, int* msgRowcol, const int b, const int n, const int N);
 
 // GPU block algo
-Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth, FILE* logfile){
+double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth, FILE* logfile){
   // Constants
   const int n= MAX_THRperBLK2D;
   const int B= N/n;
@@ -40,7 +41,7 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
   // For every tile
   printf("Block size: %d\n", n);
   printf("Launching GPU block MPI algo with %d primary blocks\n", B);
-  auto start= chrono::system_clock::now();
+  double begin= clock();
   for(int b=0; b<B; b++){
     //printG(g,N,n);
     // MPI split phase 3
@@ -88,13 +89,13 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     PRINTF("[run_gpu]: b=%d matrix gathered\n",b);
     //printG(g,N,n);
   }
-  auto GPUBlock_time= chrono::duration_cast<Duration_fsec>(chrono::system_clock::now() - start);
-  printf("GPU block MPI algo done: %.3fsec\n", GPUBlock_time.count());
+  double GPUBlock_time= (double)(clock() - begin) / CLOCKS_PER_SEC;
+  printf("GPU block MPI algo done: %.3fsec\n", GPUBlock_time);
 
   //printG(groundTruth, N,n);
 
   #ifdef LOG
-    fprintf(logfile, "%.5f;", GPUBlock_time.count());
+    fprintf(logfile, "%.5f;", GPUBlock_time);
   #endif
   auto check= test(g, groundTruth, N, "GPUblock");
   

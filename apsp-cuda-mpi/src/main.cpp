@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cstring>
-#include <chrono>
 #include "utils.h"
 #include "mpi_handler.h"
 #include "tasks.h"

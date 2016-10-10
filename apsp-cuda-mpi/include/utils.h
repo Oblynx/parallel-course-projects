@@ -1,6 +1,5 @@
 #pragma once
 #include <memory>
-#include <chrono>
 #include <cstdio>
 #include <iostream>
 
@@ -15,18 +14,15 @@
 #define MAX_THRperBLK2D 32
 #define MAX_THRperBLK2D_MULTI 32
 
-template<class T>
 struct HPinPtr{
   HPinPtr(const int N);
   ~HPinPtr();
-  T& operator[](size_t i) const { return data_[i]; }
-  operator T*() const { return data_; }
-  T* get() const { return data_; } 
+  int& operator[](size_t i) const { return data_[i]; }
+  operator int*() const { return data_; }
+  int* get() const { return data_; } 
   private:
-  T* data_;
+  int* data_;
 };
-
-typedef std::chrono::duration<float, std::ratio<1>> Duration_fsec;
 
 inline bool test(const int* toCheck, const int* truth, const int N, std::string name){
 #ifndef NO_TEST
