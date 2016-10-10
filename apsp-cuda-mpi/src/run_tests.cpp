@@ -27,7 +27,7 @@ double run_gpu_test(const int* g, const int N, int* result_gpu, FILE* logfile){
   DPtr<int> d_g(N*N);
   cudaDeviceSynchronize();
   HPinPtr result_block(N*N);
-  constexpr const int n= MAX_THRperBLK2D_MULTI;
+  const int n= MAX_THRperBLK2D_MULTI;
   const int B= N/n;
   dim3 bs(n, n/2);
 

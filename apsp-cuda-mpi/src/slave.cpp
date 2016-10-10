@@ -43,7 +43,7 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
     const int yStart= (mpi.submatStart()/n)/B, xStart= (mpi.submatStart()/n)%B;
     phase3(dim3(s_x/n-1, s_y/n-1),bs, d_g3, d_g2, b,N, xStart,yStart, s_x);
     d_g3.copy(msgSubmat,s_x*s_y, 1);
-    cudaStreamSynchronize(cudaStreamPerThread);
+    cudaDeviceSynchronize();
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
     PRINTF("[run_gpu]: MPI msg:\n");

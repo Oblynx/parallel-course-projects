@@ -6,6 +6,7 @@
 using namespace std;
 
 MPIhandler::MPIhandler(bool enable, int* argc, char*** argv): disabled(!enable) {
+  mpitypesDefined_= false, matSplit_= false;
   if(enable){
     error= MPI_Init(argc, argv);  errorHandler();
     error= MPI_Comm_size(MPI_COMM_WORLD, &procN_);  errorHandler();

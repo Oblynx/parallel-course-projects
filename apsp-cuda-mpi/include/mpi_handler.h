@@ -30,7 +30,7 @@ public:
   const char disabled;
   MPI_Datatype MPI_TILE, MPI_SUBMAT;
 private:
-	int error, rank_, procN_, mpitypesDefined_= false, matSplit_= false;
+	int error, rank_, procN_, mpitypesDefined_, matSplit_;
   int *submatStarts_, *ones_;
   int submatRowL_, submatRowN_;
 };

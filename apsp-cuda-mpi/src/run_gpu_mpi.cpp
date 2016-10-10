@@ -55,13 +55,13 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
     PRINTF("[run_gpu]: ph1 launched\n");
     
     copyPhase2(g,d_g2,b,n,N,0);          // Copy row&col to GPU
-    cudaStreamSynchronize(cudaStreamPerThread); // Finish phase1, row,col copies
+    cudaDeviceSynchronize();
     PRINTF("[run_gpu]: b=%d phase1 complete\n",b);
     phase2(dim3(B-1,2),bs, d_g2,d_g1,b,N);        // Phase 2 kernel
     
     copyPhase2(g,d_g2,b,n,N,1);          // Copy row&col to CPU
     copyPhase1(g,d_g1,b,n,N,1);          // Copy primary tile to CPU
-    cudaStreamSynchronize(cudaStreamPerThread);
+    cudaDeviceSynchronize();
     PRINTF("[run_gpu]: b=%d phase2 complete\n",b);
     //printG(g,N,n);
     // Phases 1&2 + CPU/GPU transfers complete
@@ -78,14 +78,14 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
     const int yStart= (mpi.submatStart()/n)/B, xStart= (mpi.submatStart()/n)%B;
     phase3(dim3(s_x/n-1, s_y/n-1),bs, d_g3, d_g2, b,N, xStart,yStart, s_x);
     d_g3.copy(msgSubmat,s_x*s_y, 1);
-    cudaStreamSynchronize(cudaStreamPerThread);
+    cudaDeviceSynchronize();
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
     mpi.gatherMat(msgSubmat,g);
     mpi.barrier();
     copyPhase2(g,d_g2,b,n,N,1);
     copyPhase1(g,d_g1,b,n,N,1);          // Copy again, because MPI gather has overwritten it
-    cudaStreamSynchronize(cudaStreamPerThread);
+    cudaDeviceSynchronize();
     PRINTF("[run_gpu]: b=%d matrix gathered\n",b);
     //printG(g,N,n);
   }
@@ -97,7 +97,7 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
   #ifdef LOG
     fprintf(logfile, "%.5f;", GPUBlock_time);
   #endif
-  auto check= test(g, groundTruth, N, "GPUblock");
+  bool check= test(g, groundTruth, N, "GPUblock");
   
   delete[](msgRowcol); delete[](msgSubmat);
   if(!check){
