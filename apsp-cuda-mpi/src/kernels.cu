@@ -49,7 +49,7 @@ __global__ void phase3_krn(int* g, const int* rowcol, const int b, const int N, 
   int blockIdx_yskip= (blockIdx.y >= b-yStart)? blockIdx.y+1: blockIdx.y;
   int x_t= blockIdx_xskip*n+threadIdx.x, y_t= blockIdx_yskip*n+threadIdx.y;     // tile coordinates
   row[threadIdx.y][threadIdx.x]=  rowcol[ n*xStart+ threadIdx.y*N + x_t ];
-  col[threadIdx.y][threadIdx.x]=  rowcol[ n*N+ n*yStart+ y_t*N + threadIdx.x ]; //TODO check
+  col[threadIdx.y][threadIdx.x]=  rowcol[ n*N+ n*yStart+ blockIdx_yskip*n+ threadIdx.y*N + threadIdx.x ];
   tile[threadIdx.y][threadIdx.x]= g[ y_t*rowL + x_t ];
   __syncthreads();
 

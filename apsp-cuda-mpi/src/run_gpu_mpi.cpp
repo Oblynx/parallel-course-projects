@@ -43,35 +43,7 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
   printf("Launching GPU block MPI algo with %d primary blocks\n", B);
   auto start= chrono::system_clock::now();
   for(int b=0; b<B; b++){
-    printG(g,N,n);
-
-    /*
-      copyPhase1(g,d_g1,b,n,N,Dir::H2D);          // Copy primary tile to GPU
-      phase1(1,bs,d_g1);                        // Phase 1 kernel
-      PRINTF("[run_gpu]: ph1 launched\n");
-      copyPhase1(g,d_g1,b,n,N,Dir::D2H);          // Copy primary tile to CPU
-      cudaStreamSynchronize(cudaStreamPerThread); // Finish phase1, row,col copies
-      PRINTF("[run_gpu]: b=%d phase1 complete\n",b);
-      printG(g,N,n);
-      
-      copyPhase2(g,d_g2,b,n,N,Dir::H2D);          // Copy row&col to GPU
-      phase2(dim3(B-1,2),bs, d_g2,d_g1,b,N);      // Phase 2 kernel
-      PRINTF("[run_gpu]: ph2 launched\n");
-      copyPhase2(g,d_g2,b,n,N,Dir::D2H);          // Copy row&col to CPU
-      cudaStreamSynchronize(cudaStreamPerThread); // Finish phase2,tile
-      PRINTF("[run_gpu]: b=%d phase2 complete\n",b);
-      printG(g,N,n);
-
-      d_g3.copy(msgSubmat.get(),s_x*s_y, Dir::H2D);
-      const int yStart= (mpi.submatStart()/n)/B, xStart= (mpi.submatStart()/n)%B;
-      phase3(dim3(s_x/n, s_y/n),bs, d_g3, d_g2, b,N, xStart,yStart, s_x);
-      PRINTF("[run_gpu]: ph3 launched\n");
-      d_g3.copy(msgSubmat.get(),s_x*s_y, Dir::D2H);
-      cudaStreamSynchronize(cudaStreamPerThread);
-      PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
-      printG(g,N,n);
-    */
-
+    //printG(g,N,n);
     // MPI split phase 3
     //vector<int> mpiAsyncRqTickets(4);
     mpi.scatterMat(g, msgSubmat.get());
@@ -88,12 +60,10 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     phase2(dim3(B-1,2),bs, d_g2,d_g1,b,N);        // Phase 2 kernel
     
     copyPhase1(g,d_g1,b,n,N,Dir::D2H);          // Copy primary tile to CPU
-    cudaStreamSynchronize(cudaStreamPerThread); // Finish phase2,tile
-
     copyPhase2(g,d_g2,b,n,N,Dir::D2H);          // Copy row&col to CPU
     cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d phase2 complete\n",b);
-    printG(g,N,n);
+    //printG(g,N,n);
     // Phases 1&2 + CPU/GPU transfers complete
     
     //##### MPI tile, row, col #####//
@@ -111,24 +81,18 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
-    PRINTF("[run_gpu]: MPI submat:\n");
-    for(int i=0; i<s_y; i++){
-      for(int j=0; j<s_x; j++){
-        printf("%3d ", msgSubmat[i*s_x+j]);
-      }
-      printf("\n");
-    }
-    printf("\n");
-
     mpi.gatherMat(msgSubmat.get(),g);
     mpi.barrier();
+    copyPhase1(g,d_g1,b,n,N,Dir::D2H);          // Copy again, because MPI gather has overwritten it
+    copyPhase2(g,d_g2,b,n,N,Dir::D2H);
+    cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d matrix gathered\n",b);
-    printG(g,N,n);
+    //printG(g,N,n);
   }
   auto GPUBlock_time= chrono::duration_cast<Duration_fsec>(chrono::system_clock::now() - start);
   printf("GPU block kernel done: %.3fsec\n", GPUBlock_time.count());
 
-  printG(groundTruth, N,n);
+  //printG(groundTruth, N,n);
 
   #ifdef LOG
     fprintf(logfile, "%.5f;", GPUBlock_time.count());
