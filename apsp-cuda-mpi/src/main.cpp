@@ -13,7 +13,7 @@ extern int slave(MPIhandler& mpi, int argc, char** argv);
 
 int main(int argc, char** argv){
   MPIhandler mpi(true, &argc, &argv);
-  auto status= (mpi.rank())?
+  int  status= (mpi.rank())?
                   slave(mpi, argc,argv): 
                   master(mpi, argc,argv);
   return status;
@@ -27,7 +27,7 @@ int master(MPIhandler& mpi, int argc, char** argv){
   else printf("Reading from stdin\n");
   if (fin==NULL){
     printf("Wrong input file\n");
-    exit(3);
+    return(3);
   }
   FILE* logfile= stdout;
 #ifdef LOG
@@ -74,13 +74,13 @@ int master(MPIhandler& mpi, int argc, char** argv){
   fprintf(logfile, "\n");
   fclose(logfile);
 #endif
-  auto check= test(g, groundTruth, N, "mpi");
+  bool check= test(g, groundTruth, N, "mpi");
   delete[](g); delete[](groundTruth);
   if(check){
     printf("\t***Test SUCCESSFUL!***\n");
   }else{
     printf("\t***Test FAILED!***\n");
-    exit(1);
+    return(1);
   }
   return 0;
 }

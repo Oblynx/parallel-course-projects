@@ -1,9 +1,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <limits.h>
-#include <memory>
 #include <string>
-#include <thread>
+#include <cstring>
 
 using namespace std;
 
@@ -32,11 +31,16 @@ int main(int argc, char** argv){
   }
   for(int i=0; i<N; i++) g[i*N+i]= 0;
 
+  char buf[32];
   fprintf(out, "%d\n", logN);
   for(int i=0; i<N; i++){
     string line;
-    for(int j=0; j<N-1; j++) line+= to_string(g[i*N+j])+"\t";
-    line+= to_string(g[i*N+N-1])+"\n";
+    for(int j=0; j<N-1; j++){
+      std::sprintf(buf, "%d\t", g[i*N+j]);
+      line+= buf;
+    }
+    std::sprintf(buf, "%d\n", g[i*N+N-1]);
+    line+= buf;
     fprintf(out, "%s", line.c_str());
   }
   fclose(out);

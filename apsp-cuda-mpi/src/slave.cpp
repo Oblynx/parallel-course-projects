@@ -1,4 +1,3 @@
-#include <chrono>
 #include <iostream>
 #include <cuda_runtime_api.h>
 #include "mpi_handler.h"
