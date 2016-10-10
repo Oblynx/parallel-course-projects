@@ -10,6 +10,7 @@ using namespace std;
 void run_gpu_mpi_slave(MPIhandler& mpi, int N);
 
 int slave(MPIhandler& mpi, int argc, char** argv){
+  cudaSetDevice(mpi.rank());
   int N;
   mpi.bcast(&N,1);
   run_gpu_mpi_slave(mpi, N);

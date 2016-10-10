@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <cstring>
+#include <cuda_runtime_api.h>
 #include "utils.h"
 #include "mpi_handler.h"
 #include "tasks.h"
@@ -20,6 +21,10 @@ int main(int argc, char** argv){
 }
 
 int master(MPIhandler& mpi, int argc, char** argv){
+  int deviceCount; cudaGetDeviceCount(&deviceCount);
+  printf("CUDA device count: %d\n", deviceCount);
+  cudaSetDevice(mpi.rank());
+
   FILE* fin= stdin;
   int inSpecified= 0;
   for(int i=1; i<argc; i++) if(!strcmp(argv[i],"-i")) inSpecified= i;
