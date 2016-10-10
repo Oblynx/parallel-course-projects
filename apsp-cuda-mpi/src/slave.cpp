@@ -35,7 +35,7 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
   unique_ptr<int[]> msgRowcol(new int[2*n*N]);
   unique_ptr<int[]> msgSubmat(new int[s_x*s_y]);
   for(int b=0; b<B; b++){
-    mpi.scatterMat(nullptr, msgSubmat.get());
+    mpi.scatterMat(NULL, msgSubmat.get());
     mpi.bcast(msgRowcol.get(), 2*n*N); 
 
     d_g2.copy(msgRowcol.get(),2*n*N, Dir::H2D);
@@ -55,7 +55,7 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
     }
     printf("\n");
 
-    mpi.gatherMat(msgSubmat.get(), nullptr);
+    mpi.gatherMat(msgSubmat.get(), NULL);
     PRINTF("[run_gpu]: b=%d matrix gathered\n",b);
     mpi.barrier();
   }

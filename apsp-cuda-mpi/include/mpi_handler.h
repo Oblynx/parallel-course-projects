@@ -8,8 +8,8 @@ class MPIhandler{
 public:
 	//! Takes &argc, &argv
 	MPIhandler(bool enable, int* argc=NULL, char*** argv=NULL);
-  MPIhandler(const MPIhandler&) =delete;            // No copy construct/assign
-  MPIhandler& operator=(const MPIhandler&) =delete;
+  //MPIhandler(const MPIhandler&) =delete;            // No copy construct/assign
+  //MPIhandler& operator=(const MPIhandler&) =delete;
 	~MPIhandler();
 
   void errorHandler();

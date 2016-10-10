@@ -90,7 +90,7 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     //printG(g,N,n);
   }
   auto GPUBlock_time= chrono::duration_cast<Duration_fsec>(chrono::system_clock::now() - start);
-  printf("GPU block kernel done: %.3fsec\n", GPUBlock_time.count());
+  printf("GPU block MPI algo done: %.3fsec\n", GPUBlock_time.count());
 
   //printG(groundTruth, N,n);
 
