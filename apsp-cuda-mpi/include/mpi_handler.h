@@ -25,7 +25,7 @@ public:
   void splitMat(const int N);
   void bcast(int* buffer, const int count);
   int scatterMat(int* g, int* rcvSubmat);           // Return value for transition into async calls
-  int gatherMat (const int* rcvSubmat, int* g);           // Return value for transition into async calls
+  int gatherMat (int* rcvSubmat, int* g);           // Return value for transition into async calls
 
   const char disabled;
   MPI_Datatype MPI_TILE, MPI_SUBMAT;

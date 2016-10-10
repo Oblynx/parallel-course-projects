@@ -11,13 +11,12 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
   }
 }
 
-enum Dir { H2D, D2H };
 template<class T>
 struct DPtr{
   DPtr(int N) { gpuErrchk(cudaMalloc(&data_, N*sizeof(T))); }
   ~DPtr() { cudaFree(data_); }
-  void copy (T* a, const int N, const Dir dir, const int offset=0) {
-    if(dir == Dir::H2D) gpuErrchk(cudaMemcpy(data_+offset, a, sizeof(T)*N, cudaMemcpyHostToDevice));
+  void copy (T* a, const int N, const int dir, const int offset=0) {
+    if(dir == 0) gpuErrchk(cudaMemcpy(data_+offset, a, sizeof(T)*N, cudaMemcpyHostToDevice));
     else gpuErrchk(cudaMemcpy(a, data_+offset, sizeof(T)*N, cudaMemcpyDeviceToHost));
   }
   T* get() const { return data_; }

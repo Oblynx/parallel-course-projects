@@ -33,13 +33,13 @@ double run_gpu_test(const int* g, const int N, int* result_gpu, FILE* logfile){
 
   printf("Launching GPU test (multiY block algo with %d primary blocks)\n", B);
   clock_t begin= clock();
-  d_g.copy(const_cast<int*>(g), N*N, Dir::H2D);
+  d_g.copy(const_cast<int*>(g), N*N, 0);
   for(int b=0; b<B; b++){
     phase1_multiy_test(1,bs, d_g, b*n,N);
     phase2_multiy_test(dim3(B-1,2),bs, d_g, b*n,b,N);
     phase3_multiy_test(dim3(B-1,B-1),bs, d_g, b*n,b,N);
   }
-  d_g.copy(result_gpu, N*N, Dir::D2H);
+  d_g.copy(result_gpu, N*N, 1);
   double GPUBlock_time= (double)(clock() - begin) / CLOCKS_PER_SEC;
   printf("--> GPU test done: %.3fsec\n", GPUBlock_time);
 #ifdef LOG

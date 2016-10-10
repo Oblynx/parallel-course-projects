@@ -38,11 +38,11 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
     mpi.scatterMat(NULL, msgSubmat);
     mpi.bcast(msgRowcol, 2*n*N); 
 
-    d_g2.copy(msgRowcol,2*n*N, Dir::H2D);
-    d_g3.copy(msgSubmat,s_x*s_y, Dir::H2D);
+    d_g2.copy(msgRowcol,2*n*N, 0);
+    d_g3.copy(msgSubmat,s_x*s_y, 0);
     const int yStart= (mpi.submatStart()/n)/B, xStart= (mpi.submatStart()/n)%B;
     phase3(dim3(s_x/n-1, s_y/n-1),bs, d_g3, d_g2, b,N, xStart,yStart, s_x);
-    d_g3.copy(msgSubmat,s_x*s_y, Dir::D2H);
+    d_g3.copy(msgSubmat,s_x*s_y, 1);
     cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
