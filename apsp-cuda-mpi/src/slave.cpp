@@ -19,7 +19,7 @@ int slave(MPIhandler& mpi, int argc, char** argv){
 
 void run_gpu_mpi_slave(MPIhandler& mpi, int N){
   // Constants
-  constexpr const int n= MAX_THRperBLK2D;
+  const int n= MAX_THRperBLK2D;
   const int B= N/n;
   dim3 bs(n,n);
   if(N<MAX_THRperBLK2D) bs= dim3(N,N);
@@ -32,17 +32,17 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
   // Allocate GPU memory
   DPtr<int> d_g2(2*n*N);
   DPtr<int> d_g3(s_x*s_y);
-  unique_ptr<int[]> msgRowcol(new int[2*n*N]);
-  unique_ptr<int[]> msgSubmat(new int[s_x*s_y]);
+  int* msgRowcol= new int[2*n*N];
+  int* msgSubmat= new int[s_x*s_y];
   for(int b=0; b<B; b++){
-    mpi.scatterMat(NULL, msgSubmat.get());
-    mpi.bcast(msgRowcol.get(), 2*n*N); 
+    mpi.scatterMat(NULL, msgSubmat);
+    mpi.bcast(msgRowcol, 2*n*N); 
 
-    d_g2.copy(msgRowcol.get(),2*n*N, Dir::H2D);
-    d_g3.copy(msgSubmat.get(),s_x*s_y, Dir::H2D);
+    d_g2.copy(msgRowcol,2*n*N, Dir::H2D);
+    d_g3.copy(msgSubmat,s_x*s_y, Dir::H2D);
     const int yStart= (mpi.submatStart()/n)/B, xStart= (mpi.submatStart()/n)%B;
     phase3(dim3(s_x/n-1, s_y/n-1),bs, d_g3, d_g2, b,N, xStart,yStart, s_x);
-    d_g3.copy(msgSubmat.get(),s_x*s_y, Dir::D2H);
+    d_g3.copy(msgSubmat,s_x*s_y, Dir::D2H);
     cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
@@ -55,8 +55,9 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
     }
     printf("\n");
 
-    mpi.gatherMat(msgSubmat.get(), NULL);
+    mpi.gatherMat(msgSubmat, NULL);
     PRINTF("[run_gpu]: b=%d matrix gathered\n",b);
     mpi.barrier();
   }
+  delete[](msgRowcol); delete[](msgSubmat);
 }

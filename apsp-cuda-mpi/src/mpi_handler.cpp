@@ -1,4 +1,3 @@
-#include <limits.h>
 #include <stdexcept>
 #include <iostream>
 #include <cstdio>
@@ -12,11 +11,17 @@ MPIhandler::MPIhandler(bool enable, int* argc, char*** argv): disabled(!enable) 
     error= MPI_Comm_size(MPI_COMM_WORLD, &procN_);  errorHandler();
     error= MPI_Comm_rank(MPI_COMM_WORLD, &rank_);   errorHandler();
     // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
-    ones_.reset(new int[procN_]);
+    ones_= new int[procN_];
     for(int i=0; i<procN_; i++) ones_[i]= 1;
   } else printf("MPI disabled\n");
 }
-MPIhandler::~MPIhandler() { if(!disabled) MPI_Finalize(); }
+MPIhandler::~MPIhandler() {
+  if(!disabled){
+    MPI_Finalize();
+    delete[](ones_);
+    delete[](submatStarts_);
+  }
+}
 void MPIhandler::errorHandler() {
   if(error != MPI_SUCCESS){
     COUT <<"[MPIhandler]: Error!\n";
@@ -38,7 +43,7 @@ void MPIhandler::splitMat(const int N){
   const int p= static_cast<int>(floor(log2(procN_)))/2, y= static_cast<int>(floor(log2(procN_)))%2;
   submatRowL_= N/(p+y+1), submatRowN_= N/(p+1);
   const int usedProcs= 1<<static_cast<int>(floor(log2(procN_)));
-  submatStarts_.reset(new int[procN_]);
+  submatStarts_= new int[procN_];
   for(int p=usedProcs; p<procN_; p++) submatStarts_[p]= 0;
   for(int p=0; p<usedProcs; p++) submatStarts_[p]= (p*submatRowL_)%N + (p*submatRowL_)/N * submatRowN_;
   matSplit_= true;
@@ -62,41 +67,12 @@ void MPIhandler::makeTypes(const int n, const int N){
 
 int MPIhandler::scatterMat(int* g, int* rcvSubmat){
   if(!matSplit_) throw new std::logic_error("First split matrix before calling scatterMat!\n");
-  MPI_Scatterv(g, ones_.get(), submatStarts_.get(), MPI_SUBMAT, rcvSubmat,1,MPI_SUBMAT, 0,MPI_COMM_WORLD);
+  MPI_Scatterv(g, ones_, submatStarts_, MPI_SUBMAT, rcvSubmat,1,MPI_SUBMAT, 0,MPI_COMM_WORLD);
   return 0;
 }
 int MPIhandler::gatherMat(const int* rcvSubmat, int* g){
   if(!matSplit_) throw new std::logic_error("Fist split matrix before calling scatterMat!\n");
-  MPI_Gatherv(rcvSubmat,1,MPI_SUBMAT, g, ones_.get(), submatStarts_.get(), MPI_SUBMAT, 0,MPI_COMM_WORLD);
+  MPI_Gatherv(rcvSubmat,1,MPI_SUBMAT, g, ones_, submatStarts_, MPI_SUBMAT, 0,MPI_COMM_WORLD);
   return 0;
 }
 
-
-bool MPIhandler::testRq(const int hash){
-  int complete= 0;
-  error= MPI_Test(&rqStore_[hash], &complete, MPI_STATUS_IGNORE); errorHandler();
-  return complete;
-}
-void MPIhandler::waitRq(const int hash){
-  error= MPI_Wait(&rqStore_[hash], MPI_STATUS_IGNORE); errorHandler();
-}
-
-// Async comm
-/*
-int MPIhandler::scatterTiles(const int* buffer, const int* counts, const int* offsets, int* rcvBuf, const int rcvCount){
-  // Generate request key
-  int key= rand();
-  {
-    MPI_Request rq;
-    auto storeResult= rqStore_.emplace(make_pair(key,rq));
-    while(!storeResult.second){       // While insert is unsuccessful, because key already exists
-      key= rand();
-      storeResult= rqStore_.emplace(make_pair(key,rq));
-    }
-  }
-  MPI_Request& rq= rqStore_[key];
-
-  MPI_Iscatterv(buffer, counts, offsets, MPI_TILE, rcvBuf, rcvCount, MPI_TILE, 0, MPI_COMM_WORLD, &rq);
-  return key;
-}
-*/

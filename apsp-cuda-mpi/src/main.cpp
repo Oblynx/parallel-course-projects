@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cstring>
-#include <memory>
 #include <chrono>
 #include "utils.h"
 #include "mpi_handler.h"
@@ -54,8 +53,8 @@ int master(MPIhandler& mpi, int argc, char** argv){
   int N;
   while(!fscanf(fin, "%d\n", &N));
   N= 1<<N;
-  unique_ptr<int[]> g(new int[N*N]);
-  unique_ptr<int[]> groundTruth(new int[N*N]);
+  int* g= new int[N*N];
+  int* groundTruth= new int[N*N];
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
       while(!fscanf(fin, "%d", &g[i*N+j]));
@@ -67,16 +66,17 @@ int master(MPIhandler& mpi, int argc, char** argv){
   
   // Run algorithms
 #ifndef NO_TEST
-  if(N<512) run_cpu_test(g.get(),N, groundTruth.get(), logfile);
-  else      run_gpu_test(g.get(),N, groundTruth.get(), logfile);
+  if(N<512) run_cpu_test(g,N, groundTruth, logfile);
+  else      run_gpu_test(g,N, groundTruth, logfile);
 #endif
-  run_gpu_mpi_master(mpi, g.get(),N, groundTruth.get(), logfile);
+  run_gpu_mpi_master(mpi, g,N, groundTruth, logfile);
 
 #ifdef LOG
   fprintf(logfile, "\n");
   fclose(logfile);
 #endif
-  auto check= test(g.get(), groundTruth.get(), N, "mpi");
+  auto check= test(g, groundTruth, N, "mpi");
+  delete[](g); delete[](groundTruth);
   if(check){
     printf("\t***Test SUCCESSFUL!***\n");
   }else{

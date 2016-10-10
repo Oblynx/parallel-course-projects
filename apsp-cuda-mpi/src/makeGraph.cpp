@@ -8,7 +8,6 @@
 using namespace std;
 
 #define INF (1<<29)
-#define INF (1<<9)
 
 int main(int argc, char** argv){
   FILE* out;
@@ -20,7 +19,7 @@ int main(int argc, char** argv){
   const float p= atof(argv[2]);
   out= (argc==4)? fopen(argv[3],"w"): stdout;
 
-  unique_ptr<int[]> g(new int[N*N]);
+  int* g= new int[N*N];
   printf("[makeGraph]: Starting gen logN=%d\n", logN);
   
   unsigned seed= time(NULL);
@@ -41,5 +40,6 @@ int main(int argc, char** argv){
     fprintf(out, "%s", line.c_str());
   }
   fclose(out);
+  delete[](g);
   return 0;
 }

@@ -1,5 +1,4 @@
 #include <cstdio>
-#include <memory>
 #include <vector>
 #include <cuda_runtime_api.h>
 #include "utils.h"
@@ -20,7 +19,7 @@ void copyRowcolMsg(int* g, int* msgRowcol, const int b, const int n, const int N
 // GPU block algo
 Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth, FILE* logfile){
   // Constants
-  constexpr const int n= MAX_THRperBLK2D;
+  const int n= MAX_THRperBLK2D;
   const int B= N/n;
   dim3 bs(n,n);
   if(N<MAX_THRperBLK2D) bs= dim3(N,N);
@@ -34,8 +33,8 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
   DPtr<int> d_g1(n*n);        // 1st phase
   DPtr<int> d_g2(2*n*N);  // 2nd phase
   DPtr<int> d_g3(s_x*s_y);
-  unique_ptr<int[]> msgRowcol(new int[2*n*N]);
-  unique_ptr<int[]> msgSubmat(new int[s_x*s_y]);
+  int* msgRowcol= new int[2*n*N];
+  int* msgSubmat= new int[s_x*s_y];
 
   // Compute APSP
   // For every tile
@@ -46,7 +45,7 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     //printG(g,N,n);
     // MPI split phase 3
     //vector<int> mpiAsyncRqTickets(4);
-    mpi.scatterMat(g, msgSubmat.get());
+    mpi.scatterMat(g, msgSubmat);
     PRINTF("[run_gpu]: b=%d matrix scattered\n",b);
 
     //##### Compute Phase1&2 #####//
@@ -67,21 +66,21 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     // Phases 1&2 + CPU/GPU transfers complete
     
     //##### MPI tile, row, col #####//
-    copyRowcolMsg(g,msgRowcol.get(), b,n,N);         // Copy row&col to CPU
+    copyRowcolMsg(g,msgRowcol, b,n,N);         // Copy row&col to CPU
     // MPI bcast row+col
-    mpi.bcast(msgRowcol.get(),2*n*N);
+    mpi.bcast(msgRowcol,2*n*N);
     PRINTF("[run_gpu]: b=%d row/col broadcasted\n",b);
     //for(auto&& rq: mpiAsyncRqTickets) mpi.waitRq(rq);   // Wait for all phase3 transfers to complete
 
     //##### Compute Phase3 #####//
-    d_g3.copy(msgSubmat.get(),s_x*s_y, Dir::H2D);
+    d_g3.copy(msgSubmat,s_x*s_y, Dir::H2D);
     const int yStart= (mpi.submatStart()/n)/B, xStart= (mpi.submatStart()/n)%B;
     phase3(dim3(s_x/n-1, s_y/n-1),bs, d_g3, d_g2, b,N, xStart,yStart, s_x);
-    d_g3.copy(msgSubmat.get(),s_x*s_y, Dir::D2H);
+    d_g3.copy(msgSubmat,s_x*s_y, Dir::D2H);
     cudaStreamSynchronize(cudaStreamPerThread);
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
-    mpi.gatherMat(msgSubmat.get(),g);
+    mpi.gatherMat(msgSubmat,g);
     mpi.barrier();
     copyPhase1(g,d_g1,b,n,N,Dir::D2H);          // Copy again, because MPI gather has overwritten it
     copyPhase2(g,d_g2,b,n,N,Dir::D2H);
@@ -98,6 +97,8 @@ Duration_fsec run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* grou
     fprintf(logfile, "%.5f;", GPUBlock_time.count());
   #endif
   auto check= test(g, groundTruth, N, "GPUblock");
+  
+  delete[](msgRowcol); delete[](msgSubmat);
   if(!check){
     printf("[GPUblock]: Test FAILED!\n");
     exit(1);

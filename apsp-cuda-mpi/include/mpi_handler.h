@@ -1,7 +1,5 @@
 #pragma once
 #include <mpich/mpi.h>
-#include <unordered_map>
-#include <array>
 #include "utils.h"
 
 class MPIhandler{
@@ -28,16 +26,13 @@ public:
   void bcast(int* buffer, const int count);
   int scatterMat(int* g, int* rcvSubmat);           // Return value for transition into async calls
   int gatherMat (const int* rcvSubmat, int* g);           // Return value for transition into async calls
-  bool testRq(const int hash);
-  void waitRq(const int hash);
 
   const char disabled;
   MPI_Datatype MPI_TILE, MPI_SUBMAT;
 private:
 	int error, rank_, procN_, mpitypesDefined_= false, matSplit_= false;
-  std::unique_ptr<int[]> submatStarts_, ones_;
+  int *submatStarts_, *ones_;
   int submatRowL_, submatRowN_;
-  std::unordered_map<int,MPI_Request> rqStore_;
 };
 
 
