@@ -13,6 +13,8 @@ include_directories(
   ${MPI_INCLUDE_PATH}
 )
 
+#set(CMAKE_BUILD_TYPE DEBUG)
+
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -O2 -march=native")
 list(APPEND CUDA_NVCC_FLAGS "-O2 --compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg
 -Wno-deprecated-gpu-targets --default-stream per-thread")

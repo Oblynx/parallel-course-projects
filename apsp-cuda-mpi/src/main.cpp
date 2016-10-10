@@ -72,6 +72,7 @@ int master(MPIhandler& mpi, int argc, char** argv){
 #ifndef NO_TEST
   if(N<512) run_cpu_test(g,N, groundTruth, logfile);
   else      run_gpu_test(g,N, groundTruth, logfile);
+  //printG(groundTruth,N,4);
 #endif
   run_gpu_mpi_master(mpi, g,N, groundTruth, logfile);
 

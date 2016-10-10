@@ -61,6 +61,26 @@ __global__ void phase3_krn(int* g, const int* rowcol, const int b, const int N, 
 
   g[ y_t*rowL + x_t ]= tile[threadIdx.y][threadIdx.x];
 }
+
+// Copy fresh primary tile to row&col
+__global__ void updateRowcol_krn(int* rowcol, const int* tile, const int b, const int N){
+  rowcol[blockIdx.x*N*n+ n*b+ N*threadIdx.y+threadIdx.x]= tile[n*threadIdx.y+threadIdx.x];
+}
+
+// Copy fresh row&col into submatrix, if necessary
+__global__ void updateSubmat_krn(int *g, int* rowcol, const int b, const int N, const int xEnd,
+    const int xStart, const int yStart, const int submatX, const int submatY){
+  const int yb= b-yStart, xb= b-xStart;
+  if(blockIdx.x < xEnd){                                                      // If row 
+    if(yb>=0 && yb<submatY)
+      g[ N*n*yb+ n*blockIdx.x+ N*threadIdx.y+ threadIdx.x ]=
+          rowcol[      n*xStart+ n*blockIdx.x+ N*threadIdx.y+ threadIdx.x ];
+  } else {                                                                    // if col
+    if(xb>=0 && xb<submatX)
+      g[ n*xb+ N*n*(blockIdx.x-xEnd)+ N*threadIdx.y+ threadIdx.x ]= 
+          rowcol[ n*N+ n*yStart+ n*(blockIdx.x-xEnd)+ N*threadIdx.y+ threadIdx.x ];
+  }
+}
 #undef n
 
 // TODO
@@ -154,7 +174,13 @@ void phase2(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const 
 void phase3(const dim3 gs, const dim3 bs, int* g, const int* rowcol, const int b, const int N, const int xStart, const int yStart, const int rowL){
   phase3_krn<<<gs,bs>>>(g,rowcol, b,N,xStart,yStart,rowL);
 }
-
+void updateRowcol(const dim3 gs, const dim3 bs, int* rowcol, const int* tile, const int b, const int N){
+  updateRowcol_krn<<<gs,bs>>>(rowcol,tile, b,N);
+}
+void updateSubmat(const dim3 gs, const dim3 bs, int *g, int* rowcol, const int b, const int N,
+    const int xEnd, const int xStart, const int yStart, const int submatX, const int submatY){
+  updateSubmat_krn<<<gs,bs>>>(g,rowcol, b,N, xEnd,xStart,yStart, submatX,submatY);
+}
 void phase1_multiy(const dim3 gs, const dim3 bs, int* g, const int pstart, const int N){
   phase1_multiy_krn<<<gs,bs>>>(g,pstart,N);
 }
