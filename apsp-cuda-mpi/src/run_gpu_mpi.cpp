@@ -63,8 +63,8 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
 
     //##### MPI bcast tile, row, col #####//
     copyRowcolMsg(g,msgRowcol, b,n,N);         // Copy row&col to MPI 
+    PRINTF("[run_gpu]: Broadcasting row/col\n");
     mpi.bcast(msgRowcol,2*n*N);
-    mpi.barrier();
     PRINTF("[run_gpu]: b=%d row/col broadcasted\n",b);
 
     //##### Compute Phase3 #####//
@@ -75,6 +75,7 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
     d_submat.copy(msgSubmat,s_x*s_y, 1);
+    cudaDeviceSynchronize();
     mpi.gatherMat(msgSubmat,g);
     mpi.barrier();
     copyPhase2(g,d_rowcol,b,n,N,1);

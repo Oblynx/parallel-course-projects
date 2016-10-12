@@ -37,7 +37,7 @@ void MPIhandler::errorHandler() {
   }
 }
 void MPIhandler::bcast(int* buffer, const int count){
-  error= MPI_Bcast(&buffer, count, MPI_INT, 0, MPI_COMM_WORLD); errorHandler();
+  error= MPI_Bcast(buffer, count, MPI_INT, 0, MPI_COMM_WORLD); errorHandler();
 }
 
 void MPIhandler::splitMat(const int N){
@@ -68,12 +68,12 @@ void MPIhandler::makeTypes(const int n, const int N){
 
 int MPIhandler::scatterMat(int* g, int* rcvSubmat){
   if(!matSplit_) throw new std::logic_error("First split matrix before calling scatterMat!\n");
-  MPI_Scatterv(g, ones_, submatStarts_, MPI_SUBMAT, rcvSubmat,1,MPI_SUBMAT, 0,MPI_COMM_WORLD);
+  MPI_Scatterv(g, ones_, submatStarts_, MPI_SUBMAT, rcvSubmat,submatRowL_*submatRowN_,MPI_INT, 0,MPI_COMM_WORLD);
   return 0;
 }
 int MPIhandler::gatherMat(int* rcvSubmat, int* g){
   if(!matSplit_) throw new std::logic_error("Fist split matrix before calling scatterMat!\n");
-  MPI_Gatherv(rcvSubmat,1,MPI_SUBMAT, g, ones_, submatStarts_, MPI_SUBMAT, 0,MPI_COMM_WORLD);
+  MPI_Gatherv(rcvSubmat,submatRowL_*submatRowN_,MPI_INT, g, ones_, submatStarts_, MPI_SUBMAT, 0,MPI_COMM_WORLD);
   return 0;
 }
 

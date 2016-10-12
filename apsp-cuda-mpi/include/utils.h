@@ -11,7 +11,7 @@
   #define COUT   while(0) std::cout
 #endif
 
-#define MAX_THRperBLK2D 32
+#define MAX_THRperBLK2D 4
 #define MAX_THRperBLK2D_MULTI 32
 
 struct HPinPtr{
