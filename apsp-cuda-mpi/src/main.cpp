@@ -57,8 +57,8 @@ int master(MPIhandler& mpi, int argc, char** argv){
   int N;
   while(!fscanf(fin, "%d\n", &N));
   N= 1<<N;
-  int* g= new int[N*N];
-  int* groundTruth= new int[N*N];
+  smart_arr<int> g(N*N);
+  smart_arr<int> groundTruth(N*N);
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
       while(!fscanf(fin, "%d", &g[i*N+j]));
@@ -70,18 +70,17 @@ int master(MPIhandler& mpi, int argc, char** argv){
   
   // Run algorithms
 #ifndef NO_TEST
-  if(N<512) run_cpu_test(g,N, groundTruth, logfile);
-  else      run_gpu_test(g,N, groundTruth, logfile);
-  //printG(groundTruth,N,4);
+  if(N<512) run_cpu_test(g.get(),N, groundTruth.get(), logfile);
+  else      run_gpu_test(g.get(),N, groundTruth.get(), logfile);
+  printG(groundTruth.get(),4,N);
 #endif
-  run_gpu_mpi_master(mpi, g,N, groundTruth, logfile);
+  run_gpu_mpi_master(mpi, g.get(),N, groundTruth.get(), logfile);
 
 #ifdef LOG
   fprintf(logfile, "\n");
   fclose(logfile);
 #endif
-  bool check= test(g, groundTruth, N, "mpi");
-  delete[](g); delete[](groundTruth);
+  bool check= test(g.get(), groundTruth.get(), N, "mpi");
   if(check){
     printf("\t***Test SUCCESSFUL!***\n");
   }else{

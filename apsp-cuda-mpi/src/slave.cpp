@@ -35,16 +35,16 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
   // Allocate GPU memory
   DPtr<int> d_rowcol(2*n*N);
   DPtr<int> d_submat(s_x*s_y);
-  int* msgRowcol= new int[2*n*N];
-  int* msgSubmat= new int[s_x*s_y];
-  mpi.scatterMat(dummyg, msgSubmat);
+  smart_arr<int> msgRowcol(2*n*N);
+  smart_arr<int> msgSubmat(s_x*s_y);
+  mpi.scatterMat(dummyg, msgSubmat.get());
   PRINTF("[slave]: Received submat\n");
-  d_submat.copy(msgSubmat,s_x*s_y, 0);
+  d_submat.copy(msgSubmat.get(),s_x*s_y, 0);
   for(int b=0; b<B; b++){
-    PRINTF("[slave]: Receiving row/col\n");
-    mpi.bcast(msgRowcol, 2*n*N); 
+    mpi.bcast(msgRowcol.get(), 2*n*N); 
     PRINTF("[slave]: row/col received\n");
-    d_rowcol.copy(msgRowcol,2*n*N, 0);
+    printG(msgRowcol.get(), n,N,2*n);
+    d_rowcol.copy(msgRowcol.get(),2*n*N, 0);
 
     const int yStart= (mpi.submatStart()/n)/B, xStart= (mpi.submatStart()/n)%B, xEnd= B-xStart;
     updateSubmat(2*B-yStart-xStart,bs, d_submat, d_rowcol, b,N, xEnd,xStart,yStart,
@@ -52,15 +52,14 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
     phase3(dim3(s_x/n-1, s_y/n-1),bs, d_submat, d_rowcol, b,N, xStart,yStart, s_x);
     PRINTF("[slave]: b=%d phase3 complete\n",b);
 
-    d_submat.copy(msgSubmat,s_x*s_y, 1);
+    d_submat.copy(msgSubmat.get(),s_x*s_y, 1);
     cudaDeviceSynchronize();
-    mpi.gatherMat(msgSubmat, NULL);
+    mpi.gatherMat(msgSubmat.get(), NULL);
     mpi.barrier();
   }
-  d_submat.copy(msgSubmat,s_x*s_y, 1);
+  d_submat.copy(msgSubmat.get(),s_x*s_y, 1);
   cudaDeviceSynchronize();
-  mpi.gatherMat(msgSubmat, NULL);
+  mpi.gatherMat(msgSubmat.get(), NULL);
   mpi.barrier();
   PRINTF("[slave]: matrix gathered\n");
-  delete[](msgRowcol); delete[](msgSubmat);
 }

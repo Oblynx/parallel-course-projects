@@ -34,8 +34,8 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
   DPtr<int> d_tile(n*n);        // 1st phase
   DPtr<int> d_rowcol(2*n*N);  // 2nd phase
   DPtr<int> d_submat(s_x*s_y);
-  int* msgRowcol= new int[2*n*N];
-  int* msgSubmat= new int[s_x*s_y];
+  smart_arr<int> msgRowcol(2*n*N);
+  smart_arr<int> msgSubmat(s_x*s_y);
 
   // Compute APSP
   // For every tile
@@ -44,11 +44,14 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
   double begin= clock();
 
   // 1. Scatter submatrices
-  mpi.scatterMat(g, msgSubmat);
-  d_submat.copy(msgSubmat,s_x*s_y, 0);
+  mpi.scatterMat(g, msgSubmat.get());
+  d_submat.copy(msgSubmat.get(),s_x*s_y, 0);
   PRINTF("[run_gpu]: matrix scattered\n");
-  //printG(g,N,n);
   for(int b=0; b<B; b++){
+
+    printf("[master]: Truth:\n");
+    printG(groundTruth, n,N);
+
     //##### Compute Phase1&2 #####//
     copyPhase1(g,d_tile,b,n,N,0);          // Copy primary tile to GPU
     phase1(1,bs,d_tile);                        // Phase 1 kernel
@@ -59,12 +62,11 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
     
     copyPhase2(g,d_rowcol,b,n,N,1);          // Copy row&col to CPU
     cudaDeviceSynchronize();
-    PRINTF("[run_gpu]: b=%d phase2 complete\n",b);
 
     //##### MPI bcast tile, row, col #####//
-    copyRowcolMsg(g,msgRowcol, b,n,N);         // Copy row&col to MPI 
+    copyRowcolMsg(g,msgRowcol.get(), b,n,N);         // Copy row&col to MPI 
     PRINTF("[run_gpu]: Broadcasting row/col\n");
-    mpi.bcast(msgRowcol,2*n*N);
+    mpi.bcast(msgRowcol.get(),2*n*N);
     PRINTF("[run_gpu]: b=%d row/col broadcasted\n",b);
 
     //##### Compute Phase3 #####//
@@ -74,31 +76,35 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
     phase3(dim3(s_x/n-1, s_y/n-1),bs, d_submat, d_rowcol, b,N, xStart,yStart, s_x);
     PRINTF("[run_gpu]: b=%d phase3 complete\n",b);
 
-    d_submat.copy(msgSubmat,s_x*s_y, 1);
+    d_submat.copy(msgSubmat.get(),s_x*s_y, 1);
     cudaDeviceSynchronize();
-    mpi.gatherMat(msgSubmat,g);
+    mpi.gatherMat(msgSubmat.get(),g);
     mpi.barrier();
     copyPhase2(g,d_rowcol,b,n,N,1);
     cudaDeviceSynchronize();
-    //printG(g,N,n);
+    printG(g,n,N);
   }
-  d_submat.copy(msgSubmat,s_x*s_y, 1);
+  d_submat.copy(msgSubmat.get(),s_x*s_y, 1);
   cudaDeviceSynchronize();
-  mpi.gatherMat(msgSubmat,g);
+  mpi.gatherMat(msgSubmat.get(),g);
   mpi.barrier();
   PRINTF("[run_gpu]: matrix gathered\n");
   double GPUBlock_time= (double)(clock() - begin) / CLOCKS_PER_SEC;
   printf("GPU block MPI algo done: %.3fsec\n", GPUBlock_time);
 
-  //printf("Final G:\n"); printG(g,N,n);
-  //printf("Truth:\n"); printG(groundTruth, N,n);
+  //printf("Final G:\n"); printG(g,n,N);
+  //printf("Truth:\n"); printG(groundTruth, n,N);
 
   #ifdef LOG
     fprintf(logfile, "%.5f;", GPUBlock_time);
   #endif
+  printf("[master]: Final g:\n");
+  printG(g, n,N);
+  printf("[master]: Truth:\n");
+  printG(groundTruth, n,N);
+  scanf("%d",&msgRowcol[0]);
   bool check= test(g, groundTruth, N, "GPUblock_MPI");
   
-  delete[](msgRowcol); delete[](msgSubmat);
   if(!check){
     printf("[GPUblock]: Test FAILED!\n");
     exit(1);
