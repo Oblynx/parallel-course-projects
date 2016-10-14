@@ -37,6 +37,12 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
   smart_arr<int> msgRowcol(2*n*N);
   smart_arr<int> msgSubmat(s_x*s_y);
 
+
+  smart_arr<int> truthCopy(N*N);
+  for(int i=0; i<N*N;i++) truthCopy[i]= groundTruth[i];
+  printf("Addresses:\ng=%p\ngt=%p\nmsgRowcol=%p\nmsgSubmat=%p\ntc=%p\n",
+      g,groundTruth,msgRowcol.get(),msgSubmat.get(),truthCopy.get());
+
   // Compute APSP
   // For every tile
   printf("Block size: %d\n", n);
@@ -78,11 +84,13 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
 
     d_submat.copy(msgSubmat.get(),s_x*s_y, 1);
     cudaDeviceSynchronize();
+      msgSubmat[0]= -10*b-10;
     mpi.gatherMat(msgSubmat.get(),g);
     mpi.barrier();
     copyPhase2(g,d_rowcol,b,n,N,1);
     cudaDeviceSynchronize();
     printG(g,n,N);
+    test(groundTruth,truthCopy.get(), N, "truth test");
   }
   d_submat.copy(msgSubmat.get(),s_x*s_y, 1);
   cudaDeviceSynchronize();
@@ -102,7 +110,6 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
   printG(g, n,N);
   printf("[master]: Truth:\n");
   printG(groundTruth, n,N);
-  scanf("%d",&msgRowcol[0]);
   bool check= test(g, groundTruth, N, "GPUblock_MPI");
   
   if(!check){
@@ -111,40 +118,6 @@ double run_gpu_mpi_master(MPIhandler& mpi, int* g, int N, const int* groundTruth
   }
   return GPUBlock_time; 
 }
-
-/*
-// GPU block algo -- multiple vertices per thread (y only)
-Duration_fsec run_GPUblock_multiy(MPIhandler& mpi, const HPinPtr<int>& g, const int N, const unique_ptr<int[]>& groundTruth,
-    FILE* logfile ){
-  DPtr<int> d_g(N*N);
-  cudaDeviceSynchronize();
-  HPinPtr<int> result_block(N*N);
-  constexpr const int n= MAX_THRperBLK2D_MULTI;
-  const int B= N/n;
-  dim3 bs(n, n/2);
-
-  printf("Launching GPU multi2 block algo with %d primary blocks\n", B);
-  auto start= chrono::system_clock::now();
-  d_g.copy(g.get(), N*N, 0);
-  for(int b=0; b<B; b++){
-    phase1_multiy<n> <<<1,bs>>>(d_g, b*n, N);
-    phase2_multiy<n> <<<dim3(B-1,2),bs>>>(d_g, b*n, b, N);
-    phase3_multiy<n> <<<dim3(B-1,B-1),bs>>>(d_g, b*n, b, N);
-  }
-  d_g.copy(result_block.get(), N*N, 1);
-  auto GPUBlock_time= chrono::duration_cast<Duration_fsec>(chrono::system_clock::now() - start);
-  printf("GPU multi2 block kernel done: %.3f\n", GPUBlock_time.count());
-#ifdef LOG
-  fprintf(logfile, "%.5f;", GPUBlock_time.count());
-#endif
-  auto check= test(result_block, groundTruth, N, "GPUblock_multi2");
-  if(!check){
-    printf("[GPUblock_multi2]: Test FAILED!\n");
-    exit(1);
-  }
-  return GPUBlock_time; 
-}
-*/
 
 
 /*#########  Copy helpers  #########*/

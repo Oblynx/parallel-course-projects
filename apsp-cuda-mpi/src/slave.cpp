@@ -54,6 +54,7 @@ void run_gpu_mpi_slave(MPIhandler& mpi, int N){
 
     d_submat.copy(msgSubmat.get(),s_x*s_y, 1);
     cudaDeviceSynchronize();
+      msgSubmat[0]= -b-1;
     mpi.gatherMat(msgSubmat.get(), NULL);
     mpi.barrier();
   }

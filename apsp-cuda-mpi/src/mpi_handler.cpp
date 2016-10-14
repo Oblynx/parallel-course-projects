@@ -57,23 +57,31 @@ void MPIhandler::makeTypes(const int n, const int N){
     error= MPI_Type_free(&MPI_SUBMAT); errorHandler();
   }
   error= MPI_Type_vector(n,n,N, MPI_INT, &MPI_TILE); errorHandler();
-  error= MPI_Type_create_resized(MPI_TILE, 0,n*sizeof(int), &MPI_TILE); errorHandler();
+  //error= MPI_Type_create_resized(MPI_TILE, 0,n*sizeof(int), &MPI_TILE); errorHandler();
   error= MPI_Type_commit(&MPI_TILE); errorHandler();
 
-  error= MPI_Type_vector(submatRowN_,submatRowL_,N, MPI_INT, &MPI_SUBMAT); errorHandler();
-  error= MPI_Type_create_resized(MPI_SUBMAT, 0,submatRowL_*sizeof(int), &MPI_SUBMAT); errorHandler();
+  error= MPI_Type_vector(4*n,n,N, MPI_INT, &MPI_SUBMAT); errorHandler();
+  //error= MPI_Type_create_resized(MPI_SUBMAT, 0, submatRowL_/2, &MPI_SUBMAT); errorHandler();
   error= MPI_Type_commit(&MPI_SUBMAT); errorHandler();
   mpitypesDefined_= true;
+  
+  int tsize, ssize;
+  MPI_Type_size(MPI_TILE,&tsize); MPI_Type_size(MPI_SUBMAT,&ssize);
+  printf("[mpi]: n=%d\tN=%d\tsx=%d\tsy=%d\n", n,N, submatRowL_, submatRowN_);
+  printf("[mpi]: tsize=%d, n*N=%d\tssize=%d, sy*N=%d\n", tsize, n*N, ssize, submatRowN_*N);
+  scanf("%d",&tsize);
 }
 
 int MPIhandler::scatterMat(int* g, int* rcvSubmat){
   if(!matSplit_) throw new std::logic_error("First split matrix before calling scatterMat!\n");
-  MPI_Scatterv(g, ones_, submatStarts_, MPI_SUBMAT, rcvSubmat,submatRowL_*submatRowN_,MPI_INT, 0,MPI_COMM_WORLD);
+  error= MPI_Scatterv(g, ones_, submatStarts_, MPI_SUBMAT, rcvSubmat,
+      submatRowL_*submatRowN_,MPI_INT, 0,MPI_COMM_WORLD); errorHandler();
   return 0;
 }
 int MPIhandler::gatherMat(int* rcvSubmat, int* g){
   if(!matSplit_) throw new std::logic_error("Fist split matrix before calling scatterMat!\n");
-  MPI_Gatherv(rcvSubmat,submatRowL_*submatRowN_,MPI_INT, g, ones_, submatStarts_, MPI_SUBMAT, 0,MPI_COMM_WORLD);
+  error= MPI_Gatherv(rcvSubmat,submatRowL_*submatRowN_,MPI_INT, g, ones_,
+      submatStarts_, MPI_SUBMAT, 0,MPI_COMM_WORLD); errorHandler();
   return 0;
 }
 

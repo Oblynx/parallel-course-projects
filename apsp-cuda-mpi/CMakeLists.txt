@@ -28,7 +28,7 @@ list(APPEND CUDA_NVCC_FLAGS "-O2 --compiler-options -fno-strict-aliasing -linein
 -Wno-deprecated-gpu-targets --default-stream per-thread")
 ### Debugging options
 IF(CMAKE_BUILD_TYPE MATCHES DEBUG)
-  set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls -march=native")# -fsanitize=address")
+  set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -g -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls -march=native")
   add_definitions(-DDEBUG)
   add_definitions(-D__DEBUG__)
 ENDIF(CMAKE_BUILD_TYPE MATCHES DEBUG)
