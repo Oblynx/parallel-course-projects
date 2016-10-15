@@ -1,3 +1,4 @@
+#pragma once
 #include "mpi_handler.h"
 #include "cuda_handler.h"
 #include "DPtr.h"
@@ -7,11 +8,15 @@ double floydWarshall_gpu_mpi(int *g, int N, MPIHandler& mpi, CUDAHandler& cuda);
 
 //! Main algorithm loop.
 // dsg: device submat of g belonging to this process
-void loopTiles(DPtr<int>& dsg, const int B, MPIHandler& mpi, CUDAHandler& cuda);
+void loopTiles(int* dsg, const int B, const int N, MPIHandler& mpi, CUDAHandler& cuda);
 
-bool phase1ExecCheck(const int b, const xy gridCd);
-bool phase2ExecCheck(const int b, const xy gridCd);
+//! Decide if this proc takes part in phase
+int phase1FindExecutor(const int b, MPIHandler& mpi);
+int phase2RowFindExecutor(const int b, const int col, MPIHandler& mpi);
+int phase2ColFindExecutor(const int b, const int row, MPIHandler& mpi);
 
-void execPhase1(DPtr<int>& dsg, MPIHandler& mpi);
-void execPhase2(DPtr<int>& dsg, MPIHandler& mpi);
-void execPhase3(DPtr<int>& dsg, MPIHandler& mpi);
+//! Execute phase
+void execPhase1 (DPtr<int>& dsg, const int b, const int N, int* tilebuf, DPtr<int>& d_tile, MPIHandler& mpi);
+void execPhase2Row(DPtr<int>& dsg, const int b, const int N, DPtr<int>& d_tile, int* rowbuf,
+    DPtr<int>& d_row, MPIHandler& mpi);
+void execPhase3 (DPtr<int>& dsg, const int b, const int N, MPIHandler& mpi);

@@ -11,19 +11,25 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
   }
 }
 
+//! Manages pitched (2D) data on the GPU
 template<class T>
 struct DPtr{
-  DPtr(int N) { gpuErrchk(cudaMalloc(&data_, N*sizeof(T))); }
+  DPtr(const int Nx, const int Ny): Nx(Nx), Ny(Ny) {
+    gpuErrchk(cudaMallocPitch(&data_, &pitch_, Nx*sizeof(T), Ny));
+  }
   ~DPtr() { cudaFree(data_); }
-  void copyH2D (T* a, const int N, const int offset= 0) {
-    gpuErrchk(cudaMemcpy(data_, a, sizeof(T)*N, cudaMemcpyHostToDevice));
+  void copyH2D (T* a, const int pitch_elt, const int Nx, const int Ny, const int offset= 0) {
+    gpuErrchk(cudaMemcpy2D(data_, pitch_, a+offset, pitch_elt*sizeof(T), Nx*sizeof(T), Ny, cudaMemcpyHostToDevice));
   }
-  void copyD2H (T* a, const int N, const int offset= 0) {
-    gpuErrchk(cudaMemcpy(a, data_, sizeof(T)*N, cudaMemcpyDeviceToHost));
+  void copyD2H (T* a, const int pitch_elt, const int Nx, const int Ny, const int offset= 0) {
+    gpuErrchk(cudaMemcpy2D(a+offset, pitch_elt*sizeof(T), data_, pitch_, Nx*sizeof(T), Ny, cudaMemcpyDeviceToHost));
   }
+  int pitch_elt() const { return pitch_/sizeof(T); }
   T* get() const { return data_; }
   operator T*() const { return data_; }
-  private:
+ private:
+  const int Nx, Ny;
+  size_t pitch_;
   T* data_;
 };
 

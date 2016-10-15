@@ -5,24 +5,19 @@
 #include "mpi_handler.h"
 using namespace std;
 
-MPIHandler::MPIHandler(bool enable, int* argc, char*** argv): disabled(!enable),
-    gridCoord_(0,0), gridSize_(0,0) {
-  if(enable){
-    MPI_Init(argc, argv);
-    MPI_Comm_size(MPI_COMM_WORLD, &procN_);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
-    // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
-    submatStarts_.reset(procN_);
-    ones_.reset(procN_);
-    for(int i=0; i<procN_; i++) ones_[i]= 1;
-  }
+MPIHandler::MPIHandler(int* argc, char*** argv): gridCoord_(0,0), gridSize_(0,0) {
+  MPI_Init(argc, argv);
+  MPI_Comm_size(MPI_COMM_WORLD, &procN_);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
+  // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
+  submatStarts_.reset(procN_);
+  ones_.reset(procN_);
+  for(int i=0; i<procN_; i++) ones_[i]= 1;
 }
 MPIHandler::~MPIHandler() {
-  if(!disabled){
-    MPI_Type_free(&MPI_TILE);
-    MPI_Type_free(&MPI_SUBMAT);
-    MPI_Finalize();
-  }
+  MPI_Type_free(&MPI_TILE);
+  MPI_Type_free(&MPI_SUBMAT);
+  MPI_Finalize();
 }
 
 void MPIHandler::makeGrid(const int N){
@@ -73,4 +68,14 @@ void MPIHandler::gatherMat(int* rcvSubmat, int* g){
   if(!gridReady_) throw new std::logic_error("Fist split matrix before calling scatterMat!\n");
   MPI_Gatherv(rcvSubmat, s_x_*s_y_,MPI_INT, g, ones_.get(),
       submatStarts_.get(), MPI_SUBMAT, 0,MPI_COMM_WORLD);
+}
+
+void MPIHandler::bcast(int* buffer, const int count, const int broadcaster){
+  MPI_Bcast(buffer, count, MPI_INT, broadcaster, MPI_COMM_WORLD);
+}
+void MPIHandler::bcastRow(int* buffer, const int count, const int broadcaster){
+  MPI_Bcast(buffer, count, MPI_INT, broadcaster, MPI_COMM_ROW);
+}
+void MPIHandler::bcastCol(int* buffer, const int count, const int broadcaster){
+  MPI_Bcast(buffer, count, MPI_INT, broadcaster, MPI_COMM_COL);
 }

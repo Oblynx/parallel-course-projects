@@ -18,18 +18,63 @@
 
 struct xy{
   xy(const int x, const int y): x(x),y(y) {}
+  xy operator+(const xy& other) const { return xy(x+other.x, y+other.y); }
+  xy operator-(const xy& other) const { return xy(x-other.x, y-other.y); }
+  xy operator*(const int n) const { return xy(x*n, y*n); }
+  xy operator/(const int n) const { return xy(x/n, y/n); }
+  xy operator*(const xy& oth) const { return xy(x*oth.x, y*oth.y); }
+  xy operator/(const xy& oth) const { return xy(x/oth.x, y/oth.y); }
+  bool operator==(const xy& other) const { return (x==other.x)&&(y==other.y); }
   int x, y;
 };
 
 //! Pinned host memory pointer for quick PCIe transfers
 template<class T>
 struct HPinPtr{
-    HPinPtr(const int N) { gpuErrchk(cudaHostAlloc(&data_, N*sizeof(int), cudaHostAllocDefault)); }
-    ~HPinPtr() { cudaFreeHost(data_); }
+    HPinPtr(): owns(false) {}
+    HPinPtr(const int N): owns(true) { alloc(N); }
+    ~HPinPtr() { dealloc(); }
     T& operator[](size_t i) const { return data_[i]; }
     operator T*() const { return data_; }
     T* get() const { return data_; } 
+    void reset(int N) {
+      if(owns) dealloc();
+      alloc(N);
+      owns= true;
+    }
+    T* operator+(int n) const { return data_+n; }
   private:
+    void alloc(const int N) { gpuErrchk(cudaHostAlloc(&data_, N*sizeof(int), cudaHostAllocDefault)); }
+    void dealloc() { cudaFreeHost(data_); }
+
+    bool owns;
+    T* data_;
+};
+
+//! Smart pointer singleton
+template<class T>
+class smart_ptr{
+  public:
+    smart_ptr(bool make= true): owns(false), data_(NULL) { 
+      if(make) owns= true, data_= new T;
+    }
+    smart_ptr(const smart_ptr&);              // delete copy
+    smart_ptr& operator=(const smart_ptr&);   // delete copy
+    ~smart_ptr() {
+      if(owns) delete(data_);
+    }
+
+    T& operator*() const { return *data_; }
+    operator T*() const { return data_; }
+    T* get() const { return data_; }
+    void reset(int N) {
+      if(owns) delete(data_);
+      data_= new T[N];
+      owns= true;
+    }
+    T* operator+(int n) const { return data_+n; }
+  private:
+    bool owns;
     T* data_;
 };
 
@@ -37,16 +82,23 @@ struct HPinPtr{
 template<class T>
 class smart_arr{
   public:
-    smart_arr() {}
-    smart_arr(int N) { data_= new T[N]; }
+    smart_arr(): owns(false), data_(NULL) {}
+    smart_arr(int N): owns(true) { data_= new T[N]; }
     smart_arr(const smart_arr&);              // delete copy
     smart_arr& operator=(const smart_arr&);   // delete copy
-    ~smart_arr() { delete[](data_); }
+    ~smart_arr() {
+      if(owns) delete[](data_);
+    }
     T& operator[](int i) const { return data_[i]; }
     T* get() const { return data_; }
     T* operator+(int n) const { return data_+n; }
-    void reset(int N) { data_= new T[N]; }
+    void reset(int N) {
+      if(owns) delete[](data_);
+      data_= new T[N];
+      owns= true;
+    }
   private:
+    bool owns;
     T* data_;
 };
 
