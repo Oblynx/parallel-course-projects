@@ -10,11 +10,10 @@ public:
   MPIHandler& operator=(const MPIHandler&);
 	~MPIHandler();
 
-  void makeTypes(const int n, const int N);
   void makeGrid(const int N);
   void bcast(int* buffer, const int count);
-  int scatterMat(int* g, int* rcvSubmat);           // Return value for transition into async calls
-  int gatherMat (int* rcvSubmat, int* g);           // Return value for transition into async calls
+  void scatterMat(int* g, int* rcvSubmat);           // Return value for transition into async calls
+  void gatherMat (int* rcvSubmat, int* g);           // Return value for transition into async calls
 
   void barrier() const { if(!disabled) MPI_Barrier(MPI_COMM_WORLD); }
   int procN() const { return (disabled)? 1: procN_; }
@@ -25,12 +24,15 @@ public:
   xy gridCoord() const { return (disabled)? xy(9,9): gridCoord_; }
 
   const char disabled;
-  MPI_Datatype MPI_TILE, MPI_SUBMAT;
+
 private:
+  void makeTypes(const int n, const int N);
+
 	int rank_, procN_;
-  xy gridCoord_;
+  xy gridCoord_, gridSize_;
   bool mpitypesDefined_, gridReady_;
-  int *submatStarts_, *ones_;
+  smart_arr<int> submatStarts_, ones_;
   int s_x_, s_y_;
+  MPI_Datatype MPI_TILE, MPI_SUBMAT;
 };
 

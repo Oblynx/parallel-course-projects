@@ -18,7 +18,7 @@
 
 struct xy{
   xy(const int x, const int y): x(x),y(y) {}
-  const int x, y;
+  int x, y;
 };
 
 //! Pinned host memory pointer for quick PCIe transfers
@@ -37,13 +37,15 @@ struct HPinPtr{
 template<class T>
 class smart_arr{
   public:
+    smart_arr() {}
     smart_arr(int N) { data_= new T[N]; }
-    smart_arr(const smart_arr&);
-    smart_arr& operator=(const smart_arr&);
+    smart_arr(const smart_arr&);              // delete copy
+    smart_arr& operator=(const smart_arr&);   // delete copy
     ~smart_arr() { delete[](data_); }
-    T& operator[](int i) { return data_[i]; }
-    T* get() { return data_; }
-    T* operator+(int n) { return data_+n; }
+    T& operator[](int i) const { return data_[i]; }
+    T* get() const { return data_; }
+    T* operator+(int n) const { return data_+n; }
+    void reset(int N) { data_= new T[N]; }
   private:
     T* data_;
 };
