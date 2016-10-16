@@ -1,7 +1,6 @@
 #pragma once
 #include "mpi_handler.h"
-#include "cuda_handler.h"
-#include "DPtr.h"
+#include "cuda_utils.h"
 
 //! Compute APSP in g; for rank!=0, g is NULL
 double floydWarshall_gpu_mpi(int *g, int N, MPIHandler& mpi, CUDAHandler& cuda);
@@ -16,7 +15,9 @@ int phase2RowFindExecutor(const int b, const int col, MPIHandler& mpi);
 int phase2ColFindExecutor(const int b, const int row, MPIHandler& mpi);
 
 //! Execute phase
-void execPhase1 (DPtr<int>& dsg, const int b, const int N, int* tilebuf, DPtr<int>& d_tile, MPIHandler& mpi);
-void execPhase2Row(DPtr<int>& dsg, const int b, const int N, DPtr<int>& d_tile, int* rowbuf,
-    DPtr<int>& d_row, MPIHandler& mpi);
-void execPhase3 (DPtr<int>& dsg, const int b, const int N, MPIHandler& mpi);
+void execPhase1 (DPtr<int>& dsg, const int b,const int N, int* tilebuf, DPtr<int>& d_tile, MPIHandler& mpi);
+void execPhase2Row (DPtr<int>& dsg, const int b,const int N, DPtr<int>& d_tile, int* rowbuf,
+    DPtr<int>& d_row, MPIHandler& mpi, int& rcFlag);
+void execPhase2Col (DPtr<int>& dsg, const int b, DPtr<int>& d_tile, int* colbuf,
+    DPtr<int>& d_col, MPIHandler& mpi, int& rcFlag);
+void execPhase3(DPtr<int>& dsg, const int b, DPtr<int>& d_row, DPtr<int>& d_col, MPIHandler& mpi, int rcFlag);

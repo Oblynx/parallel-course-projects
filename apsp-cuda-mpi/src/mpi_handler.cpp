@@ -44,6 +44,11 @@ void MPIHandler::makeTypes(const int n, const int N){
     MPI_Type_free(&MPI_TILE); 
     MPI_Type_free(&MPI_SUBMAT); 
   }
+  MPI_Comm_split(MPI_COMM_WORLD, gridCoord_.x, rank_, &MPI_COMM_COL);
+  MPI_Comm_split(MPI_COMM_WORLD, gridCoord_.y, rank_, &MPI_COMM_ROW);
+  MPI_Comm_rank(MPI_COMM_COL, &rankCol_);
+  MPI_Comm_rank(MPI_COMM_ROW, &rankRow_);
+
   MPI_Type_vector(n,n,N, MPI_INT, &MPI_TILE); 
   MPI_Type_create_resized(MPI_TILE, 0,n*sizeof(int), &MPI_TILE); 
   MPI_Type_commit(&MPI_TILE); 
@@ -74,8 +79,12 @@ void MPIHandler::bcast(int* buffer, const int count, const int broadcaster){
   MPI_Bcast(buffer, count, MPI_INT, broadcaster, MPI_COMM_WORLD);
 }
 void MPIHandler::bcastRow(int* buffer, const int count, const int broadcaster){
-  MPI_Bcast(buffer, count, MPI_INT, broadcaster, MPI_COMM_ROW);
+  // Convert WORLD rank to ROW rank
+  const int rrank= broadcaster - gridSize_.x*gridCoord_.y;
+  MPI_Bcast(buffer, count, MPI_INT, rrank, MPI_COMM_ROW);
 }
 void MPIHandler::bcastCol(int* buffer, const int count, const int broadcaster){
-  MPI_Bcast(buffer, count, MPI_INT, broadcaster, MPI_COMM_COL);
+  // Convert WORLD rank to COL rank
+  const int crank= (broadcaster - gridCoord_.x)/gridSize_.x;
+  MPI_Bcast(buffer, count, MPI_INT, crank, MPI_COMM_COL);
 }

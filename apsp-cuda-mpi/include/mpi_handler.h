@@ -30,11 +30,12 @@ public:
 private:
   void makeTypes(const int n, const int N);
 
-	int rank_, procN_;
+	int rank_, rankRow_, rankCol_, procN_;
   xy gridCoord_, gridSize_;
   bool mpitypesDefined_, gridReady_;
   smart_arr<int> submatStarts_, ones_;
   int s_x_, s_y_;
   MPI_Datatype MPI_TILE, MPI_SUBMAT;
+  MPI_Comm MPI_COMM_COL, MPI_COMM_ROW;
 };
 

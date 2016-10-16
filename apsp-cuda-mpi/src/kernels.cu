@@ -48,18 +48,16 @@ __global__ void phase2Col_krn(int* g, const int* primaryTile, const int colStart
     __syncthreads();
   }
 
-  g[ rowStart+ pitch*n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
+  g[ colStart+ pitch*n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
 }
 
-// Start: in blocks, not ints,relb= b-start 
-__global__ void phase3_krn(int* g, const int* rowcol, const int b, const int N, const int xStart, const int yStart, const int rowL){
+// Actually calculate phase 3
+__device__ void phase3_exec(int* g, const int* rowBuf, const int* colBuf, const int blockIdx_xskip,
+    const int blockIdx_yskip, const int pitch, const int rowpitch){
   __shared__ int tile[n][n], row[n][n], col[n][n];
-  int blockIdx_xskip= (blockIdx.x >= b-xStart)? blockIdx.x+1: blockIdx.x;     // skip primary tile
-  int blockIdx_yskip= (blockIdx.y >= b-yStart)? blockIdx.y+1: blockIdx.y;
-  int x_t= blockIdx_xskip*n+threadIdx.x, y_t= blockIdx_yskip*n+threadIdx.y;     // tile coordinates
-  row[threadIdx.y][threadIdx.x]=  rowcol[ n*xStart+ threadIdx.y*N + x_t ];
-  col[threadIdx.y][threadIdx.x]=  rowcol[ n*N+ n*yStart+ blockIdx_yskip*n+ threadIdx.y*N + threadIdx.x ];
-  tile[threadIdx.y][threadIdx.x]= g[ y_t*rowL + x_t ];
+  row[threadIdx.y][threadIdx.x]= rowBuf[ n*blockIdx_xskip+ rowpitch*threadIdx.y+threadIdx.x ];
+  col[threadIdx.y][threadIdx.x]= colBuf[ n*n*blockIdx_yskip+ n*threadIdx.y+threadIdx.x ];
+  tile[threadIdx.y][threadIdx.x]= g[ pitch*n*blockIdx_yskip+ n*blockIdx_xskip+ pitch*threadIdx.y+threadIdx.x ];
   __syncthreads();
 
   for(int k=0; k<n; k++){
@@ -68,7 +66,28 @@ __global__ void phase3_krn(int* g, const int* rowcol, const int b, const int N, 
     __syncthreads();
   }
 
-  g[ y_t*rowL + x_t ]= tile[threadIdx.y][threadIdx.x];
+  g[ pitch*n*blockIdx_yskip+ n*blockIdx_xskip+ pitch*threadIdx.y+threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
+}
+// Determine if a row or column must be skipped and then call the actual calculation for phase 3
+__global__ void phase3_krn(int* g, const int* rowBuf, const int* colBuf, const int b, const int xStart, const int
+    yStart, const int pitch, const int rowpitch){
+  phase3_exec( g, rowBuf,colBuf, blockIdx.x, blockIdx.y, pitch, rowpitch);
+}
+__global__ void phase3r_krn(int* g, const int* rowBuf, const int* colBuf, const int b, const int xStart, const int
+    yStart, const int pitch, const int rowpitch){
+  int blockIdx_yskip= (blockIdx.y >= b-yStart)? blockIdx.y+1: blockIdx.y;
+  phase3_exec( g, rowBuf,colBuf, blockIdx.x, blockIdx_yskip, pitch, rowpitch);
+}
+__global__ void phase3c_krn(int* g, const int* rowBuf, const int* colBuf, const int b, const int xStart, const int
+    yStart, const int pitch, const int rowpitch){
+  int blockIdx_xskip= (blockIdx.x >= b-xStart)? blockIdx.x+1: blockIdx.x;     // skip primary tile
+  phase3_exec( g, rowBuf,colBuf, blockIdx_xskip, blockIdx.y, pitch, rowpitch);
+}
+__global__ void phase3rc_krn(int* g, const int* rowBuf, const int* colBuf, const int b, const int xStart, const int
+    yStart, const int pitch, const int rowpitch){
+  int blockIdx_xskip= (blockIdx.x >= b-xStart)? blockIdx.x+1: blockIdx.x;     // skip primary tile
+  int blockIdx_yskip= (blockIdx.y >= b-yStart)? blockIdx.y+1: blockIdx.y;
+  phase3_exec( g, rowBuf,colBuf, blockIdx_xskip, blockIdx_yskip, pitch, rowpitch);
 }
 #undef n
 
@@ -158,13 +177,26 @@ void phase1(const dim3 gs, const dim3 bs, int* g, const int tileStart, const int
   phase1_krn<<<gs,bs>>>(g, tileStart, pitch);
 }
 void phase2Row(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int rowStart, const int pitch){
-  phase2_krn<<<gs,bs>>>(g,primaryTile,rowStart,pitch);
+  phase2Row_krn<<<gs,bs>>>(g,primaryTile,rowStart,pitch);
 }
 void phase2Col(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int colStart, const int pitch){
-  phase2_krn<<<gs,bs>>>(g,primaryTile,colStart,pitch);
+  phase2Col_krn<<<gs,bs>>>(g,primaryTile,colStart,pitch);
 }
-void phase3(const dim3 gs, const dim3 bs, int* g, const int* rowcol, const int b, const int N, const int xStart, const int yStart, const int rowL){
-  phase3_krn<<<gs,bs>>>(g,rowcol, b,N,xStart,yStart,rowL);
+void phase3(const dim3 gs, const dim3 bs, int* g, const int* row, const int* col, const int b, const int xStart,
+    const int yStart, const int pitch, const int rowpitch, const int rcFlag){
+  switch(rcFlag){
+    case 0:
+      phase3_krn<<<gs,bs>>>( g,row,col, b,xStart,yStart, pitch, rowpitch);
+      break;
+    case 1:
+      phase3r_krn<<<gs,bs>>>( g,row,col, b,xStart,yStart, pitch, rowpitch);
+      break;
+    case 2:
+      phase3c_krn<<<gs,bs>>>( g,row,col, b,xStart,yStart, pitch, rowpitch);
+      break;
+    case 3:
+      phase3rc_krn<<<gs,bs>>>( g,row,col, b,xStart,yStart, pitch, rowpitch);
+  }
 }
 
 void phase1_multiy(const dim3 gs, const dim3 bs, int* g, const int pstart, const int N){

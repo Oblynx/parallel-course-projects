@@ -15,7 +15,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 template<class T>
 struct DPtr{
   DPtr(const int Nx, const int Ny): Nx(Nx), Ny(Ny) {
-    gpuErrchk(cudaMallocPitch(&data_, &pitch_, Nx*sizeof(T), Ny));
+    gpuErrchk(cudaMallocPitch((void**)&data_, &pitch_, Nx*sizeof(T), Ny));
   }
   ~DPtr() { cudaFree(data_); }
   void copyH2D (T* a, const int pitch_elt, const int Nx, const int Ny, const int offset= 0) {
@@ -33,3 +33,37 @@ struct DPtr{
   T* data_;
 };
 
+//! Pinned host memory pointer for quick PCIe transfers
+template<class T>
+struct HPinPtr{
+    HPinPtr(): owns(false) {}
+    HPinPtr(const int N): owns(true) { alloc(N); }
+    ~HPinPtr() { dealloc(); }
+    T& operator[](size_t i) const { return data_[i]; }
+    operator T*() const { return data_; }
+    T* get() const { return data_; } 
+    void reset(int N) {
+      if(owns) dealloc();
+      alloc(N);
+      owns= true;
+    }
+    T* operator+(int n) const { return data_+n; }
+  private:
+    void alloc(const int N) {
+      gpuErrchk(cudaHostAlloc( (void**)&data_, N*sizeof(int), cudaHostAllocDefault ));
+    }
+    void dealloc() { cudaFreeHost(data_); }
+
+    bool owns;
+    T* data_;
+};
+
+class CUDAHandler{
+public:
+  CUDAHandler(const int prank){
+    cudaGetDeviceCount(&devCount_);
+    cudaSetDevice(prank%devCount_);
+  }
+private:
+  int devCount_;
+};

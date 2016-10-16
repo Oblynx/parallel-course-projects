@@ -28,29 +28,6 @@ struct xy{
   int x, y;
 };
 
-//! Pinned host memory pointer for quick PCIe transfers
-template<class T>
-struct HPinPtr{
-    HPinPtr(): owns(false) {}
-    HPinPtr(const int N): owns(true) { alloc(N); }
-    ~HPinPtr() { dealloc(); }
-    T& operator[](size_t i) const { return data_[i]; }
-    operator T*() const { return data_; }
-    T* get() const { return data_; } 
-    void reset(int N) {
-      if(owns) dealloc();
-      alloc(N);
-      owns= true;
-    }
-    T* operator+(int n) const { return data_+n; }
-  private:
-    void alloc(const int N) { gpuErrchk(cudaHostAlloc(&data_, N*sizeof(int), cudaHostAllocDefault)); }
-    void dealloc() { cudaFreeHost(data_); }
-
-    bool owns;
-    T* data_;
-};
-
 //! Smart pointer singleton
 template<class T>
 class smart_ptr{

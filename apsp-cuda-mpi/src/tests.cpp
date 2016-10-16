@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <ctime>
 #include "utils.h"
-#include "DPtr.h"
+#include "cuda_utils.h"
 #include "kernel_wrp.h"
 using namespace std;
 
@@ -22,7 +22,7 @@ double run_cpu_test(const int* g, const int N, int* result_cpu){
 
 // The GPU algorithm that was proven correct in the previous project
 double run_gpu_test(const int* g, const int N, int* result_gpu){
-  DPtr<int> d_g(N*N);
+  DPtr<int> d_g(N,N);
   cudaDeviceSynchronize();
   HPinPtr<int> result_block(N*N);
   const int n= MAX_THRperBLK2D_MULTI;
@@ -31,13 +31,13 @@ double run_gpu_test(const int* g, const int N, int* result_gpu){
 
   printf("Launching GPU test (multiY block algo with %d primary blocks)\n", B);
   clock_t begin= clock();
-  d_g.copyH2D(const_cast<int*>(g), N*N);
+  d_g.copyH2D(const_cast<int*>(g), N,N,N);
   for(int b=0; b<B; b++){
     phase1_multiy_test(1,bs, d_g, b*n,N);
     phase2_multiy_test(dim3(B-1,2),bs, d_g, b*n,b,N);
     phase3_multiy_test(dim3(B-1,B-1),bs, d_g, b*n,b,N);
   }
-  d_g.copyD2H(result_gpu, N*N);
+  d_g.copyD2H(result_gpu, N,N,N);
   double GPUBlock_time= (double)(clock() - begin) / CLOCKS_PER_SEC;
   printf("--> GPU test done: %.3fsec\n", GPUBlock_time);
   return GPUBlock_time; 
