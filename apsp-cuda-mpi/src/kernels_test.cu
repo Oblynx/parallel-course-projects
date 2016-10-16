@@ -88,6 +88,67 @@ __global__ void phase3_multiy_test_krn(int* g, const int pstart, const int prima
   g[y_t*N + x_t]= tile[2*threadIdx.y][threadIdx.x];
   g[y_t1*N + x_t]= tile[2*threadIdx.y+1][threadIdx.x];
 }
+#undef n
+
+#define n MAX_THRperBLK2D
+__global__ void phase1_test_krn(int* g, const int pstart, const int N){
+  __shared__ int tile[n][n];
+  tile[threadIdx.y][threadIdx.x]= g[ (pstart+threadIdx.y)*N + pstart+threadIdx.x ];
+  __syncthreads();
+
+  for(int k=0; k<n; k++){
+    if(tile[threadIdx.y][threadIdx.x] > tile[threadIdx.y][k]+tile[k][threadIdx.x])
+      tile[threadIdx.y][threadIdx.x]= tile[threadIdx.y][k]+tile[k][threadIdx.x];
+    __syncthreads();
+  }
+
+  g[ (pstart+threadIdx.y)*N + pstart+threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
+}
+
+__global__ void phase2_test_krn(int* g, const int pstart, const int primary_n, const int N){
+  __shared__ int tile[n][n], primary[n][n];
+  int blkIdx_skip= (blockIdx.x >= primary_n)? blockIdx.x+1: blockIdx.x;      // skip primary tile
+  int x_t= (blockIdx.y)? blkIdx_skip*n+threadIdx.x: pstart+threadIdx.x;     // tile coordinates
+  int y_t= (blockIdx.y)? pstart+threadIdx.y: blkIdx_skip*n+threadIdx.y;     // blkIdx,y? row: col
+  primary[threadIdx.y][threadIdx.x]= g[ (pstart+threadIdx.y)*N + pstart+threadIdx.x ];
+  tile[threadIdx.y][threadIdx.x]= g[y_t*N + x_t];
+  __syncthreads();
+  
+  if(blockIdx.y)
+    for(int k=0; k<n; k++){
+      if(tile[threadIdx.y][threadIdx.x] > primary[threadIdx.y][k]+tile[k][threadIdx.x])
+        tile[threadIdx.y][threadIdx.x]= primary[threadIdx.y][k]+tile[k][threadIdx.x];
+      __syncthreads();
+    }
+  else
+    for(int k=0; k<n; k++){
+      if(tile[threadIdx.y][threadIdx.x] > tile[threadIdx.y][k]+primary[k][threadIdx.x])
+        tile[threadIdx.y][threadIdx.x]= tile[threadIdx.y][k]+primary[k][threadIdx.x];
+      __syncthreads();
+    }
+
+  g[y_t*N + x_t]= tile[threadIdx.y][threadIdx.x];
+}
+
+__global__ void phase3_test_krn(int* g, const int pstart, const int primary_n, const int N){
+  __shared__ int tile[n][n], row[n][n], col[n][n];
+  int blkIdx_xskip= (blockIdx.x >= primary_n)? blockIdx.x+1: blockIdx.x;     // skip primary tile
+  int blkIdx_yskip= (blockIdx.y >= primary_n)? blockIdx.y+1: blockIdx.y;
+  int x_t= blkIdx_xskip*n+threadIdx.x, y_t= blkIdx_yskip*n+threadIdx.y;     // tile coordinates
+  row[threadIdx.y][threadIdx.x]= g[ (pstart+threadIdx.y)*N + x_t ];
+  col[threadIdx.y][threadIdx.x]= g[ y_t*N + pstart+threadIdx.x   ];
+  tile[threadIdx.y][threadIdx.x]= g[y_t*N + x_t];
+  __syncthreads();
+
+  for(int k=0; k<n; k++){
+    if(tile[threadIdx.y][threadIdx.x] > col[threadIdx.y][k]+row[k][threadIdx.x])
+      tile[threadIdx.y][threadIdx.x]= col[threadIdx.y][k]+row[k][threadIdx.x];
+    __syncthreads();
+  }
+
+  g[y_t*N + x_t]= tile[threadIdx.y][threadIdx.x];
+}
+#undef n
 
 //##### Wrappers #####
 void phase1_multiy_test(const dim3 gs, const dim3 bs, int* g, const int pstart, const int N){
@@ -98,4 +159,14 @@ void phase2_multiy_test(const dim3 gs, const dim3 bs, int* g, const int pstart, 
 }
 void phase3_multiy_test(const dim3 gs, const dim3 bs, int* g, const int pstart, const int primary_n, const int N){
   phase3_multiy_test_krn<<<gs,bs>>>(g,pstart,primary_n,N);
+}
+
+void phase1_test(dim3 gs, dim3 bs, int* g, const int pstart, const int N){
+  phase1_test_krn<<<gs,bs>>>(g,pstart,N);
+}
+void phase2_test(dim3 gs, dim3 bs, int* g, const int pstart, const int primary_n, const int N){
+  phase2_test_krn<<<gs,bs>>>(g,pstart,primary_n,N);
+}
+void phase3_test(dim3 gs, dim3 bs, int* g, const int pstart, const int primary_n, const int N){
+  phase3_test_krn<<<gs,bs>>>(g,pstart,primary_n,N);
 }

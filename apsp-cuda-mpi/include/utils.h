@@ -13,7 +13,7 @@
   #define COUT   while(0) std::cout
 #endif
 
-#define MAX_THRperBLK2D 4
+#define MAX_THRperBLK2D 2
 #define MAX_THRperBLK2D_MULTI 32
 
 struct xy{
@@ -94,11 +94,10 @@ inline bool test(const int* toCheck, const int* truth, const int N, std::string 
   return true;
 }
 
-//! Print array g for debugging purposes 
-inline void printG(const int* g, const int n, const int Nx, const int Ny_= -1){
+inline void printG_exec(const int* g, const int n, const int Nx, const int Ny_= -1){
   assert(n<=Nx);
   const int Ny= (Ny_<0)? Nx: Ny_;
-  smart_arr<char> buf(7*Nx*Ny);
+  smart_arr<char> buf(20*Nx*Ny);
 
   int idx= 0;
   for(int i=0; i<Ny; i++){
@@ -107,13 +106,23 @@ inline void printG(const int* g, const int n, const int Nx, const int Ny_= -1){
       else        idx+= sprintf(buf+idx,"%3d|", g[i*Nx+j]);
     }
     idx+= sprintf(buf+idx,"\n");
-    if(!(i+1)%n){
+    if(!((i+1)%n)){
       for(int j=0; j<Nx; j++)
         idx+= sprintf(buf+idx,"----");
       idx+= sprintf(buf+idx,"\n");
     }
   }
-  idx+= sprintf(buf+idx,"_____________________________________\n");
+  idx+= sprintf(buf+idx,"________________________________________________\n");
   printf("%s\n",buf.get());
+  fflush(stdout);
 }
 
+//! Print array g for debugging purposes 
+inline void printG(const int* g, const int n, const int Nx, const int Ny_= -1){
+  #ifdef __DEBUG__
+  printG_exec(g,n,Nx,Ny_);
+  #endif
+}
+inline void printG_force(const int* g, const int n, const int Nx, const int Ny_= -1){
+  printG_exec(g,n,Nx,Ny_);
+}

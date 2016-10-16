@@ -13,15 +13,31 @@ int main(int argc, char** argv){
   int N;
   if(!mpi.rank()){
     N= input(g, truth, argc, argv);
-    if (N<512) run_cpu_test(g.get(), N, truth.get());
-    else       run_gpu_test(g.get(), N, truth.get());
-    smart_arr<int> truthGPU(N*N);
+    //if (N<512) run_cpu_test(g.get(), N, truth.get());
+    //else       run_gpu_test(g.get(), N, truth.get());
+    smart_arr<int> truthCPU(N*N);
+    run_cpu_test(g.get(), N, truthCPU.get());
+    run_gpu_test(g.get(), N, truth.get());
+
+    printG_force(truth.get(), 8,N);
+    printG_force(truthCPU.get(), 8,N);
+    bool gpucorrect= test(truth.get(), truthCPU.get(), N,"gputest");
+    if(!gpucorrect) exit(1);
+
+
+    printf("G\n");
+    printG_force(g.get(), MAX_THRperBLK2D, N);
+    printf("truth\n");
+    printG_force(truth.get(), MAX_THRperBLK2D ,N);
   }
   mpi.bcast(&N,1,0);
   
   if(!mpi.rank()) printf("Starting GPU MPI fw\n");
-  double time= floydWarshall_gpu_mpi(g.get(), N, mpi, cuda);
+  double time= floydWarshall_gpu_mpi( truth.get(), g.get(), N, mpi, cuda );
   if(!mpi.rank()) printf("fw time: %.3f\n", time);
+
+  printf("G\n");
+  printG_force(g.get(), MAX_THRperBLK2D, N);
 
   if(!mpi.rank()){
     bool testResult= false;
@@ -29,7 +45,7 @@ int main(int argc, char** argv){
     if(testResult)
       printf("\t######  SUCESSFUL  ######\n");
     else{
-      printf("\t!!!!!!   FAILED    !!!!!!\n");
+      printf("\t!!!!!!    FAILED    !!!!!!\n");
       exit(1);
     }
   }

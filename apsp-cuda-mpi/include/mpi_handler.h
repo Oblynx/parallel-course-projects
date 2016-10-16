@@ -23,6 +23,7 @@ public:
   int s_x() const { return s_x_; }
   int s_y() const { return s_y_; }
   int submatStart() const { return submatStarts_[rank_]; }
+  xy subStartXY() const { return subStartXY_[rank_]; }
   xy gridCoord() const { return gridCoord_; }
   xy gridSize() const { return gridSize_; }
   xy tile2grid(xy tileCd) const { return  tileCd/xy(s_x_,s_y_); }
@@ -34,6 +35,7 @@ private:
   xy gridCoord_, gridSize_;
   bool mpitypesDefined_, gridReady_;
   smart_arr<int> submatStarts_, ones_;
+  smart_arr<xy> subStartXY_;
   int s_x_, s_y_;
   MPI_Datatype MPI_TILE, MPI_SUBMAT;
   MPI_Comm MPI_COMM_COL, MPI_COMM_ROW;

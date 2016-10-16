@@ -11,6 +11,7 @@ MPIHandler::MPIHandler(int* argc, char*** argv): mpitypesDefined_(false), gridRe
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
   // https://www.rc.colorado.edu/sites/default/files/Datatypes.pdf
   submatStarts_.reset(procN_);
+  subStartXY_.reset(procN_);
   ones_.reset(procN_);
   for(int i=0; i<procN_; i++) ones_[i]= 1;
 }
@@ -36,7 +37,8 @@ void MPIHandler::makeGrid(const int n, const int N){
   const int usedProcs= 1<<static_cast<int>(floor(log2(procN_)));
 
   for(int p=usedProcs; p<procN_; p++) submatStarts_[p]= 0;
-  for(int p=0; p<usedProcs; p++) submatStarts_[p]= (p*s_x_)%N + (p*s_x_)/N * s_y_;
+  for(int p=0; p<usedProcs; p++) submatStarts_[p]= (p*s_x_)%N + (p*s_x_)/N * s_y_ *s_x_;
+  for(int p=0; p<usedProcs; p++) subStartXY_[p].x= (p*s_x_)%N, subStartXY_[p].y= (p*s_x_)/N *s_y_;
 
   gridCoord_= xy(rank_%gridSize_.x, rank_/gridSize_.x);
 
@@ -59,14 +61,16 @@ void MPIHandler::makeTypes(const int n, const int N){
   MPI_Type_commit(&MPI_TILE); 
 
   MPI_Type_vector(s_y_,s_x_,N, MPI_INT, &MPI_SUBMAT); 
-  MPI_Type_create_resized(MPI_SUBMAT, 0, s_x_, &MPI_SUBMAT); 
+  MPI_Type_create_resized(MPI_SUBMAT, 0, s_x_*sizeof(int), &MPI_SUBMAT); 
   MPI_Type_commit(&MPI_SUBMAT); 
   mpitypesDefined_= true;
   
-  int tsize, ssize;
-  MPI_Type_size(MPI_TILE,&tsize); MPI_Type_size(MPI_SUBMAT,&ssize);
+  int tsize, ssize, intsz; long text, sext, lb;
+  MPI_Type_size(MPI_TILE,&tsize); MPI_Type_size(MPI_SUBMAT,&ssize); MPI_Type_size(MPI_INT, &intsz);
+  MPI_Type_get_extent(MPI_TILE,&lb,&text); MPI_Type_get_extent(MPI_SUBMAT,&lb,&sext);
+  printf("[mpi]: size MPI_INT: %d\n", intsz );
   printf("[mpi]: n=%d\tN=%d\tsx=%d\tsy=%d\n", n,N, s_x_, s_y_);
-  printf("[mpi]: tsize=%d, n*N=%d\tssize=%d, sy*N=%d\n", tsize, n*N, ssize, s_y_*N);
+  printf("[mpi]: tsize=%d, text=%ld, n*N=%d\tssize=%d, sext=%ld, sy*N=%d\n", tsize, text, n*N, ssize, sext, s_y_*N);
 }
 
 void MPIHandler::scatterMat(int* g, int* rcvSubmat){
