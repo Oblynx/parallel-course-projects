@@ -12,7 +12,7 @@ using namespace std;
 //! Compute APSP in g; for rank!=0, g is NULL
 double floydWarshall_gpu_mpi(int *g, int N, MPIHandler& mpi, CUDAHandler& cuda){
   const int B= N/n;
-  mpi.makeGrid(N);
+  mpi.makeGrid(n,N);
   smart_arr<int> submat(mpi.s_x()*mpi.s_y());
 
   double begin= clock();

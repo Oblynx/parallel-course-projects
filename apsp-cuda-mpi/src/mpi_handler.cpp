@@ -5,7 +5,7 @@
 #include "mpi_handler.h"
 using namespace std;
 
-MPIHandler::MPIHandler(int* argc, char*** argv): gridCoord_(0,0), gridSize_(0,0) {
+MPIHandler::MPIHandler(int* argc, char*** argv): mpitypesDefined_(false), gridReady_(false) {
   MPI_Init(argc, argv);
   MPI_Comm_size(MPI_COMM_WORLD, &procN_);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank_);
@@ -15,12 +15,16 @@ MPIHandler::MPIHandler(int* argc, char*** argv): gridCoord_(0,0), gridSize_(0,0)
   for(int i=0; i<procN_; i++) ones_[i]= 1;
 }
 MPIHandler::~MPIHandler() {
-  MPI_Type_free(&MPI_TILE);
-  MPI_Type_free(&MPI_SUBMAT);
+  if(mpitypesDefined_){
+    MPI_Type_free(&MPI_TILE);
+    MPI_Type_free(&MPI_SUBMAT);
+    MPI_Comm_free(&MPI_COMM_ROW);
+    MPI_Comm_free(&MPI_COMM_COL);
+  }
   MPI_Finalize();
 }
 
-void MPIHandler::makeGrid(const int N){
+void MPIHandler::makeGrid(const int n, const int N){
   // Check if procN is a perfect square (equiv, if log divisible by 2)
   const int lgp= static_cast<int>(floor(log2(procN_))), perfectSquare= !(lgp%2);
   const int sqrt= 1<<(lgp/2);   // Sqrt of proc num
@@ -37,6 +41,7 @@ void MPIHandler::makeGrid(const int N){
   gridCoord_= xy(rank_%gridSize_.x, rank_/gridSize_.x);
 
   gridReady_= true;
+  makeTypes(n, N);
 }
 void MPIHandler::makeTypes(const int n, const int N){
   if(!gridReady_) throw new std::logic_error("First make grid, then make types!\n");
@@ -70,7 +75,7 @@ void MPIHandler::scatterMat(int* g, int* rcvSubmat){
       s_x_*s_y_,MPI_INT, 0,MPI_COMM_WORLD);
 }
 void MPIHandler::gatherMat(int* rcvSubmat, int* g){
-  if(!gridReady_) throw new std::logic_error("Fist split matrix before calling scatterMat!\n");
+  if(!gridReady_) throw new std::logic_error("Fist make grid before calling gatherMat!\n");
   MPI_Gatherv(rcvSubmat, s_x_*s_y_,MPI_INT, g, ones_.get(),
       submatStarts_.get(), MPI_SUBMAT, 0,MPI_COMM_WORLD);
 }

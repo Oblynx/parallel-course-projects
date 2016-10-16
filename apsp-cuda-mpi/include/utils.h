@@ -13,11 +13,11 @@
   #define COUT   while(0) std::cout
 #endif
 
-#define MAX_THRperBLK2D 16
+#define MAX_THRperBLK2D 4
 #define MAX_THRperBLK2D_MULTI 32
 
 struct xy{
-  xy(const int x, const int y): x(x),y(y) {}
+  xy(const int x=0, const int y=0): x(x),y(y) {}
   xy operator+(const xy& other) const { return xy(x+other.x, y+other.y); }
   xy operator-(const xy& other) const { return xy(x-other.x, y-other.y); }
   xy operator*(const int n) const { return xy(x*n, y*n); }
@@ -116,21 +116,4 @@ inline void printG(const int* g, const int n, const int Nx, const int Ny_= -1){
   idx+= sprintf(buf+idx,"_____________________________________\n");
   printf("%s\n",buf.get());
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

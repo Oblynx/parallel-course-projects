@@ -10,7 +10,7 @@ public:
   MPIHandler& operator=(const MPIHandler&);
 	~MPIHandler();
 
-  void makeGrid(const int N);
+  void makeGrid(const int n, const int N);
   void bcast(int* buffer, const int count, const int broadcaster);
   void bcastRow(int* buffer, const int count, const int broadcaster);
   void bcastCol(int* buffer, const int count, const int broadcaster);
