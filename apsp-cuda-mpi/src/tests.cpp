@@ -29,7 +29,7 @@ double run_gpu_test(const int* g, const int N, int* result_gpu){
   if(N<n) bs= dim3(N,N);
   DPtr<int> d_g(N*N);
 
-  printf("Launching GPU test (multiY block algo with %d primary blocks)\n", B);
+  printf("Launching GPU test (block algo with %d primary blocks)\n", B);
   clock_t begin= clock();
   d_g.copyH2D(const_cast<int*>(g), N*N);
   for(int b=0; b<B; b++){
