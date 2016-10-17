@@ -37,8 +37,10 @@ void MPIHandler::makeGrid(const int n, const int N){
   const int usedProcs= 1<<static_cast<int>(floor(log2(procN_)));
 
   for(int p=usedProcs; p<procN_; p++) submatStarts_[p]= 0;
-  for(int p=0; p<usedProcs; p++) submatStarts_[p]= (p*s_x_)%N + (p*s_x_)/N * s_y_ *s_x_;
+  for(int p=0; p<usedProcs; p++) submatStarts_[p]= (p*s_x_)%N + (p*s_x_)/N * s_y_ *N;  // knob 1
   for(int p=0; p<usedProcs; p++) subStartXY_[p].x= (p*s_x_)%N, subStartXY_[p].y= (p*s_x_)/N *s_y_;
+
+  printf("[mpi#%d]: sstart=(%d,%d)\n", rank_, subStartXY_[rank_].x, subStartXY_[rank_].y);
 
   gridCoord_= xy(rank_%gridSize_.x, rank_/gridSize_.x);
 
@@ -57,24 +59,29 @@ void MPIHandler::makeTypes(const int n, const int N){
   MPI_Comm_rank(MPI_COMM_ROW, &rankRow_);
 
   MPI_Type_vector(n,n,N, MPI_INT, &MPI_TILE); 
-  MPI_Type_create_resized(MPI_TILE, 0,n*sizeof(int), &MPI_TILE); 
+  //MPI_Type_create_resized(MPI_TILE, 0,n*sizeof(int), &MPI_TILE); 
   MPI_Type_commit(&MPI_TILE); 
 
   MPI_Type_vector(s_y_,s_x_,N, MPI_INT, &MPI_SUBMAT); 
-  MPI_Type_create_resized(MPI_SUBMAT, 0, s_x_*sizeof(int), &MPI_SUBMAT); 
+  MPI_Type_create_resized(MPI_SUBMAT, 0, s_x_, &MPI_SUBMAT); // knob 2
   MPI_Type_commit(&MPI_SUBMAT); 
   mpitypesDefined_= true;
   
-  int tsize, ssize, intsz; long text, sext, lb;
+  /*int tsize, ssize, intsz; long text, sext, lb;
   MPI_Type_size(MPI_TILE,&tsize); MPI_Type_size(MPI_SUBMAT,&ssize); MPI_Type_size(MPI_INT, &intsz);
   MPI_Type_get_extent(MPI_TILE,&lb,&text); MPI_Type_get_extent(MPI_SUBMAT,&lb,&sext);
   printf("[mpi]: size MPI_INT: %d\n", intsz );
   printf("[mpi]: n=%d\tN=%d\tsx=%d\tsy=%d\n", n,N, s_x_, s_y_);
-  printf("[mpi]: tsize=%d, text=%ld, n*N=%d\tssize=%d, sext=%ld, sy*N=%d\n", tsize, text, n*N, ssize, sext, s_y_*N);
+  printf("[mpi]: tsize=%d, text=%ld, n*N=%d\tssize=%d, sext=%ld, sy*N=%d\n", tsize, text, n*N, ssize, sext, s_y_*N);*/
+  /*int rcomms, rcommr, ccomms, ccommr;
+  MPI_Comm_size(MPI_COMM_ROW, &rcomms); MPI_Comm_rank(MPI_COMM_ROW, &rcommr);
+  MPI_Comm_size(MPI_COMM_COL, &ccomms); MPI_Comm_rank(MPI_COMM_COL, &ccommr);
+  printf("[mpi#%d]: rcomm: s=%d r=%d\tccomm: s=%d r=%d\n", rank_,rcomms,rcommr, ccomms,ccommr);*/
 }
 
 void MPIHandler::scatterMat(int* g, int* rcvSubmat){
   if(!gridReady_) throw new std::logic_error("First make grid before calling scatterMat!\n");
+  printf("[mpi#%d]: sstart=%d\n", rank_, submatStarts_[rank_]);
   MPI_Scatterv(g, ones_.get(), submatStarts_.get(), MPI_SUBMAT, rcvSubmat,
       s_x_*s_y_,MPI_INT, 0,MPI_COMM_WORLD);
 }
@@ -86,14 +93,17 @@ void MPIHandler::gatherMat(int* rcvSubmat, int* g){
 
 void MPIHandler::bcast(int* buffer, const int count, const int broadcaster){
   MPI_Bcast(buffer, count, MPI_INT, broadcaster, MPI_COMM_WORLD);
+  MPI_Barrier(MPI_COMM_WORLD);
 }
 void MPIHandler::bcastRow(int* buffer, const int count, const int broadcaster){
   // Convert WORLD rank to ROW rank
   const int rrank= broadcaster - gridSize_.x*gridCoord_.y;
   MPI_Bcast(buffer, count, MPI_INT, rrank, MPI_COMM_ROW);
+  MPI_Barrier(MPI_COMM_ROW);
 }
 void MPIHandler::bcastCol(int* buffer, const int count, const int broadcaster){
   // Convert WORLD rank to COL rank
   const int crank= (broadcaster - gridCoord_.x)/gridSize_.x;
   MPI_Bcast(buffer, count, MPI_INT, crank, MPI_COMM_COL);
+  MPI_Barrier(MPI_COMM_COL);
 }

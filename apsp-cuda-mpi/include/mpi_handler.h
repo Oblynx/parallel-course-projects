@@ -26,7 +26,7 @@ public:
   xy subStartXY() const { return subStartXY_[rank_]; }
   xy gridCoord() const { return gridCoord_; }
   xy gridSize() const { return gridSize_; }
-  xy tile2grid(xy tileCd) const { return  tileCd/xy(s_x_,s_y_); }
+  xy point2grid(xy pointCd) const { return  pointCd/xy(s_x_,s_y_); }
 
 private:
   void makeTypes(const int n, const int N);

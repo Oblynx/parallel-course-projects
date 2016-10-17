@@ -3,8 +3,8 @@
 #include "utils.h"
 
 void phase1(const dim3 gs, const dim3 bs, int* g, const xy tileStart, const int pitch);
-void phase2Row(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const xy rowStart, const int pitch, const int t_pitch);
-void phase2Col(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const xy colStart, const int pitch, const int t_pitch);
+void phase2Row(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int rowStart, const int pitch, const int t_pitch);
+void phase2Col(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int colStart, const int pitch, const int t_pitch);
 void phase3(const dim3 gs, const dim3 bs, int* g, const int* row, const int* col, const int b, const xy start,
     const int pitch, const int r_pitch, const int c_pitch, const int rcFlag);
   

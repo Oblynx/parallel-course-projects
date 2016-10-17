@@ -40,23 +40,24 @@ __global__ void phase1_krn(int* g, const xy tileStart, const int pitch){
   g[ pitch*tileStart.y+tileStart.x+ pitch*threadIdx.y + threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
 }
 
-__global__ void phase2Row_krn(int* g, const int* primaryTile, const xy rstart, const int pitch, const int t_pitch){
+//! rstart is a y coordinate
+__global__ void phase2Row_krn(int* g, const int* primaryTile, const int rstart, const int pitch, const int t_pitch){
   __shared__ int tile[n][n], primary[n][n];
   primary[threadIdx.y][threadIdx.x]= primaryTile[t_pitch*threadIdx.y + threadIdx.x];
-  tile[threadIdx.y][threadIdx.x]= g[ pitch*rstart.y+ n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ];
+  tile[threadIdx.y][threadIdx.x]= g[ pitch*rstart+ n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ];
   __syncthreads();
 
-  /*if(!threadIdx.x&&!threadIdx.y){
-    printf("[phase3krn]: \tb:(%d,%d) \tstart=(%d,%d)\n\
+  if(!threadIdx.x&&!threadIdx.y){
+    printf("[phase3krn]: \tb:(%d,%d) \tpitch=%d start=(0,%d)\n\
 %3d %3d |%3d %3d \n\
 %3d %3d |%3d %3d \n", 
-        blockIdx.x,blockIdx.y, rstart.x,rstart.y,
+        blockIdx.x,blockIdx.y, pitch, rstart,
         tile[threadIdx.y][threadIdx.x], tile[threadIdx.y][threadIdx.x+1],
         primary[threadIdx.y][threadIdx.x], primary[threadIdx.y][threadIdx.x+1],
         tile[threadIdx.y+1][threadIdx.x], tile[threadIdx.y+1][threadIdx.x+1],
         primary[threadIdx.y+1][threadIdx.x], primary[threadIdx.y+1][threadIdx.x+1]
         );
-  }*/
+  }
 
   for(int k=0; k<n; k++){
     if(tile[threadIdx.y][threadIdx.x] > tile[k][threadIdx.x]+primary[threadIdx.y][k])
@@ -64,13 +65,14 @@ __global__ void phase2Row_krn(int* g, const int* primaryTile, const xy rstart, c
     __syncthreads();
   }
 
-  g[ pitch*rstart.y+rstart.x+ n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
+  g[ pitch*rstart+ n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
 }
 
-__global__ void phase2Col_krn(int* g, const int* primaryTile, const xy cstart, const int pitch, const int t_pitch){
+//! cstart is an x coordinate
+__global__ void phase2Col_krn(int* g, const int* primaryTile, const int cstart, const int pitch, const int t_pitch){
   __shared__ int tile[n][n], primary[n][n];
   primary[threadIdx.y][threadIdx.x]= primaryTile[t_pitch*threadIdx.y + threadIdx.x];
-  tile[threadIdx.y][threadIdx.x]= g[ cstart.x+ pitch*n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ];
+  tile[threadIdx.y][threadIdx.x]= g[ cstart+ pitch*n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ];
   __syncthreads();
 
   for(int k=0; k<n; k++){
@@ -79,7 +81,7 @@ __global__ void phase2Col_krn(int* g, const int* primaryTile, const xy cstart, c
     __syncthreads();
   }
 
-  g[ pitch*cstart.y+cstart.x+ pitch*n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
+  g[ cstart+ pitch*n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ]= tile[threadIdx.y][threadIdx.x];
 }
 
 // Actually calculate phase 3
@@ -144,11 +146,11 @@ __global__ void phase3rc_krn(int* g, const int* rowBuf, const int* colBuf, const
 void phase1(const dim3 gs, const dim3 bs, int* g, const xy tileStart, const int pitch){
   phase1_krn<<<gs,bs>>>(g, tileStart, pitch);
 }
-void phase2Row(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const xy rowStart,
+void phase2Row(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int rowStart,
     const int pitch, const int t_pitch){
   phase2Row_krn<<<gs,bs>>>(g,primaryTile,rowStart,pitch,t_pitch);
 }
-void phase2Col(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const xy colStart,
+void phase2Col(const dim3 gs, const dim3 bs, int* g, const int* primaryTile, const int colStart,
     const int pitch, const int t_pitch){
   phase2Col_krn<<<gs,bs>>>(g,primaryTile,colStart,pitch,t_pitch);
 }

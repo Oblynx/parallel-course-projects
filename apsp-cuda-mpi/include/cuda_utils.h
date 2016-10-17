@@ -134,7 +134,7 @@ public:
     cudaGetDeviceCount(&devCount_);
     cudaSetDevice(prank%devCount_);
   }
-  void synchronize() { cudaStreamSynchronize(cudaStreamPerThread); }
+  void synchronize() { gpuErrchk(cudaStreamSynchronize(cudaStreamPerThread)); }
 private:
   int devCount_;
 };

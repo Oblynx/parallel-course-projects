@@ -97,7 +97,7 @@ inline bool test(const int* toCheck, const int* truth, const int N, std::string 
 inline void printG_exec(const int* g, const int n, const int Nx, const int Ny_= -1){
   assert(n<=Nx);
   const int Ny= (Ny_<0)? Nx: Ny_;
-  smart_arr<char> buf(20*Nx*Ny);
+  smart_arr<char> buf(25*Nx*Ny);
 
   int idx= 0;
   for(int i=0; i<Ny; i++){

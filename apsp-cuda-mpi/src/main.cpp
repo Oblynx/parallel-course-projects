@@ -27,8 +27,8 @@ int main(int argc, char** argv){
 
     printf("G\n");
     printG_force(g.get(), MAX_THRperBLK2D, N);
-    printf("truth\n");
-    printG_force(truth.get(), MAX_THRperBLK2D ,N);
+    //printf("truth\n");
+    //printG_force(truth.get(), MAX_THRperBLK2D ,N);
   }
   mpi.bcast(&N,1,0);
   
