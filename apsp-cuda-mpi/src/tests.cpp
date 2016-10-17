@@ -33,18 +33,9 @@ double run_gpu_test(const int* g, const int N, int* result_gpu){
   clock_t begin= clock();
   d_g.copyH2D(const_cast<int*>(g), N*N);
   for(int b=0; b<B; b++){
-    printf("[test]: %d Phase1\n",b);
     phase1_test(1,bs, d_g, b*n,N);
-      d_g.copyD2H(result_gpu, N*N);
-      printG(result_gpu,n,N);
-    printf("[test]: %d Phase2\n",b);
     phase2_test(dim3(B-1,2),bs, d_g, b*n,b,N);
-      d_g.copyD2H(result_gpu, N*N);
-      printG(result_gpu,n,N);
-    printf("[test]: %d Phase3\n",b);
     phase3_test(dim3(B-1,B-1),bs, d_g, b*n,b,N);
-      d_g.copyD2H(result_gpu, N*N);
-      printG(result_gpu,n,N);
   }
   d_g.copyD2H(result_gpu, N*N);
   double GPUBlock_time= (double)(clock() - begin) / CLOCKS_PER_SEC;

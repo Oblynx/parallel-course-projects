@@ -17,8 +17,8 @@ double floydWarshall_gpu_mpi(const int* truth, int *g, int N, MPIHandler& mpi, C
 
   clock_t begin= clock();
   mpi.scatterMat(g, submat.get());
-    printf("[rank#%d]: Scattered: sx=%3d sy=%3d\n", mpi.rank(), mpi.s_x(), mpi.s_y());
-    printG_force(submat.get(), n,mpi.s_x(),mpi.s_y());
+    PRINTF("[rank#%d]: Scattered: sx=%3d sy=%3d\n", mpi.rank(), mpi.s_x(), mpi.s_y());
+    printG(submat.get(), n,mpi.s_x(),mpi.s_y());
   loopTiles(truth, submat.get(), B, N, mpi,cuda);
   mpi.gatherMat(submat.get(), g);
   double end= (double)(clock() - begin) / CLOCKS_PER_SEC;
@@ -41,24 +41,14 @@ void loopTiles(const int* truth, int* sg, const int B, const int N, MPIHandler& 
   for(int b=0; b<B; b++){
     int rcFlag= 0;    // If row or column have executed
     execPhase1(dsg, b,N, tilebuf, d_tile, mpi,cuda);
-      dsg.copyD2H(sg,mpi.s_x(), mpi.s_x(),mpi.s_y());
       PRINTF("[algo#%d]: b=%d after ph1:\n", mpi.rank(),b);
-      printG(sg,n,mpi.s_x(),mpi.s_y());
     execPhase2Row(dsg, b,N, d_tile, rowbuf, d_row, mpi,cuda, rcFlag);
-      dsg.copyD2H(sg,mpi.s_x(), mpi.s_x(),mpi.s_y());
       PRINTF("[algo#%d]: b=%d after ph2r:\n", mpi.rank(),b);
-      printG(sg,n,mpi.s_x(),mpi.s_y());
     execPhase2Col(dsg, b, d_tile, colbuf, d_col, mpi,cuda, rcFlag);
-      dsg.copyD2H(sg,mpi.s_x(), mpi.s_x(),mpi.s_y());
       PRINTF("[algo#%d]: b=%d after ph2c:\n", mpi.rank(),b);
-      printG(sg,n,mpi.s_x(),mpi.s_y());
     execPhase3(dsg, b, d_row, d_col, mpi,cuda, rcFlag);
-      //dsg.copyD2H(sg, mpi.s_x()*mpi.s_y());
-      dsg.copyD2H(sg,mpi.s_x(), mpi.s_x(),mpi.s_y());
       PRINTF("[algo#%d]: b=%d after ph3:\n", mpi.rank(),b);
-      printG(sg,n,mpi.s_x(),mpi.s_y());
   }
-  //dsg.copyD2H(sg, mpi.s_x()*mpi.s_y());
   dsg.copyD2H(sg,mpi.s_x(), mpi.s_x(),mpi.s_y());
 }
 

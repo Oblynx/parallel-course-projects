@@ -13,7 +13,7 @@
   #define COUT   while(0) std::cout
 #endif
 
-#define MAX_THRperBLK2D 2
+#define MAX_THRperBLK2D 32
 #define MAX_THRperBLK2D_MULTI 32
 
 struct xy{
@@ -86,7 +86,7 @@ inline bool test(const int* toCheck, const int* truth, const int N, std::string 
   for(int i=0; i<N; i++)
     for(int j=0; j<N; j++)
       if(toCheck[i*N+j] != truth[i*N+j]){
-        printf("[test/%s]: Error at (%d,%d)! toCheck/truth =\n\t%d\n\t%d\n", name.c_str(), i,j, toCheck[i*N+j],
+        printf("[test/%s]: Error at (%d,%d)! toCheck/truth =\n\t%d\n\t%d\n", name.c_str(), j,i, toCheck[i*N+j],
             truth[i*N+j]);
         return false;
       }

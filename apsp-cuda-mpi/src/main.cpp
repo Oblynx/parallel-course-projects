@@ -13,22 +13,8 @@ int main(int argc, char** argv){
   int N;
   if(!mpi.rank()){
     N= input(g, truth, argc, argv);
-    //if (N<512) run_cpu_test(g.get(), N, truth.get());
-    //else       run_gpu_test(g.get(), N, truth.get());
-    smart_arr<int> truthCPU(N*N);
-    run_cpu_test(g.get(), N, truthCPU.get());
-    run_gpu_test(g.get(), N, truth.get());
-
-    printG_force(truth.get(), 8,N);
-    printG_force(truthCPU.get(), 8,N);
-    bool gpucorrect= test(truth.get(), truthCPU.get(), N,"gputest");
-    if(!gpucorrect) exit(1);
-
-
-    printf("G\n");
-    printG_force(g.get(), MAX_THRperBLK2D, N);
-    //printf("truth\n");
-    //printG_force(truth.get(), MAX_THRperBLK2D ,N);
+    if (N<512) run_cpu_test(g.get(), N, truth.get());
+    else       run_gpu_test(g.get(), N, truth.get());
   }
   mpi.bcast(&N,1,0);
   
@@ -36,10 +22,9 @@ int main(int argc, char** argv){
   double time= floydWarshall_gpu_mpi( truth.get(), g.get(), N, mpi, cuda );
   if(!mpi.rank()) printf("fw time: %.3f\n", time);
 
-  printf("G\n");
-  printG_force(g.get(), MAX_THRperBLK2D, N);
-
   if(!mpi.rank()){
+    PRINTF("G\n");
+    printG(g.get(), MAX_THRperBLK2D, N);
     bool testResult= false;
     testResult= test(g.get(), truth.get(), N, "gpu_mpi");
     if(testResult)
