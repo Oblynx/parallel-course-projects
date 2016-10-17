@@ -21,7 +21,7 @@ message(STATUS MPIEXEC_NUMPROC_FLAGS: ${MPIEXEC_NUMPROC_FLAGS})
 message(STATUS MPIEXEC_PREFLAGS: ${MPIEXEC_PREFLAGS})
 message(STATUS MPIEXEC_POSTFLAGS: ${MPIEXEC_POSTFLAGS})
 
-set(CMAKE_BUILD_TYPE DEBUG)
+#set(CMAKE_BUILD_TYPE DEBUG)
 
 set(CMAKE_CXX_FLAGS "-Wall -O2 -march=native")
 list(APPEND CUDA_NVCC_FLAGS "-O2 --compiler-options -fno-strict-aliasing -lineinfo -Xptxas -dlcm=cg -Wno-deprecated-gpu-targets --default-stream per-thread")

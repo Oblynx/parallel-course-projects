@@ -78,8 +78,6 @@ void execPhase1 (DPtr<int>& dsg, const int b,const int N, int* tilebuf, DPtr<int
     cuda.synchronize();
   }
   mpi.bcast(tilebuf,n*n, executor);
-  //PRINTF("[algo#%d]: b=%d tilebuf:\n", mpi.rank(), b);
-  //printG(tilebuf, n,n);
   d_tile.copyH2D(tilebuf,n, n,n);
 }
 
@@ -93,7 +91,7 @@ void execPhase2Row (DPtr<int>& dsg, const int b,const int N, DPtr<int>& d_tile, 
     const dim3 bs(n,n), gs(mpi.s_x()/n,1);
     xy rowStart= xy(0, n*b - mpi.subStartXY().y);
     phase2Row( gs,bs, dsg, d_tile, rowStart.y, dsg.pitch_elt(), d_tile.pitch_elt() );
-    printf("[ph2r#%d]: rstart=(%d,%d) sx=%d\n", mpi.rank(), rowStart.x,rowStart.y, mpi.s_x());
+    PRINTF("[ph2r#%d]: rstart=(%d,%d) sx=%d\n", mpi.rank(), rowStart.x,rowStart.y, mpi.s_x());
     dsg.copyD2H(rowbuf,mpi.s_x(), mpi.s_x(),n, rowStart);
     //dsg.copyD2H_multi(rowbuf, mpi.s_x(), n, rowStartXY);
     cuda.synchronize();
@@ -104,6 +102,7 @@ void execPhase2Row (DPtr<int>& dsg, const int b,const int N, DPtr<int>& d_tile, 
   mpi.bcastCol(rowbuf, n*mpi.s_x(), executor);
   d_row.copyH2D(rowbuf,mpi.s_x(), mpi.s_x(),n);
 }
+
 void execPhase2Col (DPtr<int>& dsg, const int b, DPtr<int>& d_tile, int* colbuf,
     DPtr<int>& d_col, MPIHandler& mpi,CUDAHandler& cuda, int& rcFlag){
   const int gridRow= mpi.gridCoord().y;
@@ -127,10 +126,11 @@ void execPhase2Col (DPtr<int>& dsg, const int b, DPtr<int>& d_tile, int* colbuf,
 
 void execPhase3 (DPtr<int>& dsg, const int b, DPtr<int>& d_row, DPtr<int>& d_col, MPIHandler& mpi, CUDAHandler& cuda, int rcFlag){
   // Grid size minus 1 if this submat has the current primary row or col
-  PRINTF("[algo#%d]: %d Phase3\n",mpi.rank(),b);
   const dim3 bs(n,n), gs(mpi.s_x()/n - ((0x0002&rcFlag)>>1), mpi.s_y()/n - (0x0001&rcFlag));
   xy gCd= mpi.gridCoord();
-  phase3( gs,bs, dsg, d_row,d_col, b, xy(gCd.x*mpi.s_x(), gCd.y*mpi.s_y()), dsg.pitch_elt(), d_row.pitch_elt(), d_col.pitch_elt(), rcFlag );
+  PRINTF("[algo#%d]: %d Phase3\trc=%d gs=(%d,%d) start=(%d,%d)\n",mpi.rank(),b, rcFlag, gs.x,gs.y, 
+      gCd.x*mpi.s_x(),gCd.y*mpi.s_y());
+  phase3( gs,bs, dsg, d_row,d_col, b, xy(gCd.x*mpi.s_x()/n, gCd.y*mpi.s_y()/n), dsg.pitch_elt(), d_row.pitch_elt(), d_col.pitch_elt(), rcFlag );
   cuda.synchronize();
 }
 
@@ -138,7 +138,6 @@ void execPhase3 (DPtr<int>& dsg, const int b, DPtr<int>& d_row, DPtr<int>& d_col
 //! Return rank of process that will calculate the relevant data
 int phase1FindExecutor(const int b, MPIHandler& mpi){
   xy gridCd= mpi.point2grid(xy(b,b)*n);
-  //printf("[ph1FindExec#%d]: b=%d tile gridCd=(%d,%d)\n", mpi.rank(), b, gridCd.x, gridCd.y);
   return mpi.gridSize().x*gridCd.y + gridCd.x;
 }
 int phase2RowFindExecutor(const int b, const int col, MPIHandler& mpi){

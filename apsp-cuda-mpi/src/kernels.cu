@@ -47,7 +47,7 @@ __global__ void phase2Row_krn(int* g, const int* primaryTile, const int rstart, 
   tile[threadIdx.y][threadIdx.x]= g[ pitch*rstart+ n*blockIdx.x+ pitch*threadIdx.y+threadIdx.x ];
   __syncthreads();
 
-  if(!threadIdx.x&&!threadIdx.y){
+  /*if(!threadIdx.x&&!threadIdx.y){
     printf("[phase3krn]: \tb:(%d,%d) \tpitch=%d start=(0,%d)\n\
 %3d %3d |%3d %3d \n\
 %3d %3d |%3d %3d \n", 
@@ -57,7 +57,7 @@ __global__ void phase2Row_krn(int* g, const int* primaryTile, const int rstart, 
         tile[threadIdx.y+1][threadIdx.x], tile[threadIdx.y+1][threadIdx.x+1],
         primary[threadIdx.y+1][threadIdx.x], primary[threadIdx.y+1][threadIdx.x+1]
         );
-  }
+  }*/
 
   for(int k=0; k<n; k++){
     if(tile[threadIdx.y][threadIdx.x] > tile[k][threadIdx.x]+primary[threadIdx.y][k])
@@ -93,15 +93,14 @@ __device__ void phase3_exec(int* g, const int* rowBuf, const int* colBuf, const 
   tile[threadIdx.y][threadIdx.x]= g[ pitch*n*blockIdx_yskip+ n*blockIdx_xskip+ pitch*threadIdx.y+threadIdx.x ];
   __syncthreads();
 
-  
   /*if(!threadIdx.x&&!threadIdx.y){
-    printf("[phase3krn]: \tb:(%d,%d) p=%3d rp=%3d cp=%3d\n\
+    printf("[phase3krn]: \tb:(%d,%d)->(%d,%d) p=%3d rp=%3d cp=%3d\n\
         |%3d %3d\n\
         |%3d %3d\n\
          --------\n\
 %3d %3d |%3d %3d\n\
 %3d %3d |%3d %3d\n", 
-        blockIdx.x,blockIdx.y, pitch, r_pitch, c_pitch,
+        blockIdx.x,blockIdx.y, blockIdx_xskip,blockIdx_yskip, pitch, r_pitch, c_pitch,
         row[threadIdx.y][threadIdx.x],row[threadIdx.y][threadIdx.x+1],
         row[threadIdx.y+1][threadIdx.x],row[threadIdx.y+1][threadIdx.x+1],
         col[threadIdx.y][threadIdx.x], col[threadIdx.y][threadIdx.x+1],
@@ -122,20 +121,24 @@ __device__ void phase3_exec(int* g, const int* rowBuf, const int* colBuf, const 
 // Determine if a row or column must be skipped and then call the actual calculation for phase 3
 __global__ void phase3_krn(int* g, const int* rowBuf, const int* colBuf, const int b, const xy start,
     const int pitch, const int r_pitch, const int c_pitch){
+  //printf("[ph3_krn]\n");
   phase3_exec( g, rowBuf,colBuf, blockIdx.x, blockIdx.y, pitch, r_pitch,c_pitch);
 }
 __global__ void phase3r_krn(int* g, const int* rowBuf, const int* colBuf, const int b, const xy start,
     const int pitch, const int r_pitch, const int c_pitch){
+  //printf("[ph3r_krn]\n");
   int blockIdx_yskip= (blockIdx.y >= b-start.y)? blockIdx.y+1: blockIdx.y;
   phase3_exec( g, rowBuf,colBuf, blockIdx.x, blockIdx_yskip, pitch, r_pitch,c_pitch);
 }
 __global__ void phase3c_krn(int* g, const int* rowBuf, const int* colBuf, const int b, const xy start,
     const int pitch, const int r_pitch, const int c_pitch){
+  //printf("[ph3c_krn]\n");
   int blockIdx_xskip= (blockIdx.x >= b-start.x)? blockIdx.x+1: blockIdx.x;     // skip primary tile
   phase3_exec( g, rowBuf,colBuf, blockIdx_xskip, blockIdx.y, pitch, r_pitch,c_pitch);
 }
 __global__ void phase3rc_krn(int* g, const int* rowBuf, const int* colBuf, const int b, const xy start,
     const int pitch, const int r_pitch, const int c_pitch){
+  //printf("[ph3rc_krn]\n");
   int blockIdx_xskip= (blockIdx.x >= b-start.x)? blockIdx.x+1: blockIdx.x;     // skip primary tile
   int blockIdx_yskip= (blockIdx.y >= b-start.y)? blockIdx.y+1: blockIdx.y;
   phase3_exec( g, rowBuf,colBuf, blockIdx_xskip, blockIdx_yskip, pitch, r_pitch, c_pitch);
